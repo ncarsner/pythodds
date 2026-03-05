@@ -43,7 +43,7 @@ binom -n 100 -k 30 -p 0.35 --target 40 --min-prob 0.05
 ### Python Library
 
 ```python
-from src.utils.binomial_distribution import binomial_pmf, binomial_cdf_le, binomial_cdf_ge
+from utils.binomial_distribution import binomial_pmf, binomial_cdf_le, binomial_cdf_ge
 
 # P(X = 3) for Binomial(n=10, p=0.4)
 pmf = binomial_pmf(10, 3, 0.4)
