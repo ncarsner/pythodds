@@ -24,7 +24,7 @@ classifiers = [
 ]
 
 [project.scripts]
-binom = "src.utils.binomial_distribution:main"
+binom = "utils.binomial_distribution:main"
 
 [build-system]
 requires = ["hatchling"]
