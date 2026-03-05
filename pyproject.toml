@@ -30,33 +30,8 @@ binom = "src.utils.binomial_distribution:main"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-# Hatch Configuration
-[tool.hatch.version]
-path = "src/__init__.py"
-pattern = '__version__ = "(?P<version>[^"]+)"'
-
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
-
-[tool.hatch.build.targets.sdist]
-include = [
-    "/src",
-    "/LICENSE",
-    "/README.md",
-    "/MANIFEST.in",
-]
-
-[tool.hatch.envs.dev]
-dependencies = [
-    "pytest",
-    "pytest-cov",
-]
-
-[tool.hatch.envs.dev.scripts]
-test = "pytest {args}"
-cov = "pytest --cov=src {args}"
-lint = "ruff check src"
-format = "ruff format src && ruff check --fix src"
 
 [dependency-groups]
 dev = [
