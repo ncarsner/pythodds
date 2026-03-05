@@ -36,14 +36,15 @@ jobs:
 
       - name: Publish to PyPI
         env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN_V2 || secrets.PYPI_API_TOKEN }}
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          test -n "$UV_PUBLISH_TOKEN" || (echo "PYPI_API_TOKEN is empty or missing" && exit 1)
+          test -n "$UV_PUBLISH_TOKEN" || (echo "ERROR: PYPI_API_TOKEN is empty or missing" && exit 1)
           UV_PUBLISH_TOKEN="$(printf %s "$UV_PUBLISH_TOKEN" | tr -d '\r\n')"
-          [[ "$UV_PUBLISH_TOKEN" == pypi-* ]] || (echo "PYPI_API_TOKEN does not look like a PyPI API token" && exit 1)
+          echo "Token starts with: ${UV_PUBLISH_TOKEN:0:10}..."
+          [[ "$UV_PUBLISH_TOKEN" == pypi-* ]] || (echo "ERROR: Token does not start with 'pypi-'" && exit 1)
+          echo "Publishing to PyPI..."
           uv publish \
             --username __token__ \
             --password "$UV_PUBLISH_TOKEN" \
             --publish-url https://upload.pypi.org/legacy/ \
-            --check-url https://pypi.org/simple/ \
-            -v
+            -v 2>&1 || (echo "ERROR: uv publish failed with exit code $?" && exit 1)
