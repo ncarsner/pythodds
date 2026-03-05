@@ -1,6 +1,6 @@
 [project]
 name = "pythodds"
-version = "0.1.4"
+version = "0.1.5"
 description = "Command line utilities for statistics, odds, and probabilities"
 readme = "README.md"
 authors = [
