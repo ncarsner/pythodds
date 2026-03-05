@@ -1,7 +1,7 @@
 """Tests for binomial distribution functions."""
 
 import pytest
-from utils.binomial_distribution import binomial_pmf, binomial_cdf_le, binomial_cdf_ge
+from src.utils.binomial_distribution import binomial_pmf, binomial_cdf_le, binomial_cdf_ge
 
 
 def test_binomial_pmf_basic():
