@@ -57,3 +57,9 @@ test = "pytest {args}"
 cov = "pytest --cov=src {args}"
 lint = "ruff check src"
 format = "ruff format src && ruff check --fix src"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+]
