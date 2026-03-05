@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/pythodds.svg)](https://pypi.org/project/pythodds/)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/yourusername/pythodds/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/ncarsner/pythodds/blob/main/LICENSE)
 
 A command-line utility and Python library for calculating statistics, odds, and probabilities.
 
@@ -23,7 +23,7 @@ pip install pythodds
 Or install from source:
 
 ```bash
-git clone https://github.com/yourusername/pythodds.git
+git clone https://github.com/ncarsner/pythodds.git
 cd pythodds
 pip install -e .
 ```
@@ -60,7 +60,7 @@ survival = binomial_cdf_ge(10, 3, 0.4)
 Clone the repository and install in editable mode:
 
 ```bash
-git clone https://github.com/yourusername/pythodds.git
+git clone https://github.com/ncarsner/pythodds.git
 cd pythodds
 pip install -e .
 ```
@@ -71,4 +71,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Author
 
-Your Name - [@yourusername](https://github.com/yourusername)
+[Nicholas Carsner](https://github.com/ncarsner)
