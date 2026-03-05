@@ -3,7 +3,11 @@ name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 on:
   push:
     tags:
-      - "*"
+      - "v*"
+      - "test-*"
+
+permissions:
+  contents: read
 
 jobs:
   build-and-publish:
@@ -31,10 +35,24 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/test-')
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        run: uv publish --publish-url https://test.pypi.org/legacy/ --token "$UV_PUBLISH_TOKEN"
+        run: |
+          test -n "$UV_PUBLISH_TOKEN" || (echo "TEST_PYPI_API_TOKEN is empty or missing" && exit 1)
+          uv publish \
+            --username __token__ \
+            --password "$UV_PUBLISH_TOKEN" \
+            --publish-url https://test.pypi.org/legacy/ \
+            --check-url https://test.pypi.org/simple/ \
+            -v
 
       - name: Publish to PyPI (for versioned releases)
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        run: uv publish --publish-url https://upload.pypi.org/legacy/ --token "$UV_PUBLISH_TOKEN"
+        run: |
+          test -n "$UV_PUBLISH_TOKEN" || (echo "PYPI_API_TOKEN is empty or missing" && exit 1)
+          uv publish \
+            --username __token__ \
+            --password "$UV_PUBLISH_TOKEN" \
+            --publish-url https://upload.pypi.org/legacy/ \
+            --check-url https://pypi.org/simple/ \
+            -v
