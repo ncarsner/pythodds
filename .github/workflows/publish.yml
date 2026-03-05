@@ -46,9 +46,11 @@ jobs:
       - name: Publish to TestPyPI (manual dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'testpypi'
         env:
-          UV_PUBLISH_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          UV_PUBLISH_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN_V2 || secrets.TEST_PYPI_API_TOKEN }}
         run: |
           test -n "$UV_PUBLISH_TOKEN" || (echo "TEST_PYPI_API_TOKEN is empty or missing" && exit 1)
+          UV_PUBLISH_TOKEN="$(printf %s "$UV_PUBLISH_TOKEN" | tr -d '\r\n')"
+          [[ "$UV_PUBLISH_TOKEN" == pypi-* ]] || (echo "TEST_PYPI_API_TOKEN does not look like a PyPI API token" && exit 1)
           uv publish \
             --username __token__ \
             --password "$UV_PUBLISH_TOKEN" \
@@ -59,9 +61,11 @@ jobs:
       - name: Publish to PyPI (version tags or manual dispatch)
         if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'pypi')
         env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN_V2 || secrets.PYPI_API_TOKEN }}
         run: |
           test -n "$UV_PUBLISH_TOKEN" || (echo "PYPI_API_TOKEN is empty or missing" && exit 1)
+          UV_PUBLISH_TOKEN="$(printf %s "$UV_PUBLISH_TOKEN" | tr -d '\r\n')"
+          [[ "$UV_PUBLISH_TOKEN" == pypi-* ]] || (echo "PYPI_API_TOKEN does not look like a PyPI API token" && exit 1)
           uv publish \
             --username __token__ \
             --password "$UV_PUBLISH_TOKEN" \
