@@ -25,6 +25,7 @@ classifiers = [
 
 [project.scripts]
 binom = "src.utils.binomial_distribution:main"
+birthday = "src.utils.birthday_problem:main"
 
 [build-system]
 requires = ["hatchling"]
