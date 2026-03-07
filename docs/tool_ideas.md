@@ -1,1 +1,215 @@
-# Tool Ideas for `pythodds`\n\nThis document outlines candidate tools for future addition to `pythodds`. Each entry describes the proposed command name, its statistical/mathematical architecture, practical application, and target user base — contextualised against the existing `binom` and `birthday` tools.\n\n---\n\n## Existing Tools (Reference Baseline)\n\n| Command    | What it does | Core user |\n|------------|--------------|-----------|\n| `binom`    | PMF, CDF, and survival function for a Binomial(n, p) distribution | Analysts testing pass/fail rates, A/B testers, QA engineers |\n| `birthday` | Collision probability for uniform and non-uniform pools; range tables; JSON/CSV output | Security researchers, data engineers checking ID uniqueness, statisticians |\n\nAll existing tools are **pure-Python, zero-dependency, CLI-first**, with optional use as an importable library. Proposed tools follow the same constraints and conventions.\n\n---\n\n## 1. `poisson` — Poisson Distribution Calculator\n\n### Architecture\n- **Core functions:** `poisson_pmf(k, lam)`, `poisson_cdf_le(k, lam)`, `poisson_cdf_ge(k, lam)`\n- Uses `math.lgamma` for numerical stability at large `k`\n- CLI flags mirror `binom`: `-k`/`--events`, `-l`/`--rate`, `--target`, `--min-prob`, `--precision`\n- Output: PMF, CDF ≤ k, survival ≥ k; optional threshold check\n\n### Application\nThe Poisson distribution models the probability of a given number of rare, independent events occurring in a fixed interval of time or space. Natural companion to `binom` for low-probability / high-trial-count scenarios (e.g. "given 3 server errors per hour on average, what is the probability of seeing 7 or more in the next hour?").\n\n```bash\npoisson -k 7 -l 3.0\npoisson -k 5 -l 2.5 --target 8 --min-prob 0.05\n```\n\n### Target User Base\n- **DevOps / SREs** monitoring error rates, alert thresholds, and incident frequency\n- **Actuaries and risk analysts** modelling claim arrival rates\n- **Scientists and researchers** already using `binom` for discrete probability problems\n- Directly adjacent to the existing audience: anyone comfortable with `binom -n 100 -k 3 -p 0.03` will immediately understand `poisson -k 3 -l 3.0`\n\n---\n\n## 2. `normal` — Normal (Gaussian) Distribution Calculator\n\n### Architecture\n- **Core functions:** `normal_pdf(x, mu, sigma)`, `normal_cdf(x, mu, sigma)`, `normal_ppf(p, mu, sigma)` (percent-point / quantile function)\n- Implemented via `math.erf` — no external dependencies\n- CLI flags: `-x`/`--value`, `-m`/`--mean`, `-s`/`--std`, `--between LOW HIGH`, `--quantile P`, `--precision`\n- Output: PDF at x, P(X ≤ x), P(X ≥ x), optionally P(LOW ≤ X ≤ HIGH) or the x-value at quantile p\n\n### Application\nThe normal distribution is the most widely used continuous distribution. Covers z-score calculations, confidence interval boundary checks, standardisation questions, and quality control (Six Sigma-style defect rate estimation).\n\n```bash\nnormal -x 1.96 -m 0 -s 1\nnormal --between -1.96 1.96 -m 0 -s 1\nnormal --quantile 0.975 -m 0 -s 1\n```\n\n### Target User Base\n- **Students and educators** verifying z-table lookups without needing scipy\n- **QA engineers and manufacturing analysts** checking whether process measurements fall within tolerance bands\n- **Data scientists** who want a quick sanity-check tool without spinning up a Python REPL\n- Broader than `binom`/`birthday` — the most universally accessible addition to the suite\n\n---\n\n## 3. `expected` — Expected Value and Variance Calculator\n\n### Architecture\n- Accepts a discrete probability distribution as paired lists or a CSV/JSON file: `--outcomes 1,2,3,4,5,6 --probs 0.1,0.2,0.3,0.2,0.1,0.1`\n- **Core functions:** `expected_value(outcomes, probs)`, `variance(outcomes, probs)`, `std_dev(outcomes, probs)`, `entropy(probs)`\n- Optional: moment generating function value at a given `t` (`--mgf T`)\n- Output: E[X], Var(X), SD(X), Shannon entropy\n\n### Application\nA general-purpose tool for computing summary statistics of any user-defined discrete distribution. Useful for analysing custom payout tables, lottery structures, card game odds, or any scenario where the user supplies raw outcomes and weights — complementing `birthday`'s `--weights` flag philosophy.\n\n```bash\nexpected --outcomes 0,1,5,10 --probs 0.50,0.25,0.15,0.10\nexpected --file payouts.csv\n```\n\n### Target User Base\n- **Game designers and odds analysts** modelling prize tables or betting structures\n- **Educators** teaching probability theory who want a quick computation tool\n- **Researchers** exploring custom distributions before committing to a full scipy/numpy setup\n- Power users of `birthday --weights` who want deeper summary statistics on their custom pools\n\n---\n\n## 4. `hypergeo` — Hypergeometric Distribution Calculator\n\n### Architecture\n- **Core functions:** `hypergeo_pmf(k, N, K, n)`, `hypergeo_cdf_le(k, N, K, n)`, `hypergeo_cdf_ge(k, N, K, n)`\n- Uses `math.comb` (already used in `binom`) for exact computation\n- CLI flags: `-N`/`--population`, `-K`/`--successes-in-pop`, `-n`/`--draws`, `-k`/`--observed`, `--precision`\n- Output: PMF, CDF ≤ k, CDF ≥ k\n\n### Application\nModels drawing without replacement from a finite population — the key distinction from the binomial. Classic applications include quality control sampling (defective units in a batch), card game probability (probability of drawing exactly 2 aces from a 5-card hand), and audit sampling.\n\n```bash\n# P(exactly 2 aces in a 5-card hand from a standard 52-card deck)\nhypergeo -N 52 -K 4 -n 5 -k 2\n\n# Audit: 10 defective items in a batch of 100; sample 15 — P(catching ≥ 2)\nhypergeo -N 100 -K 10 -n 15 -k 2\n```\n\n### Target User Base\n- **Auditors and compliance analysts** sizing samples to detect defects with known confidence\n- **Card game / tabletop RPG designers** computing draw probabilities\n- **Scientists** running enrichment analyses (e.g. gene-set overlap)\n- Direct conceptual neighbour of `binom` — the natural "sampling without replacement" counterpart; existing `binom` users will find the interface familiar\n\n---\n\n## 5. `streak` — Consecutive Success/Failure Streak Probability\n\n### Architecture\n- **Core functions:**\n  - `prob_at_least_one_streak(n, k, p)` — probability of at least one run of `k` consecutive successes in `n` independent Bernoulli trials\n  - `expected_longest_streak(n, p)` — expected length of the longest run\n- Uses dynamic programming (DP table) for exact computation; O(n·k) time and O(k) space\n- CLI flags: `-n`/`--trials`, `-k`/`--streak-length`, `-p`/`--prob`, `--longest`, `--precision`\n\n### Application\nAnswers questions like "In 162 baseball games with a 0.300 batting average, what is the probability of a hitting streak of at least 20 games?" or "In 50 sales calls with a 10% close rate, what is the probability of getting 3 consecutive closes?". Streak/run probability is a common question in sports analytics, quality control (consecutive defects), and trading (win/loss streaks).\n\n```bash\n# P(at least one streak of 5+ heads in 100 fair coin flips)\nstreak -n 100 -k 5 -p 0.5\n\n# Expected longest run of successes\nstreak -n 162 -p 0.300 --longest\n```\n\n### Target User Base\n- **Sports analysts and bettors** evaluating hot/cold streaks\n- **Traders and quants** assessing drawdown streaks in a strategy's win/loss record\n- **QA engineers** monitoring consecutive failures in automated test suites\n- Users already comfortable with `binom` who want to reason about sequential structure, not just aggregate counts\n\n---\n\n## 6. `bayes` — Bayesian Probability Updater\n\n### Architecture\n- **Core functions:** `posterior(prior, likelihood, evidence)`, `update(prior, likelihood_hit, likelihood_miss)` (sequential updates)\n- Accepts a prior, a likelihood of evidence given hypothesis, and a likelihood of evidence given ¬hypothesis\n- CLI supports `--prior`, `--likelihood-pos`, `--likelihood-neg`, and `--iterations` for repeated updating (e.g. multiple test results)\n- Output: posterior probability after each update step; table or single value\n\n### Application\nBayesian updating underpins medical testing (sensitivity/specificity), spam filtering, and iterative belief revision. This tool provides an accessible, step-by-step command-line interface for P(H|E) calculations without requiring a full probabilistic programming library.\n\n```bash\n# Medical test: disease prevalence 1%, test sensitivity 99%, false positive rate 5%\nbayes --prior 0.01 --likelihood-pos 0.99 --likelihood-neg 0.05\n\n# Two sequential positive tests\nbayes --prior 0.01 --likelihood-pos 0.99 --likelihood-neg 0.05 --iterations 2\n```\n\n### Target User Base\n- **Medical and public health analysts** interpreting diagnostic test results\n- **Security analysts** updating threat probability as evidence accumulates\n- **Students** learning Bayesian reasoning who need a tactile, command-line walkthrough\n- A natural complement to the frequentist tools (`binom`, `poisson`) already in the suite — giving `pythodds` both frequentist and Bayesian perspectives\n\n---\n\n## Summary Table\n\n| Command    | Distribution / Concept     | New CLI entry point | Zero-dep? | Closest existing tool |\n|------------|----------------------------|---------------------|-----------|-----------------------|\n| `poisson`  | Poisson                    | `poisson`           | ✅        | `binom`               |\n| `normal`   | Normal / Gaussian          | `normal`            | ✅        | `binom`               |\n| `expected` | Discrete EV / variance     | `expected`          | ✅        | `birthday --weights`  |\n| `hypergeo` | Hypergeometric             | `hypergeo`          | ✅        | `binom`               |\n| `streak`   | Run / streak probability   | `streak`            | ✅        | `binom`               |\n| `bayes`    | Bayesian posterior update  | `bayes`             | ✅        | `birthday`            |
+---
+
+## Extended Tool Ideas (Dependency-Optional, Dynamic Input)
+
+The tools below may introduce optional or required third-party dependencies — primarily for visualisation (`matplotlib`, `rich`) or numerical computation (`numpy`). Where dependencies are optional, tools degrade gracefully to plain-text output when the library is not installed. All tools continue to accept dynamic user-supplied variables to scale computation to real input.
+
+---
+
+## 7. `plotdist` — Distribution Visualiser
+
+### Dependencies
+- **Required:** `matplotlib` (plot rendering)
+- **Optional:** `numpy` (faster linspace/meshgrid for large ranges; falls back to `range` + `math`)
+
+### Architecture
+- Accepts a distribution name and its parameters via flags; renders a PMF bar chart or PDF line plot to screen or saves to a file
+- Supported distributions (initial): `binomial`, `poisson`, `normal`, `hypergeometric`
+- CLI flags: `--dist DIST`, `--params KEY=VALUE [...]`, `--range MIN MAX`, `--output FILE`, `--title STR`, `--style {bar,line,step}`, `--dpi INT`
+- Falls back to a Unicode block-character histogram in stdout if `matplotlib` is not installed (`--text` flag or auto-detected)
+- Dynamic scaling: `--range` adjusts x-axis automatically; `--params` can be passed multiple times to overlay distributions on one plot
+
+```bash
+# Bar chart of Binomial(20, 0.4) PMF
+plotdist --dist binomial --params n=20 p=0.4
+
+# Overlay two Poisson distributions
+plotdist --dist poisson --params lam=2 --params lam=6 --range 0 20
+
+# Save a Normal PDF to a file
+plotdist --dist normal --params mu=0 sigma=1 --output normal_curve.png
+
+# Text fallback histogram (no matplotlib needed)
+plotdist --dist binomial --params n=10 p=0.3 --text
+```
+
+### Target User Base
+- **Educators and students** who want a visual companion to the existing numeric tools
+- **Analysts** building quick presentation-ready charts from the CLI without opening a notebook
+- **Existing `binom` and `birthday` users** who want to "see" the distributions they're already querying numerically
+- The `--text` fallback makes this useful even in headless / SSH environments
+
+---
+
+## 8. `simulate` — Monte Carlo Probability Simulator
+
+### Dependencies
+- **Optional:** `numpy` (vectorised sampling, significantly faster for large `--trials`; pure `random` module used as fallback)
+
+### Architecture
+- Runs repeated random experiments to estimate probabilities empirically, cross-validating analytical results from `binom`, `birthday`, etc.
+- Modes: `--experiment {binomial,birthday,streak,custom}`
+- User-supplied variables: `--trials N` (number of simulations), `--params KEY=VALUE [...]`, `--seed INT` (reproducibility), `--confidence` (prints 95% CI around the estimate)
+- Output: estimated probability, standard error, optional comparison to analytical value, optional CSV of per-trial results (`--dump`)
+- `--scale` flag dynamically adjusts trial count based on desired precision: `--scale 0.001` runs enough trials to achieve ±0.1% standard error
+
+```bash
+# Empirically estimate P(X >= 5) for Binomial(10, 0.4) using 100,000 simulations
+simulate --experiment binomial --params n=10 k=5 p=0.4 --trials 100000
+
+# Birthday problem simulation for a pool of 365, group of 23
+simulate --experiment birthday --params pool=365 group=23 --trials 50000 --confidence
+
+# Auto-scale trials for ±0.01 standard error
+simulate --experiment binomial --params n=20 k=8 p=0.5 --scale 0.01 --seed 42
+```
+
+### Target User Base
+- **Students and educators** verifying analytical results through simulation
+- **Researchers** stress-testing edge cases where closed-form approximations may lose accuracy
+- **Power users** of existing tools who want to validate outputs empirically
+- The `--scale` flag is especially valuable for users who don't know how many trials are "enough" for a given precision target
+
+---
+
+## 9. `oddsconv` — Odds Format Converter
+
+### Dependencies
+- None (pure Python)
+
+### Architecture
+- Converts between all major odds formats: **decimal**, **fractional**, **American (moneyline)**, **implied probability**, and **Hong Kong / Malay / Indonesian** odds
+- Dynamic: accepts any one format as input and outputs all others simultaneously
+- CLI flags: `--decimal F`, `--fractional N/D`, `--american INT`, `--prob F`, `--hk F`, `--malay F`, `--indo F`
+- Optional: `--vig` to back-calculate overround/vig from a set of implied probabilities (`--prob 0.52 0.51` → prints book margin)
+- Output: table of all equivalent representations, with implied probability and fair value
+
+```bash
+# Convert decimal odds to all formats
+oddsconv --decimal 2.50
+
+# Convert American moneyline to all formats
+oddsconv --american -150
+
+# Compute vig/overround from a two-outcome market
+oddsconv --vig --prob 0.526 0.526
+```
+
+### Target User Base
+- **Sports bettors and traders** working across platforms that use different odds formats
+- **Quantitative analysts** building pricing models who need a fast reference tool
+- **Educators** teaching probability through real-world gambling/markets examples
+- Complements `binom` and `expected` for users doing sports analytics or betting modelling end-to-end
+
+---
+
+## 10. `confint` — Confidence Interval Calculator
+
+### Dependencies
+- None (pure Python via `math.erf` and lookup tables for t-distribution)
+
+### Architecture
+- Computes confidence intervals for proportions, means, and count data
+- Modes: `--method {wilson,clopper-pearson,normal,t,poisson}`
+- Dynamic user variables: `--n` (sample size), `--k` or `--p` (successes or proportion), `--mean`, `--std`, `--alpha` (significance level, default 0.05), `--sided {one,two}`
+- Includes a `--sweep` flag to print a table of intervals across a range of sample sizes (e.g. `--sweep 10 500 --step 10`), useful for study design / power planning
+- Output: lower bound, upper bound, width, midpoint; optionally formatted as `[LB, UB]` or `midpoint ± margin`
+
+```bash
+# Wilson confidence interval for 47 successes in 120 trials
+confint --method wilson --n 120 --k 47
+
+# t-interval for a small sample mean
+confint --method t --n 15 --mean 23.4 --std 4.1
+
+# Sweep: how does interval width shrink as n grows from 50 to 500?
+confint --method wilson --p 0.4 --sweep 50 500 --step 50
+```
+
+### Target User Base
+- **A/B testers and product analysts** reporting conversion rate confidence intervals
+- **Clinical and public health researchers** computing prevalence estimates
+- **Students** learning inferential statistics who want a CLI alternative to lookup tables
+- The `--sweep` flag is particularly useful for researchers planning sample sizes — a direct extension of `birthday`'s range-table philosophy applied to inference
+
+---
+
+## 11. `pvalue` — p-value and Hypothesis Test Calculator
+
+### Dependencies
+- None (pure Python; t, chi-squared, and F quantiles via numerical approximation using `math`)
+
+### Architecture
+- Supports one-sample and two-sample tests: z-test, t-test, chi-squared goodness-of-fit, binomial exact test
+- Dynamic inputs: `--test {z,t,chi2,binom-exact}`, `--stat VALUE` (observed test statistic) or raw data flags (`--n`, `--k`, `--p0`, `--mean`, `--std`), `--alpha`, `--sided {one,two}`
+- Output: test statistic, p-value, decision (reject / fail to reject at `--alpha`), effect size where applicable
+- Optional `--sweep-alpha` to print decision boundaries across a range of α values
+
+```bash
+# One-sample z-test: is a coin fair? (480 heads in 1000 flips)
+pvalue --test z --n 1000 --k 480 --p0 0.5
+
+# Two-sided binomial exact test
+pvalue --test binom-exact --n 30 --k 22 --p0 0.60
+
+# Chi-squared goodness of fit
+pvalue --test chi2 --observed 18,22,20,15,25 --expected 20,20,20,20,20
+```
+
+### Target User Base
+- **Data analysts and scientists** conducting quick hypothesis tests from summary statistics
+- **Students** in introductory statistics courses who want a CLI calculator for assignments
+- **QA/software teams** running statistical tests on experiment results
+- Natural follow-on to `binom` for users who reach "I have a result — is it significant?" — the logical next step after PMF/CDF queries
+
+---
+
+## 12. `sensitivity` — Parameter Sensitivity / Tornado Chart
+
+### Dependencies
+- **Optional:** `matplotlib` (tornado/bar chart output); degrades to a ranked plain-text table
+- None for core computation
+
+### Architecture
+- Takes a target formula or pythodds function (`--func {binom-pmf,poisson-pmf,normal-cdf,...}`) and a set of base-case parameters, then sweeps each parameter independently across a user-specified range
+- Dynamically scales: `--range-pct P` sweeps each parameter ±P% from its base value; `--range-abs` allows per-parameter absolute ranges
+- Output: ranked table or tornado chart showing which parameter has the greatest impact on the output value
+- Supports custom expressions via `--expr "binom_pmf(n, k, p)"` for power users
+
+```bash
+# How sensitive is P(X=3 | n=10) to ±20% changes in each of n, k, p?
+sensitivity --func binom-pmf --params n=10 k=3 p=0.4 --range-pct 20
+
+# Sensitivity of Poisson PMF to ±1 unit changes in lambda
+sensitivity --func poisson-pmf --params k=5 lam=3.0 --range-abs lam=1.0
+
+# Save a tornado chart
+sensitivity --func normal-cdf --params x=1.5 mu=0 sigma=1 --range-pct 30 --output tornado.png
+```
+
+### Target User Base
+- **Risk analysts and quants** who need to know which inputs drive a probability estimate
+- **Researchers** presenting results who want to show robustness (or fragility) of a finding
+- **Advanced users** of the existing tools who want to understand how outputs change as their assumptions change
+- The dynamic `--range-pct` flag makes this especially accessible: users don't need to specify exact ranges, just a percentage tolerance
+
+---
+
+## Updated Summary Table
+
+| Command       | Distribution / Concept               | Deps (optional*)          | Zero-dep fallback? | Closest existing tool         |
+|---------------|--------------------------------------|---------------------------|--------------------|-------------------------------|
+| `poisson`     | Poisson                              | None                      | N/A                | `binom`                       |
+| `normal`      | Normal / Gaussian                    | None                      | N/A                | `binom`                       |
+| `expected`    | Discrete EV / variance               | None                      | N/A                | `birthday --weights`          |
+| `hypergeo`    | Hypergeometric                       | None                      | N/A                | `binom`                       |
+| `streak`      | Run / streak probability             | None                      | N/A                | `binom`                       |
+| `bayes`       | Bayesian posterior update            | None                      | N/A                | `birthday`                    |
+| `plotdist`    | Distribution visualiser              | `matplotlib`, `numpy`*    | ✅ Unicode text    | `binom` / `birthday`          |
+| `simulate`    | Monte Carlo simulator                | `numpy`*                  | ✅ `random` module | `binom` / `birthday`          |
+| `oddsconv`    | Odds format converter + vig calc     | None                      | N/A                | `expected`                    |
+| `confint`     | Confidence interval calculator       | None                      | N/A                | `binom` / `normal`            |
+| `pvalue`      | p-value and hypothesis test          | None                      | N/A                | `binom`                       |
+| `sensitivity` | Parameter sensitivity / tornado      | `matplotlib`*             | ✅ ranked table    | all tools                     |
+
+\* Optional dependency: tool functions without it but with reduced output capability.
