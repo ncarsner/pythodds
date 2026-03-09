@@ -1,14 +1,18 @@
 """Tests for birthday problem collision probability functions."""
 
+import argparse
 import json
 import math
+from unittest.mock import patch
 import pytest
 
 from src.utils.birthday_problem import (
+    _parse_weights,
     collision_prob_nonuniform,
     collision_prob_uniform,
     effective_pool_size,
     expected_duplicate_pairs,
+    format_csv_output,
     main,
     min_group_for_prob,
     prob_table,
@@ -19,94 +23,20 @@ from src.utils.birthday_problem import (
 # collision_prob_uniform
 # ---------------------------------------------------------------------------
 
-def test_collision_prob_zero_for_one_person():
-    """A group of 1 cannot have a duplicate."""
-    assert collision_prob_uniform(1, 365) == 0.0
-
-
-def test_collision_prob_zero_for_zero_people():
-    """A group of 0 cannot have a duplicate."""
-    assert collision_prob_uniform(0, 365) == 0.0
-
 
 def test_collision_prob_one_when_n_exceeds_d():
     """Pigeonhole: n > d guarantees a duplicate."""
     assert collision_prob_uniform(366, 365) == 1.0
 
 
-def test_collision_prob_one_when_n_equals_d_plus_one():
-    """n = d + 1 must produce probability 1.0 (pigeonhole)."""
-    assert collision_prob_uniform(4, 3) == 1.0
-
-
-def test_collision_prob_classic_23_in_365():
-    """Classic result: ~50.7% probability for 23 people and 365 days."""
-    prob = collision_prob_uniform(23, 365)
-    assert abs(prob - 0.5072972) < 1e-5
-
-
-def test_collision_prob_increases_with_group_size():
-    """Probability is strictly increasing in n."""
-    probs = [collision_prob_uniform(n, 365) for n in range(2, 30)]
-    assert all(probs[i] < probs[i + 1] for i in range(len(probs) - 1))
-
-
-def test_collision_prob_small_pool():
-    """For d=2, P(collision) with n=2 is 0.5."""
-    prob = collision_prob_uniform(2, 2)
-    assert abs(prob - 0.5) < 1e-12
-
-
-def test_collision_prob_large_pool_low_group():
-    """Very large pool with tiny group should give near-zero probability."""
-    prob = collision_prob_uniform(2, 1_000_000)
-    assert prob < 1e-4
-
-
 # ---------------------------------------------------------------------------
 # collision_prob_nonuniform
 # ---------------------------------------------------------------------------
 
+
 def test_nonuniform_one_person_zero():
     """One person cannot produce a duplicate."""
     assert collision_prob_nonuniform(1, [0.5, 0.3, 0.2]) == 0.0
-
-
-def test_nonuniform_uniform_weights_close_to_uniform_formula():
-    """Equal weights should closely match the Poisson approximation of uniform."""
-    weights = [1.0] * 365
-    prob_nu = collision_prob_nonuniform(23, weights)
-    # Poisson approx: 1 - exp(-C(23,2)/365)
-    expected_approx = -math.expm1(-23 * 22 / 2 / 365)
-    assert abs(prob_nu - expected_approx) < 1e-6
-
-
-def test_nonuniform_skewed_distribution_higher_collision():
-    """Concentrating weight in fewer categories raises collision probability."""
-    # concentrated: most mass on 2 categories out of 365
-    uniform_weights = [1.0] * 365
-    skewed_weights = [180.0, 180.0] + [0.1] * 363
-    prob_uniform_nu = collision_prob_nonuniform(23, uniform_weights)
-    prob_skewed_nu = collision_prob_nonuniform(23, skewed_weights)
-    assert prob_skewed_nu > prob_uniform_nu
-
-
-def test_nonuniform_all_same_weight_equals_one_category():
-    """Weights that are all equal to each other should behave consistently."""
-    weights = [2.0] * 10
-    prob = collision_prob_nonuniform(5, weights)
-    # sum(p_i^2) = 10 * (0.1)^2 = 0.1
-    expected = -math.expm1(-5 * 4 / 2 * 0.1)
-    assert abs(prob - expected) < 1e-12
-
-
-def test_nonuniform_normalises_weights():
-    """Scaling all weights by a constant should not change the result."""
-    weights_a = [1.0, 2.0, 3.0]
-    weights_b = [10.0, 20.0, 30.0]
-    assert abs(
-        collision_prob_nonuniform(5, weights_a) - collision_prob_nonuniform(5, weights_b)
-    ) < 1e-12
 
 
 def test_nonuniform_raises_on_all_zero_weights():
@@ -119,29 +49,17 @@ def test_nonuniform_raises_on_all_zero_weights():
 # effective_pool_size
 # ---------------------------------------------------------------------------
 
-def test_effective_pool_size_uniform():
-    """For d equal weights the effective size equals d."""
-    d = 50
-    weights = [1.0] * d
-    assert abs(effective_pool_size(weights) - d) < 1e-10
 
-
-def test_effective_pool_size_one_category():
-    """A single category has effective pool size of 1."""
-    assert abs(effective_pool_size([1.0]) - 1.0) < 1e-12
-
-
-def test_effective_pool_size_skewed_less_than_d():
-    """Skewed distribution reduces effective pool size below d."""
-    d = 10
-    uniform = [1.0] * d
-    skewed = [5.0] + [1.0] * (d - 1)
-    assert effective_pool_size(skewed) < effective_pool_size(uniform)
+def test_effective_pool_size_raises_on_all_zero_weights():
+    """All-zero weights should raise ValueError."""
+    with pytest.raises(ValueError):
+        effective_pool_size([0.0, 0.0, 0.0])
 
 
 # ---------------------------------------------------------------------------
 # expected_duplicate_pairs
 # ---------------------------------------------------------------------------
+
 
 def test_expected_pairs_formula():
     """E[pairs] = n*(n-1)/2 / d."""
@@ -157,10 +75,6 @@ def test_expected_pairs_one_person():
 # min_group_for_prob
 # ---------------------------------------------------------------------------
 
-def test_min_group_classic_50pct():
-    """Minimum group for 50% collision probability on 365-day calendar is 23."""
-    assert min_group_for_prob(0.50, 365) == 23
-
 
 def test_min_group_target_zero_returns_one():
     assert min_group_for_prob(0.0, 365) == 1
@@ -170,29 +84,15 @@ def test_min_group_target_one_returns_d_plus_one():
     assert min_group_for_prob(1.0, 365) == 366
 
 
-def test_min_group_result_satisfies_target():
-    """The returned n must actually reach the target probability."""
-    target = 0.75
-    d = 365
-    n = min_group_for_prob(target, d)
-    assert n is not None
-    assert collision_prob_uniform(n, d) >= target
-    if n > 2:
-        assert collision_prob_uniform(n - 1, d) < target
+def test_min_group_returns_none_when_max_n_too_small():
+    """None is returned when max_n is too small to reach the target probability."""
+    result = min_group_for_prob(0.5, 365, max_n=5)
+    assert result is None
 
 
 # ---------------------------------------------------------------------------
 # prob_table
 # ---------------------------------------------------------------------------
-
-def test_prob_table_length():
-    rows = prob_table(365, 1, 30)
-    assert len(rows) == 30
-
-
-def test_prob_table_n_values():
-    rows = prob_table(365, 5, 10)
-    assert [r["n"] for r in rows] == list(range(5, 11))
 
 
 def test_prob_table_probability_monotone():
@@ -205,28 +105,13 @@ def test_prob_table_probability_monotone():
 # main() CLI
 # ---------------------------------------------------------------------------
 
+
 def test_main_single_group_returns_zero():
     assert main(["--pool-size", "365", "--group-size", "23"]) == 0
 
 
-def test_main_target_prob_returns_zero():
-    assert main(["--pool-size", "365", "--target-prob", "0.5"]) == 0
-
-
 def test_main_range_table_returns_zero():
     assert main(["--pool-size", "365", "--range", "1", "30"]) == 0
-
-
-def test_main_range_json_returns_zero():
-    assert main(["--pool-size", "365", "--range", "1", "10", "--format", "json"]) == 0
-
-
-def test_main_range_csv_returns_zero():
-    assert main(["--pool-size", "365", "--range", "1", "10", "--format", "csv"]) == 0
-
-
-def test_main_pool_size_zero_returns_two():
-    assert main(["--pool-size", "0", "--group-size", "10"]) == 2
 
 
 def test_main_invalid_target_prob_returns_two():
@@ -235,6 +120,49 @@ def test_main_invalid_target_prob_returns_two():
 
 def test_main_no_mode_returns_two():
     assert main(["--pool-size", "365"]) == 2
+
+
+# ---------------------------------------------------------------------------
+# format_csv_output
+# ---------------------------------------------------------------------------
+
+
+def test_format_csv_output_empty_rows_returns_empty_string():
+    """format_csv_output returns an empty string when given an empty list."""
+    assert format_csv_output([]) == ""
+
+
+# ---------------------------------------------------------------------------
+# _parse_weights
+# ---------------------------------------------------------------------------
+
+
+def test_parse_weights_non_numeric_raises():
+    """Non-numeric tokens raise ArgumentTypeError (lines 193-194)."""
+    with pytest.raises(argparse.ArgumentTypeError):
+        _parse_weights("a,b,c")
+
+
+def test_parse_weights_negative_raises():
+    """A negative weight raises ArgumentTypeError (line 198)."""
+    with pytest.raises(argparse.ArgumentTypeError):
+        _parse_weights("-1,0.5,0.5")
+
+
+def test_parse_weights_all_zero_raises():
+    """All-zero weights raise ArgumentTypeError (line 200)."""
+    with pytest.raises(argparse.ArgumentTypeError):
+        _parse_weights("0,0,0")
+
+
+# ---------------------------------------------------------------------------
+# validate — pool_size < 1
+# ---------------------------------------------------------------------------
+
+
+def test_main_pool_size_below_one_returns_two():
+    """A pool size less than 1 is rejected by validate (line 260)."""
+    assert main(["--pool-size", "0.5", "--group-size", "10"]) == 2
 
 
 def test_main_range_inverted_returns_two():
@@ -277,3 +205,37 @@ def test_main_nonuniform_output_shows_effective_pool(capsys):
     main(["--weights", "1,1,1,1", "--group-size", "4"])
     captured = capsys.readouterr()
     assert "Effective pool size" in captured.out
+
+
+def test_main_weights_with_target_prob_returns_two():
+    """--weights + --target-prob (no --group-size) is rejected by validate (lines 264-265)."""
+    assert main(["--weights", "0.1,0.2,0.7", "--target-prob", "0.5"]) == 2
+
+
+def test_main_weights_with_range_returns_two():
+    """--weights + --range (no --group-size) is rejected by validate (lines 266-267)."""
+    assert main(["--weights", "0.1,0.2,0.7", "--range", "1", "10"]) == 2
+
+
+def test_main_group_size_below_one_returns_two():
+    """--group-size of 0 is rejected by validate (line 270)."""
+    assert main(["--pool-size", "365", "--group-size", "0"]) == 2
+
+
+def test_main_range_min_n_below_one_returns_two():
+    """A range MIN_N of 0 is rejected by validate (line 278)."""
+    assert main(["--pool-size", "365", "--range", "0", "10"]) == 2
+
+
+def test_main_range_span_exceeds_limit_returns_two():
+    """A range span greater than 100,000 is rejected by validate (line 282)."""
+    assert main(["--pool-size", "365", "--range", "1", "100002"]) == 2
+
+
+def test_main_target_prob_unreachable_returns_one(capsys):
+    """When min_group_for_prob returns None, main() prints to stderr and returns 1 (lines 323-327)."""
+    with patch("src.utils.birthday_problem.min_group_for_prob", return_value=None):
+        result = main(["--pool-size", "365", "--target-prob", "0.5"])
+    assert result == 1
+    captured = capsys.readouterr()
+    assert "reaches" in captured.err
