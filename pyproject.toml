@@ -1,6 +1,6 @@
 [project]
 name = "pythodds"
-version = "0.3.1"
+version = "0.4.0"
 description = "Command line utilities for statistics, odds, and probabilities"
 readme = "README.md"
 authors = [
@@ -26,6 +26,7 @@ classifiers = [
 [project.scripts]
 binom = "src.utils.binomial_distribution:main"
 birthday = "src.utils.birthday_problem:main"
+poisson = "src.utils.poisson_distribution:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -43,3 +44,14 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.coverage.run]
+omit = [
+    "src/__init__.py",
+    "src/utils/__init__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "if __name__ == .__main__.",
+]
