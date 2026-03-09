@@ -320,25 +320,7 @@ bayes --prior 0.01 --likelihood-pos 0.99 --likelihood-neg 0.05 --iterations 2
 
 ---
 
-## Summary Table
-
-| Command    | Distribution / Concept     | New CLI entry point | Zero-dep? | Closest existing tool |
-|------------|----------------------------|---------------------|-----------|-----------------------|
-| `poisson`  | Poisson                    | `poisson`           | ✅        | `binom`               |
-| `normal`   | Normal / Gaussian          | `normal`            | ✅        | `binom`               |
-| `zscore`   | Z-score standardisation    | `zscore`            | ✅        | `normal`              |
-| `sample`   | Sample size calculation    | `sample`            | ✅        | `confint`             |
-| `ttest`    | 1- & 2-sample t-tests      | `ttest`             | ✅        | `pvalue`              |
-| `chisq`    | Chi-square tests           | `chisq`             | ✅        | `pvalue`              |
-| `linreg`   | Simple linear regression   | `linreg`            | ✅        | `expected`            |
-| `expected` | Discrete EV / variance     | `expected`          | ✅        | `birthday --weights`  |
-| `hypergeo` | Hypergeometric             | `hypergeo`          | ✅        | `binom`               |
-| `streak`   | Run / streak probability   | `streak`            | ✅        | `binom`               |
-| `bayes`    | Bayesian posterior update  | `bayes`             | ✅        | `birthday`            |
-
----
-
-## Extended Tool Ideas (Dependency-Optional, Dynamic Input)
+## ⚙️ Extended Tool Ideas (Dependency-Optional, Dynamic Input)
 
 The tools below may introduce optional or required third-party dependencies — primarily for visualisation (`matplotlib`, `rich`) or numerical computation (`numpy`). Where dependencies are optional, tools degrade gracefully to plain-text output when the library is not installed. All tools continue to accept dynamic user-supplied variables to scale computation to real input.
 
@@ -533,10 +515,48 @@ sensitivity --func normal-cdf --params x=1.5 mu=0 sigma=1 --range-pct 30 --outpu
 
 ---
 
-## Updated Summary Table
+## 18. `randforest` — Random Forest Classifier / Regressor
 
-| Command       | Distribution / Concept               | Deps (optional*)          | Zero-dep fallback? | Closest existing tool         |
-|---------------|--------------------------------------|---------------------------|--------------------|-------------------------------|
+### Dependencies
+- **Required:** `scikit-learn` (decision tree and ensemble fitting, feature importances)
+- **Optional:** `numpy` (faster array handling; falls back to standard lists for small datasets), `pandas` (CSV ingestion with named columns; falls back to `csv` module)
+
+### Architecture
+- Wraps `sklearn.ensemble.RandomForestClassifier` / `RandomForestRegressor` behind a consistent CLI interface, keeping the same data-in → metrics-out philosophy as the rest of the suite
+- Detects task type automatically from `--target-type {auto,classify,regress}` (default `auto`: classifies if the target column has ≤ 20 unique values)
+- User-supplied variables: `--file CSV`, `--target COLUMN`, `--features COL [...]` (default: all non-target columns), `--trees N` (default 100), `--max-depth INT`, `--test-size F` (train/test split fraction, default 0.2), `--seed INT`, `--cv K` (k-fold cross-validation folds, default disabled)
+- Output:
+  - **Classification:** accuracy, precision, recall, F1, confusion matrix (plain-text), top-N feature importances
+  - **Regression:** RMSE, MAE, R², top-N feature importances
+  - `--format {table,json,csv}` for importances and metrics
+  - `--predict-file CSV` to score new observations after fitting
+
+```bash
+# Classify from a CSV file, auto-detect task type
+randforest --file data.csv --target label
+
+# Regression with 200 trees, max depth 5, reproducible seed
+randforest --file housing.csv --target price --trees 200 --max-depth 5 --seed 42 --target-type regress
+
+# 5-fold cross-validation, JSON output of metrics and importances
+randforest --file iris.csv --target species --cv 5 --format json
+
+# Score new data after fitting
+randforest --file train.csv --target outcome --predict-file new_obs.csv
+```
+
+### Target User Base
+- **Data analysts and data scientists** who want a quick model baseline from the command line without writing boilerplate notebook code
+- **Researchers** doing exploratory feature importance analysis on tabular datasets before committing to a full modelling pipeline
+- **Students** learning ensemble methods who want a tactile CLI interface to complement sklearn tutorials
+- Power users of `linreg` who need a non-linear, multi-feature model with built-in feature importance — the natural "what if the relationship isn't linear?" follow-on
+
+---
+
+## Summary Table
+
+| Command | Distribution / Concept | Deps (optional*) | Zero-dep fallback? | Closest existing tool |
+|---|---|---|---|---|
 | `poisson`     | Poisson                              | None                      | N/A                | `binom`                       |
 | `normal`      | Normal / Gaussian                    | None                      | N/A                | `binom`                       |
 | `zscore`      | Z-score standardisation              | None                      | N/A                | `normal`                      |
@@ -554,5 +574,6 @@ sensitivity --func normal-cdf --params x=1.5 mu=0 sigma=1 --range-pct 30 --outpu
 | `confint`     | Confidence interval calculator       | None                      | N/A                | `binom` / `normal`            |
 | `pvalue`      | p-value and hypothesis test          | None                      | N/A                | `binom`                       |
 | `sensitivity` | Parameter sensitivity / tornado      | `matplotlib`*             | ✅ ranked table    | all tools                     |
+| `randforest`  | Random forest classifier / regressor | `scikit-learn`, `numpy`*, `pandas`* | ✅ numpy/pandas | `linreg`          |
 
 \* Optional dependency: tool functions without it but with reduced output capability.
