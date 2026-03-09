@@ -10,7 +10,8 @@ A command-line utility and Python library for calculating statistics, odds, and 
 
 - **Binomial Distribution**: Calculate PMF, CDF, and survival functions for binomial distributions
 - **Birthday Problem**: Compute collision probabilities for uniform and non-uniform pools, find minimum group sizes, and generate probability tables
-- **Command-line Interface**: Easy-to-use CLI tools (`binom` and `birthday` commands)
+- **Poisson Distribution**: Compute PMF, CDF, and survival probabilities, find minimum event counts for a target cumulative probability, and generate full probability tables
+- **Command-line Interface**: Easy-to-use CLI tools (`binom`, `birthday`, and `poisson` commands)
 - **Pure Python**: No external dependencies
 
 ## Installation
@@ -80,6 +81,41 @@ birthday --range 1 60 --format csv
 | `-f` | `--format` | Output format: `table` (default), `json`, or `csv` |
 | `-P` | `--precision` | Decimal places for printed probabilities (default: `6`) |
 
+#### `poisson` — Poisson Distribution
+
+Computes PMF, CDF, and survival probabilities for a Poisson(λ) distribution. Models rare, independent events occurring at a known average rate — server errors per hour, calls per minute, defects per batch, and so on.
+
+```bash
+# P(X=7), P(X≤7), and P(X≥7) for λ=3.0
+poisson -l 3.0 -k 7
+
+# Find the minimum k such that P(X ≤ k) >= 0.95
+poisson -l 3.0 -t 0.95
+
+# Print a probability table for k = 0 through 15
+poisson -l 3.0 -r 0 15
+
+# Also show P(X ≥ 5) and whether it meets a 1% threshold
+poisson -l 0.5 -k 2 --target 5 --min-prob 0.01
+
+# Output as JSON or CSV
+poisson -l 3.0 -r 0 20 -f json
+poisson -l 3.0 -r 0 20 -f csv
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-l` | `--rate` | Average event rate λ (required, must be > 0) |
+| `-k` | `--events` | Compute PMF and CDF for exactly this event count |
+| `-t` | `--target-prob` | Find the minimum k such that P(X ≤ k) ≥ PROB |
+| `-r` | `--range MIN MAX` | Print a probability table for event counts MIN through MAX |
+| | `--target` | With `-k`: also print P(X ≥ T) for this target count |
+| | `--min-prob` | With `--target`: report whether P(X ≥ T) meets this threshold |
+| `-f` | `--format` | Output format: `table` (default), `json`, or `csv` |
+| `-P` | `--precision` | Decimal places for printed probabilities (default: `6`) |
+
 ### Python Library
 
 #### Binomial Distribution
@@ -118,6 +154,29 @@ prob_nu = collision_prob_nonuniform(30, [0.10, 0.15, 0.20, 0.30, 0.25])
 
 # Expected number of duplicate pairs
 pairs = expected_duplicate_pairs(23, 365.25)
+```
+
+#### Poisson Distribution
+
+```python
+from src.utils.poisson_distribution import (
+    poisson_pmf,
+    poisson_cdf_le,
+    poisson_cdf_ge,
+    min_k_for_prob,
+)
+
+# P(X = 7) for Poisson(λ=3.0)
+pmf = poisson_pmf(7, 3.0)
+
+# P(X ≤ 7) for Poisson(λ=3.0)
+cdf = poisson_cdf_le(7, 3.0)
+
+# P(X ≥ 7) for Poisson(λ=3.0)
+survival = poisson_cdf_ge(7, 3.0)
+
+# Minimum k such that P(X ≤ k) >= 0.95
+k = min_k_for_prob(0.95, 3.0)
 ```
 
 ## Development
