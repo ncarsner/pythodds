@@ -2,8 +2,8 @@
 
 import argparse
 import json
-import math
 from unittest.mock import patch
+
 import pytest
 
 from src.utils.birthday_problem import (
@@ -17,7 +17,6 @@ from src.utils.birthday_problem import (
     min_group_for_prob,
     prob_table,
 )
-
 
 # ---------------------------------------------------------------------------
 # collision_prob_uniform

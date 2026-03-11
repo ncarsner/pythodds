@@ -32,6 +32,7 @@ Usage examples:
 # Core probability functions
 # ---------------------------------------------------------------------------
 
+
 def poisson_pmf(k: int, lam: float) -> float:
     """P(X = k) for Poisson(λ).
 
@@ -58,7 +59,9 @@ def poisson_cdf_ge(k: int, lam: float) -> float:
     return max(1.0 - poisson_cdf_le(k - 1, lam), 0.0)
 
 
-def min_k_for_prob(target_prob: float, lam: float, max_k: int = 100_000) -> Optional[int]:
+def min_k_for_prob(
+    target_prob: float, lam: float, max_k: int = 100_000
+) -> Optional[int]:
     """Return the smallest k such that P(X ≤ k) >= target_prob (inverse CDF / quantile)."""
     if target_prob <= 0.0:
         return 0
@@ -77,20 +80,23 @@ def prob_table(lam: float, min_k: int, max_k: int) -> list[dict]:
     cumulative = sum(poisson_pmf(i, lam) for i in range(min_k))
     for k in range(min_k, max_k + 1):
         pmf = poisson_pmf(k, lam)
-        cdf_ge = max(1.0 - cumulative, 0.0)   # P(X >= k) = 1 - P(X <= k-1)
+        cdf_ge = max(1.0 - cumulative, 0.0)  # P(X >= k) = 1 - P(X <= k-1)
         cumulative = min(cumulative + pmf, 1.0)
-        rows.append({
-            "k": k,
-            "pmf": pmf,
-            "cdf_le": cumulative,
-            "cdf_ge": cdf_ge,
-        })
+        rows.append(
+            {
+                "k": k,
+                "pmf": pmf,
+                "cdf_le": cumulative,
+                "cdf_ge": cdf_ge,
+            }
+        )
     return rows
 
 
 # ---------------------------------------------------------------------------
 # Output formatting
 # ---------------------------------------------------------------------------
+
 
 def _fmt_prob(x: float, precision: int) -> str:
     pct = x * 100.0
@@ -152,6 +158,7 @@ def format_table_output(rows: list[dict], precision: int) -> str:
 def format_json_output(rows: list[dict]) -> str:
     def _round(d: dict) -> dict:
         return {k: round(v, 8) if isinstance(v, float) else v for k, v in d.items()}
+
     return json.dumps([_round(r) for r in rows], indent=2)
 
 
@@ -169,6 +176,7 @@ def format_csv_output(rows: list[dict]) -> str:
 # Argument parsing
 # ---------------------------------------------------------------------------
 
+
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Poisson distribution probability calculator.",
@@ -184,38 +192,64 @@ Examples:
     )
 
     parser.add_argument(
-        "--rate", "-l", type=float, required=True, metavar="λ",
+        "--rate",
+        "-l",
+        type=float,
+        required=True,
+        metavar="λ",
         help="average event rate (λ, lambda); must be > 0",
     )
 
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
-        "--events", "-k", type=int, metavar="K",
+        "--events",
+        "-k",
+        type=int,
+        metavar="K",
         help="compute PMF and CDF for exactly this number of events",
     )
     mode.add_argument(
-        "--target-prob", "-t", type=float, metavar="PROB",
+        "--target-prob",
+        "-t",
+        type=float,
+        metavar="PROB",
         help="find the minimum k such that P(X ≤ k) >= PROB (inverse CDF)",
     )
     mode.add_argument(
-        "--range", "-r", nargs=2, type=int, metavar=("MIN_K", "MAX_K"),
+        "--range",
+        "-r",
+        nargs=2,
+        type=int,
+        metavar=("MIN_K", "MAX_K"),
         help="print a probability table for event counts MIN_K through MAX_K",
     )
 
     parser.add_argument(
-        "--target", type=int, default=None, metavar="T",
+        "--target",
+        type=int,
+        default=None,
+        metavar="T",
         help="with -k/--events: also print P(X ≥ T) for this target count",
     )
     parser.add_argument(
-        "--min-prob", type=float, default=None, metavar="P",
+        "--min-prob",
+        type=float,
+        default=None,
+        metavar="P",
         help="with --target: report whether P(X ≥ T) meets this threshold",
     )
     parser.add_argument(
-        "--format", "-f", choices=["table", "json", "csv"], default="table",
+        "--format",
+        "-f",
+        choices=["table", "json", "csv"],
+        default="table",
         help="output format (default: table; applies only with -r/--range)",
     )
     parser.add_argument(
-        "--precision", "-P", type=int, default=6,
+        "--precision",
+        "-P",
+        type=int,
+        default=6,
         help="decimal places for printed probabilities (default: 6)",
     )
 
@@ -225,6 +259,7 @@ Examples:
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
+
 
 def validate(args: argparse.Namespace) -> Optional[str]:
     if args.rate <= 0:
@@ -264,6 +299,7 @@ def validate(args: argparse.Namespace) -> Optional[str]:
 # Entry point
 # ---------------------------------------------------------------------------
 
+
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
 
@@ -281,7 +317,11 @@ def main(argv: Optional[list[str]] = None) -> int:
         pmf = poisson_pmf(k, lam)
         cdf_le = poisson_cdf_le(k, lam)
         cdf_ge = poisson_cdf_ge(k, lam)
-        print(format_single(k, lam, pmf, cdf_le, cdf_ge, args.target, args.min_prob, precision))
+        print(
+            format_single(
+                k, lam, pmf, cdf_le, cdf_ge, args.target, args.min_prob, precision
+            )
+        )
         return 0
 
     # --- find minimum k for target probability ---

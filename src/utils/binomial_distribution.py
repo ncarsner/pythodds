@@ -17,11 +17,12 @@ the probability of meeting a `target` number of successes and whether that
 probability meets a provided minimum threshold (`--min-prob`).
 """
 
+
 def binomial_pmf(n: int, k: int, p: float) -> float:
     """Probability mass function P(X = k) for Binomial(n, p)."""
     if k < 0 or k > n:
         return 0.0
-    return math.comb(n, k) * (p ** k) * (1 - p) ** (n - k)
+    return math.comb(n, k) * (p**k) * (1 - p) ** (n - k)
 
 
 def binomial_cdf_le(n: int, k: int, p: float) -> float:
@@ -47,12 +48,41 @@ def binomial_cdf_ge(n: int, k: int, p: float) -> float:
 
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Binomial distribution helper")
-    parser.add_argument("-n", "--trials", type=int, required=True, help="number of trials (n)")
-    parser.add_argument("-k", "--successes", type=int, required=True, help="number of successes (k) to evaluate")
-    parser.add_argument("-p", "--p", type=float, required=True, help="historical success probability (0..1)")
-    parser.add_argument("--target", type=int, default=None, help="optional target number of successes to evaluate P(X >= target)")
-    parser.add_argument("--min-prob", type=float, default=None, help="optional minimum acceptable probability for the target (0..1)")
-    parser.add_argument("--precision", type=int, default=6, help="decimal places for printed probabilities")
+    parser.add_argument(
+        "-n", "--trials", type=int, required=True, help="number of trials (n)"
+    )
+    parser.add_argument(
+        "-k",
+        "--successes",
+        type=int,
+        required=True,
+        help="number of successes (k) to evaluate",
+    )
+    parser.add_argument(
+        "-p",
+        "--p",
+        type=float,
+        required=True,
+        help="historical success probability (0..1)",
+    )
+    parser.add_argument(
+        "--target",
+        type=int,
+        default=None,
+        help="optional target number of successes to evaluate P(X >= target)",
+    )
+    parser.add_argument(
+        "--min-prob",
+        type=float,
+        default=None,
+        help="optional minimum acceptable probability for the target (0..1)",
+    )
+    parser.add_argument(
+        "--precision",
+        type=int,
+        default=6,
+        help="decimal places for printed probabilities",
+    )
     return parser.parse_args(argv)
 
 

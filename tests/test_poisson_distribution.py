@@ -1,7 +1,6 @@
 """Tests for Poisson distribution functions."""
 
 import json
-import math
 
 from src.utils.poisson_distribution import (
     format_csv_output,
@@ -12,7 +11,6 @@ from src.utils.poisson_distribution import (
     poisson_pmf,
     prob_table,
 )
-
 
 # ---------------------------------------------------------------------------
 # poisson_pmf

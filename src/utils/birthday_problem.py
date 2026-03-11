@@ -32,6 +32,7 @@ Usage examples:
 # Core probability functions
 # ---------------------------------------------------------------------------
 
+
 def collision_prob_uniform(n: int, d: float) -> float:
     """P(at least one duplicate) for n items drawn from a uniform pool of size d.
 
@@ -44,7 +45,9 @@ def collision_prob_uniform(n: int, d: float) -> float:
         return 1.0
     # log P(no collision) = sum_{i=1}^{n-1} log(1 - i/d)
     log_no_collision = sum(math.log1p(-i / d) for i in range(1, n))
-    return -math.expm1(log_no_collision)  # 1 - exp(log_no_collision), more precise near 0
+    return -math.expm1(
+        log_no_collision
+    )  # 1 - exp(log_no_collision), more precise near 0
 
 
 def collision_prob_nonuniform(n: int, weights: list[float]) -> float:
@@ -82,7 +85,9 @@ def effective_pool_size(weights: list[float]) -> float:
     return 1.0 / sum(p * p for p in probs)
 
 
-def min_group_for_prob(target_prob: float, d: float, max_n: int = 1_000_000) -> Optional[int]:
+def min_group_for_prob(
+    target_prob: float, d: float, max_n: int = 1_000_000
+) -> Optional[int]:
     """Return the smallest n such that collision_prob_uniform(n, d) >= target_prob."""
     if target_prob <= 0.0:
         return 1
@@ -107,17 +112,20 @@ def prob_table(d: float, min_n: int, max_n: int) -> list[dict]:
     rows = []
     for n in range(min_n, max_n + 1):
         prob = collision_prob_uniform(n, d)
-        rows.append({
-            "n": n,
-            "probability": prob,
-            "expected_duplicate_pairs": expected_duplicate_pairs(n, d),
-        })
+        rows.append(
+            {
+                "n": n,
+                "probability": prob,
+                "expected_duplicate_pairs": expected_duplicate_pairs(n, d),
+            }
+        )
     return rows
 
 
 # ---------------------------------------------------------------------------
 # Output formatting
 # ---------------------------------------------------------------------------
+
 
 def _fmt_prob(x: float, precision: int) -> str:
     pct = x * 100.0
@@ -150,8 +158,11 @@ def format_single(
 def format_table_output(rows: list[dict], precision: int) -> str:
     headers = ["n", "P(duplicate)", "Expected pairs"]
     col_data = [
-        [str(r["n"]), _fmt_prob(r["probability"], precision),
-         f"{r['expected_duplicate_pairs']:.{precision}f}"]
+        [
+            str(r["n"]),
+            _fmt_prob(r["probability"], precision),
+            f"{r['expected_duplicate_pairs']:.{precision}f}",
+        ]
         for r in rows
     ]
     col_widths = [
@@ -170,6 +181,7 @@ def format_table_output(rows: list[dict], precision: int) -> str:
 def format_json_output(rows: list[dict]) -> str:
     def _round(d: dict) -> dict:
         return {k: round(v, 8) if isinstance(v, float) else v for k, v in d.items()}
+
     return json.dumps([_round(r) for r in rows], indent=2)
 
 
@@ -186,6 +198,7 @@ def format_csv_output(rows: list[dict]) -> str:
 # ---------------------------------------------------------------------------
 # Argument parsing
 # ---------------------------------------------------------------------------
+
 
 def _parse_weights(value: str) -> list[float]:
     try:
@@ -217,34 +230,52 @@ Examples:
 
     pool = parser.add_mutually_exclusive_group()
     pool.add_argument(
-        "--pool-size", "-p", type=float, default=365.25, metavar="D",
+        "--pool-size",
+        "-p",
+        type=float,
+        default=365.25,
+        metavar="D",
         help="number of equally-likely outcomes in the pool (default: 365.25)",
     )
     pool.add_argument(
-        "--weights", type=_parse_weights, metavar="W1,W2,...",
+        "--weights",
+        type=_parse_weights,
+        metavar="W1,W2,...",
         help="comma-separated relative frequencies for a non-uniform pool",
     )
 
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
-        "--group-size", "-n", type=int, metavar="N",
+        "--group-size",
+        "-n",
+        type=int,
+        metavar="N",
         help="compute collision probability for exactly this group size",
     )
     mode.add_argument(
-        "--target-prob", type=float, metavar="PROB",
+        "--target-prob",
+        type=float,
+        metavar="PROB",
         help="find the minimum group size that reaches this collision probability",
     )
     mode.add_argument(
-        "--range", nargs=2, type=int, metavar=("MIN_N", "MAX_N"),
+        "--range",
+        nargs=2,
+        type=int,
+        metavar=("MIN_N", "MAX_N"),
         help="print a probability table for group sizes MIN_N through MAX_N",
     )
 
     parser.add_argument(
-        "--format", choices=["table", "json", "csv"], default="table",
+        "--format",
+        choices=["table", "json", "csv"],
+        default="table",
         help="output format (default: table; applies only with --range)",
     )
     parser.add_argument(
-        "--precision", type=int, default=6,
+        "--precision",
+        type=int,
+        default=6,
         help="decimal places for printed probabilities (default: 6)",
     )
 
@@ -254,6 +285,7 @@ Examples:
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
+
 
 def validate(args: argparse.Namespace) -> Optional[str]:
     if args.pool_size is not None and args.weights is None and args.pool_size < 1:
@@ -290,6 +322,7 @@ def validate(args: argparse.Namespace) -> Optional[str]:
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
