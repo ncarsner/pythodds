@@ -11,8 +11,10 @@ A command-line utility and Python library for calculating statistics, odds, and 
 - **Binomial Distribution**: Calculate PMF, CDF, and survival functions for binomial distributions
 - **Birthday Problem**: Compute collision probabilities for uniform and non-uniform pools, find minimum group sizes, and generate probability tables
 - **Poisson Distribution**: Compute PMF, CDF, and survival probabilities, find minimum event counts for a target cumulative probability, and generate full probability tables
-- **Command-line Interface**: Easy-to-use CLI tools (`binom`, `birthday`, and `poisson` commands)
-- **Pure Python**: No external dependencies
+- **Streak Probability**: Compute the probability of at least one consecutive run of successes and the expected length of the longest streak
+- **Monte Carlo Simulator**: Empirically estimate probabilities for binomial, birthday, streak, and Poisson experiments with confidence intervals and analytical comparison
+- **Command-line Interface**: Easy-to-use CLI tools (`binom`, `birthday`, `poisson`, `streak`, and `simulate` commands)
+- **Pure Python**: No external dependencies required for core calculations
 
 ## Installation
 
@@ -116,6 +118,77 @@ poisson -l 3.0 -r 0 20 -f csv
 | `-f` | `--format` | Output format: `table` (default), `json`, or `csv` |
 | `-P` | `--precision` | Decimal places for printed probabilities (default: `6`) |
 
+#### `streak` — Streak / Consecutive Run Probability
+
+Computes the exact probability of at least one run of k consecutive successes in n independent Bernoulli trials, and the expected length of the longest run. Uses dynamic programming for exact O(n·k) computation.
+
+```bash
+# P(at least one run of 5+ heads in 100 fair coin flips)
+streak -n 100 -k 5 -p 0.5
+
+# P(at least one hitting streak of 20+ games over a 162-game season at .300)
+streak -n 162 -k 20 -p 0.300
+
+# Expected length of the longest win streak in 50 trials at 40% success rate
+streak -n 50 -p 0.40 --longest
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-n` | `--trials` | Total number of independent trials (required) |
+| `-p` | `--prob` | Success probability per trial, 0–1 (required) |
+| `-k` | `--streak-length` | Compute P(at least one run of K consecutive successes) |
+| | `--longest` | Compute E[length of longest run of consecutive successes] |
+| `-P` | `--precision` | Decimal places for printed probabilities (default: `6`) |
+
+> `-k/--streak-length` and `--longest` are mutually exclusive; one is required.
+
+#### `simulate` — Monte Carlo Probability Simulator
+
+Runs repeated random experiments to estimate probabilities empirically, with optional confidence intervals and analytical comparison against `binom`, `birthday`, `poisson`, and `streak`.
+
+```bash
+# Estimate P(X >= 5) for Binomial(n=10, p=0.4) over 100,000 trials
+simulate --experiment binomial --params n=10 k=5 p=0.4 --trials 100000
+
+# Birthday collision probability for a group of 23 with a 95% confidence interval
+simulate --experiment birthday --params pool=365 group=23 --confidence
+
+# Streak probability: P(run of 5+ successes in 100 trials, p=0.5)
+simulate --experiment streak --params n=100 k=5 p=0.5 --trials 50000
+
+# Poisson: P(X >= 7) for λ=3.0 with a fixed seed
+simulate --experiment poisson --params lam=3.0 k=7 --seed 42
+
+# Auto-size trial count to achieve a target standard error of 0.005
+simulate --experiment binomial --params n=20 k=8 p=0.5 --scale 0.005
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-e` | `--experiment` | Experiment type: `binomial`, `birthday`, `streak`, or `poisson` (required) |
+| `-p` | `--params` | Space-separated `KEY=VALUE` experiment parameters (see below) |
+| `-t` | `--trials` | Number of simulation trials (default: 10,000) |
+| | `--scale` | Target standard error; auto-computes `--trials` (overrides `-t`) |
+| `-s` | `--seed` | Random seed for reproducibility |
+| `-c` | `--confidence` | Print 95% Wilson confidence interval |
+| | `--dump` | Output per-trial results as CSV instead of summary |
+| `-f` | `--format` | Summary output format: `table` (default) or `json` |
+| `-P` | `--precision` | Decimal places for printed probabilities (default: `6`) |
+
+**Required params by experiment:**
+
+| Experiment | Required params |
+|------------|-----------------|
+| `binomial` | `n=INT k=INT p=FLOAT` |
+| `birthday` | `pool=INT group=INT` |
+| `streak` | `n=INT k=INT p=FLOAT` |
+| `poisson` | `lam=FLOAT k=INT` |
+
 ### Python Library
 
 #### Binomial Distribution
@@ -177,6 +250,40 @@ survival = poisson_cdf_ge(7, 3.0)
 
 # Minimum k such that P(X ≤ k) >= 0.95
 k = min_k_for_prob(0.95, 3.0)
+```
+
+#### Streak Probability
+
+```python
+from src.utils.streak_probability import (
+    prob_at_least_one_streak,
+    expected_longest_streak,
+)
+
+# P(at least one run of 5 consecutive heads in 100 fair coin flips)
+p = prob_at_least_one_streak(100, 5, 0.5)
+
+# Expected length of the longest run of successes in 162 trials at .300
+e = expected_longest_streak(162, 0.300)
+```
+
+#### Monte Carlo Simulator
+
+```python
+from src.utils.monte_carlo import (
+    simulate_binomial,
+    simulate_birthday,
+    simulate_streak,
+    simulate_poisson,
+    wilson_ci,
+    standard_error,
+)
+
+# Simulate P(X >= 5) for Binomial(10, 0.4) over 100,000 trials
+results = simulate_binomial(n=10, k=5, p=0.4, trials=100_000, seed=42)
+p_hat = sum(results) / len(results)
+se = standard_error(p_hat, len(results))
+ci = wilson_ci(p_hat, len(results))
 ```
 
 ## Development

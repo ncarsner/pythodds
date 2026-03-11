@@ -1,6 +1,6 @@
 [project]
 name = "pythodds"
-version = "0.4.1"
+version = "0.5.0"
 description = "Command line utilities for statistics, odds, and probabilities"
 readme = "README.md"
 authors = [
@@ -8,7 +8,12 @@ authors = [
 ]
 requires-python = ">=3.13"
 license = {text = "MIT"}
-dependencies = []
+dependencies = [
+    "numpy>=2.4.3",
+    "pandas>=3.0.1",
+    "scikit-learn>=1.8.0",
+    "scipy>=1.17.1",
+]
 
 keywords = ["statistics", "probability", "binomial", "odds", "cli"]
 classifiers = [
@@ -27,6 +32,8 @@ classifiers = [
 binom = "src.utils.binomial_distribution:main"
 birthday = "src.utils.birthday_problem:main"
 poisson = "src.utils.poisson_distribution:main"
+streak = "src.utils.streak_probability:main"
+simulate = "src.utils.monte_carlo:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -44,14 +51,16 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+addopts = "--ignore=tests/test_sales_tax_product.py --cov=src/utils --cov-report=term-missing"
 
 [tool.coverage.run]
 omit = [
     "src/__init__.py",
     "src/utils/__init__.py",
+    "sales_tax_product.py",
 ]
 
 [tool.coverage.report]
-exclude_lines = [
-    "if __name__ == .__main__.",
+exclude_also = [
+    'if __name__ == "__main__"',
 ]
