@@ -1,6 +1,6 @@
 [project]
 name = "pythodds"
-version = "0.5.1"
+version = "0.5.2"
 description = "Command line utilities for statistics, odds, and probabilities"
 readme = "README.md"
 authors = [
@@ -51,7 +51,7 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "--ignore=tests/test_sales_tax_product.py --cov=src/utils --cov-report=term-missing"
+addopts = "--ignore=tests/test_sales_tax_product.py --cov=src/utils --cov-report=term-missing --cov-report=xml"
 
 [tool.coverage.run]
 omit = [
