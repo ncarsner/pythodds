@@ -21,6 +21,7 @@ Usage examples:
 # Core probability functions
 # ---------------------------------------------------------------------------
 
+
 def prob_at_least_one_streak(n: int, k: int, p: float) -> float:
     """P(at least one run of k consecutive successes in n Bernoulli(p) trials).
 
@@ -86,13 +87,16 @@ def expected_longest_streak(n: int, p: float) -> float:
 # Output formatting
 # ---------------------------------------------------------------------------
 
+
 def _fmt_prob(x: float, precision: int) -> str:
     pct = x * 100.0
     fmt = f"{{:.{precision}f}}"
     return f"{fmt.format(x)} ({fmt.format(pct)}%)"
 
 
-def format_streak_output(n: int, k: int, p: float, at_least_one: float, precision: int) -> str:
+def format_streak_output(
+    n: int, k: int, p: float, at_least_one: float, precision: int
+) -> str:
     label_at_least = f"P(streak \u2265 {k}):"
     label_none = f"P(no streak \u2265 {k}):"
     width = max(len(label_at_least), len(label_none)) + 2
@@ -120,6 +124,7 @@ def format_longest_output(n: int, p: float, expected: float, precision: int) -> 
 # Argument parsing
 # ---------------------------------------------------------------------------
 
+
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Streak (consecutive run) probability calculator.",
@@ -131,26 +136,41 @@ Examples:
 """,
     )
     parser.add_argument(
-        "--trials", "-n", type=int, required=True, metavar="N",
+        "--trials",
+        "-n",
+        type=int,
+        required=True,
+        metavar="N",
         help="total number of independent trials",
     )
     parser.add_argument(
-        "--prob", "-p", type=float, required=True, metavar="P",
+        "--prob",
+        "-p",
+        type=float,
+        required=True,
+        metavar="P",
         help="probability of success on a single trial (0..1)",
     )
 
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument(
-        "--streak-length", "-k", type=int, metavar="K",
+        "--streak-length",
+        "-k",
+        type=int,
+        metavar="K",
         help="compute P(at least one run of K consecutive successes)",
     )
     mode.add_argument(
-        "--longest", action="store_true",
+        "--longest",
+        action="store_true",
         help="compute E[length of longest run of consecutive successes]",
     )
 
     parser.add_argument(
-        "--precision", "-P", type=int, default=6,
+        "--precision",
+        "-P",
+        type=int,
+        default=6,
         help="decimal places for printed probabilities (default: 6)",
     )
     return parser.parse_args(argv)
@@ -159,6 +179,7 @@ Examples:
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
+
 
 def validate(args: argparse.Namespace) -> Optional[str]:
     if args.trials <= 0:
@@ -173,6 +194,7 @@ def validate(args: argparse.Namespace) -> Optional[str]:
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)

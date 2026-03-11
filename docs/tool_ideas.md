@@ -7,7 +7,7 @@ This document outlines candidate tools for future addition to `pythodds`. Each e
 ## Existing Tools (Reference Baseline)
 
 | Command    | What it does | Core user |
-|------------|--------------|-----------| 
+|------------|--------------|-----------|
 | `binom`    | PMF, CDF, and survival function for a Binomial(n, p) distribution | Analysts testing pass/fail rates, A/B testers, QA engineers |
 | `birthday` | Collision probability for uniform and non-uniform pools; range tables; JSON/CSV output | Security researchers, data engineers checking ID uniqueness, statisticians |
 

@@ -8,7 +8,6 @@ from src.utils.streak_probability import (
     prob_at_least_one_streak,
 )
 
-
 # ---------------------------------------------------------------------------
 # prob_at_least_one_streak — edge cases
 # ---------------------------------------------------------------------------

@@ -46,7 +46,9 @@ except ImportError:  # pragma: no cover
 
 _collision_prob_uniform = None
 try:
-    from src.utils.birthday_problem import collision_prob_uniform as _collision_prob_uniform
+    from src.utils.birthday_problem import (
+        collision_prob_uniform as _collision_prob_uniform,
+    )
 except ImportError:  # pragma: no cover
     pass
 
@@ -60,6 +62,7 @@ except ImportError:  # pragma: no cover
 # ---------------------------------------------------------------------------
 # Statistical helpers
 # ---------------------------------------------------------------------------
+
 
 def standard_error(p_hat: float, n: int) -> float:
     """SE of a sample proportion."""
@@ -80,14 +83,17 @@ def wilson_ci(p_hat: float, n: int, alpha: float = 0.05) -> tuple[float, float]:
 
 def trials_for_scale(target_se: float) -> int:
     """Minimum trial count to achieve worst-case SE ≤ target_se (p=0.5 is worst case)."""
-    return math.ceil(0.25 / (target_se ** 2))
+    return math.ceil(0.25 / (target_se**2))
 
 
 # ---------------------------------------------------------------------------
 # Simulation engines
 # ---------------------------------------------------------------------------
 
-def simulate_binomial(n: int, k: int, p: float, trials: int, seed: Optional[int]) -> list[int]:
+
+def simulate_binomial(
+    n: int, k: int, p: float, trials: int, seed: Optional[int]
+) -> list[int]:
     """Per-trial outcomes (1/0) for P(X ≥ k) where X ~ Binomial(n, p)."""
     if HAS_NUMPY:
         rng = np.random.default_rng(seed)
@@ -101,7 +107,9 @@ def simulate_binomial(n: int, k: int, p: float, trials: int, seed: Optional[int]
         ]
 
 
-def simulate_birthday(pool: int, group: int, trials: int, seed: Optional[int]) -> list[int]:
+def simulate_birthday(
+    pool: int, group: int, trials: int, seed: Optional[int]
+) -> list[int]:
     """Per-trial collision indicators for the birthday problem."""
     if HAS_NUMPY:
         rng = np.random.default_rng(seed)
@@ -118,7 +126,9 @@ def simulate_birthday(pool: int, group: int, trials: int, seed: Optional[int]) -
         return results
 
 
-def simulate_streak(n: int, k: int, p: float, trials: int, seed: Optional[int]) -> list[int]:
+def simulate_streak(
+    n: int, k: int, p: float, trials: int, seed: Optional[int]
+) -> list[int]:
     """Per-trial outcomes (1/0) for P(at least one run of k consecutive successes in n Bernoulli(p) trials)."""
     rng = random.Random(seed)
     results = []
@@ -166,8 +176,8 @@ def simulate_poisson(lam: float, k: int, trials: int, seed: Optional[int]) -> li
 REQUIRED_PARAMS: dict[str, list[str]] = {
     "binomial": ["n", "k", "p"],
     "birthday": ["pool", "group"],
-    "streak":   ["n", "k", "p"],
-    "poisson":  ["lam", "k"],
+    "streak": ["n", "k", "p"],
+    "poisson": ["lam", "k"],
 }
 
 
@@ -175,11 +185,17 @@ def run_experiment(
     experiment: str, params: dict[str, str], trials: int, seed: Optional[int]
 ) -> list[int]:
     if experiment == "binomial":
-        return simulate_binomial(int(params["n"]), int(params["k"]), float(params["p"]), trials, seed)
+        return simulate_binomial(
+            int(params["n"]), int(params["k"]), float(params["p"]), trials, seed
+        )
     if experiment == "birthday":
-        return simulate_birthday(int(params["pool"]), int(params["group"]), trials, seed)
+        return simulate_birthday(
+            int(params["pool"]), int(params["group"]), trials, seed
+        )
     if experiment == "streak":
-        return simulate_streak(int(params["n"]), int(params["k"]), float(params["p"]), trials, seed)
+        return simulate_streak(
+            int(params["n"]), int(params["k"]), float(params["p"]), trials, seed
+        )
     if experiment == "poisson":
         return simulate_poisson(float(params["lam"]), int(params["k"]), trials, seed)
     raise ValueError(f"Unknown experiment: {experiment!r}")  # pragma: no cover
@@ -199,6 +215,7 @@ def analytical_value(experiment: str, params: dict[str, str]) -> Optional[float]
 # ---------------------------------------------------------------------------
 # Output formatters
 # ---------------------------------------------------------------------------
+
 
 def _fmt(v: float, precision: int) -> str:
     return f"{v:.{precision}f}"
@@ -244,6 +261,7 @@ def format_dump_csv(results: list[int]) -> str:
 # Argument parsing
 # ---------------------------------------------------------------------------
 
+
 def _parse_kv_params(raw: list[str]) -> dict[str, str]:
     params: dict[str, str] = {}
     for item in raw:
@@ -276,41 +294,66 @@ Examples:
 """,
     )
     parser.add_argument(
-        "--experiment", "-e",
+        "--experiment",
+        "-e",
         choices=list(REQUIRED_PARAMS),
         required=True,
         help="experiment type to simulate",
     )
     parser.add_argument(
-        "--params", "-p", nargs="+", default=[], metavar="KEY=VALUE",
+        "--params",
+        "-p",
+        nargs="+",
+        default=[],
+        metavar="KEY=VALUE",
         help="experiment parameters (e.g. --params n=10 k=5 p=0.4)",
     )
     parser.add_argument(
-        "--trials", "-t", type=int, default=10_000, metavar="N",
+        "--trials",
+        "-t",
+        type=int,
+        default=10_000,
+        metavar="N",
         help="number of simulation trials (default: 10,000; overridden by --scale)",
     )
     parser.add_argument(
-        "--scale", type=float, default=None, metavar="SE",
+        "--scale",
+        type=float,
+        default=None,
+        metavar="SE",
         help="target standard error; auto-computes --trials for worst-case p=0.5",
     )
     parser.add_argument(
-        "--seed", "-s", type=int, default=None, metavar="INT",
+        "--seed",
+        "-s",
+        type=int,
+        default=None,
+        metavar="INT",
         help="random seed for reproducibility",
     )
     parser.add_argument(
-        "--confidence", "-c", action="store_true",
+        "--confidence",
+        "-c",
+        action="store_true",
         help="print 95%% Wilson confidence interval",
     )
     parser.add_argument(
-        "--dump", action="store_true",
+        "--dump",
+        action="store_true",
         help="output per-trial results as CSV (trial, outcome) instead of summary",
     )
     parser.add_argument(
-        "--format", "-f", choices=["table", "json"], default="table",
+        "--format",
+        "-f",
+        choices=["table", "json"],
+        default="table",
         help="summary output format (default: table; ignored with --dump)",
     )
     parser.add_argument(
-        "--precision", "-P", type=int, default=6,
+        "--precision",
+        "-P",
+        type=int,
+        default=6,
         help="decimal places for printed probabilities (default: 6)",
     )
     return parser.parse_args(argv)
@@ -320,6 +363,7 @@ Examples:
 # Validation
 # ---------------------------------------------------------------------------
 
+
 def validate(args: argparse.Namespace) -> Optional[str]:
     try:
         params = _parse_kv_params(args.params)
@@ -328,9 +372,8 @@ def validate(args: argparse.Namespace) -> Optional[str]:
 
     missing = [r for r in REQUIRED_PARAMS[args.experiment] if r not in params]
     if missing:
-        return (
-            f"experiment '{args.experiment}' requires params: "
-            + ", ".join(f"{m}=..." for m in missing)
+        return f"experiment '{args.experiment}' requires params: " + ", ".join(
+            f"{m}=..." for m in missing
         )
 
     try:
@@ -368,6 +411,7 @@ def validate(args: argparse.Namespace) -> Optional[str]:
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
@@ -411,7 +455,11 @@ def main(argv: Optional[list[str]] = None) -> int:
             output["difference"] = round(p_hat - analytical, precision)
         print(json.dumps(output, indent=2))
     else:
-        print(format_table(args.experiment, params, trials, p_hat, se, ci, analytical, precision))
+        print(
+            format_table(
+                args.experiment, params, trials, p_hat, se, ci, analytical, precision
+            )
+        )
 
     return 0
 

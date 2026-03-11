@@ -1,9 +1,9 @@
 """Tests for binomial distribution functions."""
 
 from src.utils.binomial_distribution import (
-    binomial_pmf,
-    binomial_cdf_le,
     binomial_cdf_ge,
+    binomial_cdf_le,
+    binomial_pmf,
     format_prob,
     main,
     parse_args,

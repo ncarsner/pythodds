@@ -8,23 +8,31 @@ from src.utils.monte_carlo import (
     validate,
 )
 
-
 # ---------------------------------------------------------------------------
 # Statistical helpers
 # ---------------------------------------------------------------------------
 
+
 def test_standard_error_zero_n():
     assert standard_error(0.5, 0) == 0.0
 
+
 def test_trials_for_scale():
     assert trials_for_scale(0.05) == 100  # ceil(0.25 / 0.05**2)
+
 
 # ---------------------------------------------------------------------------
 # validate
 # ---------------------------------------------------------------------------
 
+
 def _ns(**kwargs):
-    defaults = {"experiment": "binomial", "params": ["n=10", "k=5", "p=0.4"], "trials": 1000, "scale": None}
+    defaults = {
+        "experiment": "binomial",
+        "params": ["n=10", "k=5", "p=0.4"],
+        "trials": 1000,
+        "scale": None,
+    }
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
 
@@ -42,23 +50,38 @@ def test_validate_binomial_bad_k():
 
 
 def test_validate_binomial_bad_p():
-    assert validate(_ns(params=["n=10", "k=5", "p=2.0"])) == "param p must be between 0 and 1"
+    assert (
+        validate(_ns(params=["n=10", "k=5", "p=2.0"]))
+        == "param p must be between 0 and 1"
+    )
 
 
 def test_validate_birthday_bad_pool():
-    assert validate(_ns(experiment="birthday", params=["pool=0", "group=23"])) == "param pool must be >= 1"
+    assert (
+        validate(_ns(experiment="birthday", params=["pool=0", "group=23"]))
+        == "param pool must be >= 1"
+    )
 
 
 def test_validate_birthday_bad_group():
-    assert validate(_ns(experiment="birthday", params=["pool=365", "group=0"])) == "param group must be >= 1"
+    assert (
+        validate(_ns(experiment="birthday", params=["pool=365", "group=0"]))
+        == "param group must be >= 1"
+    )
 
 
 def test_validate_poisson_bad_lam():
-    assert validate(_ns(experiment="poisson", params=["lam=0.0", "k=3"])) == "param lam must be > 0"
+    assert (
+        validate(_ns(experiment="poisson", params=["lam=0.0", "k=3"]))
+        == "param lam must be > 0"
+    )
 
 
 def test_validate_poisson_bad_k():
-    assert validate(_ns(experiment="poisson", params=["lam=3.0", "k=-1"])) == "param k must be >= 0"
+    assert (
+        validate(_ns(experiment="poisson", params=["lam=3.0", "k=-1"]))
+        == "param k must be >= 0"
+    )
 
 
 def test_validate_bad_param_value():
@@ -79,6 +102,7 @@ def test_validate_scale_not_positive():
 # main
 # ---------------------------------------------------------------------------
 
+
 def test_main_returns_2_on_invalid(capsys):
     rc = main(["--experiment", "binomial", "--params", "n=10", "k=5"])
     assert rc == 2
@@ -86,10 +110,23 @@ def test_main_returns_2_on_invalid(capsys):
 
 
 def test_main_binomial_json_confidence(capsys):
-    rc = main([
-        "--experiment", "binomial", "--params", "n=10", "k=5", "p=0.4",
-        "--trials", "500", "--seed", "42", "--confidence", "--format", "json",
-    ])
+    rc = main(
+        [
+            "--experiment",
+            "binomial",
+            "--params",
+            "n=10",
+            "k=5",
+            "p=0.4",
+            "--trials",
+            "500",
+            "--seed",
+            "42",
+            "--confidence",
+            "--format",
+            "json",
+        ]
+    )
     assert rc == 0
     data = json.loads(capsys.readouterr().out)
     assert "ci_lower" in data
@@ -97,10 +134,20 @@ def test_main_binomial_json_confidence(capsys):
 
 
 def test_main_streak_table(capsys):
-    rc = main([
-        "--experiment", "streak", "--params", "n=10", "k=2", "p=0.5",
-        "--trials", "200", "--seed", "42",
-    ])
+    rc = main(
+        [
+            "--experiment",
+            "streak",
+            "--params",
+            "n=10",
+            "k=2",
+            "p=0.5",
+            "--trials",
+            "200",
+            "--seed",
+            "42",
+        ]
+    )
     assert rc == 0
     out = capsys.readouterr().out
     assert "Estimated probability" in out
@@ -108,19 +155,40 @@ def test_main_streak_table(capsys):
 
 
 def test_main_birthday_table_confidence(capsys):
-    rc = main([
-        "--experiment", "birthday", "--params", "pool=365", "group=23",
-        "--trials", "500", "--seed", "42", "--confidence",
-    ])
+    rc = main(
+        [
+            "--experiment",
+            "birthday",
+            "--params",
+            "pool=365",
+            "group=23",
+            "--trials",
+            "500",
+            "--seed",
+            "42",
+            "--confidence",
+        ]
+    )
     assert rc == 0
     assert "Analytical value" in capsys.readouterr().out
 
 
 def test_main_poisson_json(capsys):
-    rc = main([
-        "--experiment", "poisson", "--params", "lam=3.0", "k=5",
-        "--trials", "500", "--seed", "42", "--format", "json",
-    ])
+    rc = main(
+        [
+            "--experiment",
+            "poisson",
+            "--params",
+            "lam=3.0",
+            "k=5",
+            "--trials",
+            "500",
+            "--seed",
+            "42",
+            "--format",
+            "json",
+        ]
+    )
     assert rc == 0
     data = json.loads(capsys.readouterr().out)
     assert "analytical_value" in data
@@ -128,10 +196,21 @@ def test_main_poisson_json(capsys):
 
 
 def test_main_dump(capsys):
-    rc = main([
-        "--experiment", "binomial", "--params", "n=10", "k=5", "p=0.4",
-        "--trials", "5", "--seed", "42", "--dump",
-    ])
+    rc = main(
+        [
+            "--experiment",
+            "binomial",
+            "--params",
+            "n=10",
+            "k=5",
+            "p=0.4",
+            "--trials",
+            "5",
+            "--seed",
+            "42",
+            "--dump",
+        ]
+    )
     assert rc == 0
     lines = capsys.readouterr().out.strip().splitlines()
     assert lines[0] == "trial,outcome"
