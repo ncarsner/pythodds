@@ -201,6 +201,7 @@ linreg --x 1,2,3,4,5 --y 2.1,3.9,6.2,7.8,10.1
 
 # Fit from a CSV file and predict at x=6 with 95% confidence interval
 linreg --file data.csv --predict 6 --alpha 0.05
+linreg --file data.csv --predict 10 --conf 0.95
 
 # JSON output for downstream processing
 linreg --x 10,20,30,40,50 --y 15,28,41,55,68 --format json
@@ -553,6 +554,159 @@ randforest --file train.csv --target outcome --predict-file new_obs.csv
 
 ---
 
+## 19. `forecast` — Time Series Forecasting with Prediction Intervals
+
+### Dependencies
+- **Optional:** `statsmodels` (Holt-Winters / ETS models with optimised smoothing parameters); falls back to pure-Python simple and double exponential smoothing
+- **Optional:** `numpy` (faster array operations for large series)
+
+### Architecture
+- Fits an exponential smoothing model to a user-supplied time series and generates point forecasts with symmetric prediction intervals derived from in-sample residual variance
+- Methods: `--method {simple,double,holt-winters}` — simple (level only), double (level + trend), Holt-Winters (level + trend + seasonal)
+- User-supplied variables: `--data CSV_OR_VALUES`, `--periods INT` (steps to forecast), `--alpha F` (confidence level, default 0.95), `--seasonal-period INT` (Holt-Winters only), `--format {table,json,csv}`
+- Outputs: fitted values, forecast values, lower and upper prediction interval bounds, residual standard deviation
+- `--backtest K` flag holds out the last K observations and reports RMSE/MAE on the holdout set
+
+```bash
+# Simple exponential smoothing, 6-period forecast
+forecast --data 120,135,148,130,142,155,160 --method simple --periods 6
+
+# Holt-Winters with weekly seasonality (period=7), 14-day forecast
+forecast --data sales.csv --method holt-winters --seasonal-period 7 --periods 14
+
+# Backtest: evaluate accuracy on the last 4 observations
+forecast --data counts.csv --method double --periods 4 --backtest 4 --format json
+```
+
+### Target User Base
+- Operations and supply-chain analysts - _projecting demand with uncertainty bounds_
+- Finance and business analysts - _building revenue or cost forecasts with explicit variance_
+- **DevOps / SREs** forecasting queue depths, error rates, or resource utilisation ahead of capacity planning
+- The natural "what happens next?" complement to `poisson` and `expected` — users who model a current rate will want to project it forward
+
+---
+
+## 20. `ewma` — Exponentially Weighted Moving Average & Control Limits
+
+### Dependencies
+- None (pure Python)
+
+### Architecture
+- Computes an EWMA (exponentially weighted moving average) of a series and derives upper/lower control limits (UCL/LCL) from the rolling variance estimate — the statistical basis of real-time anomaly detection and EWMA control charts
+- **Core functions:** `ewma(data, lam)` → smoothed series; `ewma_variance(data, lam)` → rolling variance; `control_limits(data, lam, k)` → UCL and LCL at ±k sigma
+- CLI flags: `--data CSV_OR_VALUES`, `--lambda F` (smoothing parameter 0 < λ ≤ 1, default 0.2), `--k F` (sigma multiplier for limits, default 3.0), `--format {table,json,csv}`
+- Output: original values, EWMA values, rolling variance, UCL, LCL, and a boolean `out_of_control` flag per row
+
+```bash
+# EWMA chart with 3-sigma control limits (λ=0.2)
+ewma --data 10.1,9.8,10.3,10.0,9.7,11.2,10.1,10.4 --lambda 0.2 --k 3.0
+
+# Tighter smoothing (λ=0.1) for slow-moving processes
+ewma --data metrics.csv --lambda 0.1 --k 2.5 --format csv
+
+# JSON output for piping to plotdist or downstream alerting
+ewma --data error_counts.csv --lambda 0.3 --format json
+```
+
+### Target User Base
+- **DevOps / SREs and platform engineers** building statistical process control charts for service metrics
+- **Manufacturing and QA engineers** running EWMA control charts on production measurements
+- **Analysts** needing a lightweight alternative to full SPC software for monitoring KPIs
+- Direct companion to `forecast` — `forecast` projects future values, `ewma` monitors current values for deviation from expected behaviour
+
+---
+
+## 21. `vartest` — Variance Equality Tests
+
+### Dependencies
+- None (pure Python via `math.lgamma` for F and chi-square CDFs)
+
+### Architecture
+- Tests whether two or more samples have equal variances — a critical prerequisite for `ttest --equal-var` and many ANOVA-based analyses
+- Tests: `--test {f,levene,bartlett}` — F-test (two samples), Levene (robust, 2+ samples), Bartlett (2+ samples, assumes normality)
+- CLI flags: `--data GROUP1 GROUP2 [...]` (comma-separated values per group), `--file CSV --group-col COL --value-col COL`, `--alpha F`, `--sided {one,two}`
+- Output: test statistic, degrees of freedom, p-value, decision; sample variances and ratio for the F-test
+
+```bash
+# F-test for equality of variances between two groups
+vartest --test f --data "12.1,11.8,12.5,11.9" "9.8,10.3,10.1,9.7,10.5"
+
+# Levene's test across three groups from a CSV
+vartest --test levene --file experiment.csv --group-col treatment --value-col response
+
+# Bartlett's test with explicit significance level
+vartest --test bartlett --data "1.2,1.5,1.3" "2.1,2.4,2.2,2.0" --alpha 0.01
+```
+
+### Target User Base
+- **Researchers and analysts** validating the equal-variance assumption before running a two-sample t-test
+- **QA and manufacturing engineers** comparing process variability across production lines or shifts
+- **Students** learning applied statistics who need to check assumptions, not just run tests
+- A natural pre-flight check for `ttest` — the question "can I use `--equal-var`?" is answered directly by `vartest`
+
+---
+
+## 22. `bootci` — Bootstrap Confidence Intervals
+
+### Dependencies
+- **Optional:** `numpy` (vectorised resampling for large `--samples`; falls back to `random.choices` from the standard library)
+
+### Architecture
+- Estimates confidence intervals for any sample statistic via non-parametric bootstrap resampling — no distributional assumptions required
+- Statistics: `--stat {mean,median,std,var,skewness,kurtosis,p5,p95,custom}`; `--custom-expr` allows user-defined statistics (e.g. `"sorted(x)[len(x)//2] / sum(x) * len(x)"`)
+- CLI flags: `--data CSV_OR_VALUES`, `--stat STAT`, `--samples INT` (bootstrap replicates, default 10 000), `--alpha F` (default 0.05), `--method {percentile,bca}` (basic percentile or bias-corrected accelerated), `--seed INT`, `--format {table,json}`
+- Output: observed statistic, bootstrap SE, lower and upper CI bounds, bootstrap distribution summary (mean, SD of replicates)
+
+```bash
+# 95% bootstrap CI for the mean of a small sample
+bootci --data 14.2,13.8,15.1,14.5,13.9,15.3 --stat mean --samples 10000
+
+# BCa CI for the median (more accurate for skewed data)
+bootci --data measurements.csv --stat median --method bca --seed 42
+
+# CI for variance, exported as JSON
+bootci --data sensor_readings.csv --stat var --samples 50000 --format json
+```
+
+### Target User Base
+- **Researchers and statisticians** who need variance estimates without assuming a parametric distribution
+- **Data scientists** validating model performance metrics (e.g. bootstrap CI for RMSE or R²) on small samples
+- **Students** learning resampling methods as an alternative to closed-form interval formulas
+- Complements `confint` (parametric) — when the user isn't sure their data is normal, `bootci` is the distribution-free alternative
+
+---
+
+## 23. `mlreg` — Multiple Linear Regression with Prediction Intervals
+
+### Dependencies
+- **Required:** `numpy` (matrix algebra for OLS: $(X^TX)^{-1}X^Ty$)
+- **Optional:** `pandas` (named-column CSV ingestion; falls back to `csv` module with positional columns)
+
+### Architecture
+- Fits OLS multiple regression and produces full inference output including individual and joint prediction intervals, driven entirely by user-supplied data
+- **Core functions:** `fit(X, y)` → coefficients, SE, t-stats, p-values, R², adjusted R², F-stat; `predict(X_new, model, alpha)` → point estimate, confidence interval (mean response), prediction interval (individual response)
+- CLI flags: `--file CSV`, `--target COL`, `--features COL [...]` (default: all non-target numeric columns), `--alpha F`, `--predict-file CSV`, `--vif` (variance inflation factors for multicollinearity), `--format {table,json,csv}`, `--precision INT`
+- Output: coefficient table (estimate, SE, t, p, 95% CI), model summary (R², adjusted R², RMSE, F-stat, overall p), optional prediction table with PI bounds
+
+```bash
+# Fit a multiple regression from a CSV file
+mlreg --file housing.csv --target price
+
+# Include only selected features and compute VIF
+mlreg --file data.csv --target sales --features advertising headcount --vif
+
+# Predict new observations with 90% prediction intervals
+mlreg --file train.csv --target output --predict-file new_inputs.csv --alpha 0.10 --format json
+```
+
+### Target User Base
+- **Analysts and data scientists** who need a CLI multiple regression tool without opening a notebook or statistical package
+- **Researchers** reporting coefficient estimates with standard errors and prediction intervals
+- **Engineers** modelling a response variable (yield, latency, defect rate) as a function of multiple controllable inputs
+- Extends `linreg` to multiple predictors and adds the critical distinction between confidence intervals (mean response variance) and prediction intervals (individual response variance) — the correct tool when "how uncertain is a single new forecast?" matters
+
+---
+
 ## Summary Table
 
 | Command | Distribution / Concept | Deps (optional*) | Zero-dep fallback? | Closest existing tool |
@@ -575,5 +729,10 @@ randforest --file train.csv --target outcome --predict-file new_obs.csv
 | `pvalue`      | p-value and hypothesis test          | None                      | N/A                | `binom`                       |
 | `sensitivity` | Parameter sensitivity / tornado      | `matplotlib`*             | ✅ ranked table    | all tools                     |
 | `randforest`  | Random forest classifier / regressor | `scikit-learn`, `numpy`*, `pandas`* | ✅ numpy/pandas | `linreg`          |
+| `forecast`    | Time series forecasting + pred. intervals | `statsmodels`*, `numpy`* | ✅ pure-Python ES | `poisson` / `expected`   |
+| `ewma`        | EWMA control chart + variance limits | None                      | N/A                | `forecast`                    |
+| `vartest`     | Variance equality tests (F, Levene, Bartlett) | None             | N/A                | `ttest`                       |
+| `bootci`      | Bootstrap confidence intervals       | `numpy`*                  | ✅ `random.choices` | `confint`                   |
+| `mlreg`       | Multiple linear regression + pred. intervals | `numpy`, `pandas`*  | N/A                | `linreg`                      |
 
-\* Optional dependency: tool functions without it but with reduced output capability.
+\* _Optional dependency: functionality exists but reduced output capability without the package._
