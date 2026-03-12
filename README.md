@@ -12,10 +12,12 @@ A command-line utility and Python library for calculating statistics, odds, and 
 
 - **Binomial Distribution**: Calculate PMF, CDF, and survival functions for binomial distributions
 - **Birthday Problem**: Compute collision probabilities for uniform and non-uniform pools, find minimum group sizes, and generate probability tables
+- **Normal Distribution**: Compute PDF, CDF, survival probabilities, interval probabilities, and the inverse CDF (percent-point function) for a Gaussian N(μ, σ²) distribution
+- **Expected Value**: Compute E[X], Var(X), SD(X), Shannon entropy, and the moment generating function for discrete probability distributions; supports inline input or CSV/JSON files
 - **Poisson Distribution**: Compute PMF, CDF, and survival probabilities, find minimum event counts for a target cumulative probability, and generate full probability tables
 - **Streak Probability**: Compute the probability of at least one consecutive run of successes and the expected length of the longest streak
 - **Monte Carlo Simulator**: Empirically estimate probabilities for binomial, birthday, streak, and Poisson experiments with confidence intervals and analytical comparison
-- **Command-line Interface**: Easy-to-use CLI tools (`binom`, `birthday`, `poisson`, `streak`, and `simulate` commands)
+- **Command-line Interface**: Easy-to-use CLI tools (`binom`, `birthday`, `normal`, `expected`, `poisson`, `streak`, and `simulate` commands)
 - **Pure Python**: No external dependencies required for core calculations
 
 ## Installation
@@ -69,8 +71,7 @@ birthday -p 10_000_000 -n 1180
 birthday --group-size 30 --weights 0.10,0.15,0.20,0.30,0.25
 
 # Output as JSON or CSV
-birthday --range 1 60 --format json
-birthday --range 1 60 --format csv
+birthday --range 1 60 --format <json|csv>
 ```
 
 **Options:**
@@ -84,6 +85,67 @@ birthday --range 1 60 --format csv
 | `-w` | `--weights` | Comma-separated relative frequencies for a non-uniform pool |
 | `-f` | `--format` | Output format: `table` (default), `json`, or `csv` |
 | `-P` | `--precision` | Decimal places for printed probabilities (default: `6`) |
+
+#### `normal` — Normal (Gaussian) Distribution
+
+Computes PDF, CDF, survival probabilities, interval probabilities, and the inverse CDF (percent-point function) for a N(μ, σ²) distribution. Uses only the Python standard library.
+
+```bash
+# PDF, P(X ≤ 1.96), and P(X ≥ 1.96) for the standard normal
+normal -x 1.96 -m 0 -s 1
+
+# Same calculation for a custom distribution
+normal -x 75 -m 70 -s 5
+
+# P(−1.96 ≤ X ≤ 1.96)
+normal --between -1.96 1.96 -m 0 -s 1
+
+# Find the value x such that P(X ≤ x) = 0.975 (inverse CDF)
+normal --quantile 0.975 -m 0 -s 1
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-x` | `--value` | Compute PDF, P(X ≤ x), and P(X ≥ x) for this value |
+| | `--between LOW HIGH` | Compute P(LOW ≤ X ≤ HIGH) |
+| `-q` | `--quantile` | Find x such that P(X ≤ x) = P (inverse CDF) |
+| `-m` | `--mean` | Distribution mean μ (default: `0`) |
+| `-s` | `--std` | Distribution standard deviation σ (default: `1`) |
+| `-P` | `--precision` | Decimal places for printed values (default: `6`) |
+
+> `-x/--value`, `--between`, and `-q/--quantile` are mutually exclusive; one is required.
+
+#### `expected` — Expected Value & Discrete Distribution Statistics
+
+Computes E[X], Var(X), SD(X), Shannon entropy, and optionally the moment generating function (MGF) for a discrete probability distribution supplied inline or via a CSV/JSON file.
+
+```bash
+# E[X] and statistics for a simple discrete distribution
+expected --outcomes 0,1,5,10 --probs 0.50,0.25,0.15,0.10
+
+# Non-uniform six-sided die
+expected --outcomes 1,2,3,4,5,6 --probs 0.1,0.2,0.3,0.2,0.1,0.1
+
+# Load distribution from a CSV or JSON file
+expected --file payouts.csv
+
+# Also compute the MGF at t=0.5
+expected --outcomes 0,1 --probs 0.3,0.7 --mgf 0.5
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-o` | `--outcomes` | Comma-separated outcome values |
+| `-f` | `--file` | CSV or JSON file with outcomes and probabilities |
+| `-p` | `--probs` | Comma-separated probabilities (required with `--outcomes`) |
+| | `--mgf T` | Also compute the moment generating function M_X(t) at t=T |
+| `-P` | `--precision` | Decimal places for printed values (default: `6`) |
+
+> `--outcomes` and `--file` are mutually exclusive; one is required. `--probs` is required when using `--outcomes`.
 
 #### `poisson` — Poisson Distribution
 
@@ -128,8 +190,8 @@ Computes the exact probability of at least one run of k consecutive successes in
 # P(at least one run of 5+ heads in 100 fair coin flips)
 streak -n 100 -k 5 -p 0.5
 
-# P(at least one hitting streak of 20+ games over a 162-game season at .300)
-streak -n 162 -k 20 -p 0.300
+# P(at least one hitting streak of 10+ games over a 162-game season at .320)
+streak -n 162 -k 10 -p 0.32
 
 # Expected length of the longest win streak in 50 trials at 40% success rate
 streak -n 50 -p 0.40 --longest
@@ -267,6 +329,64 @@ p = prob_at_least_one_streak(100, 5, 0.5)
 
 # Expected length of the longest run of successes in 162 trials at .300
 e = expected_longest_streak(162, 0.300)
+```
+
+#### Normal Distribution
+
+```python
+from src.utils.normal_gaussian import (
+    normal_pdf,
+    normal_cdf,
+    normal_ppf,
+    normal_prob_between,
+)
+
+# PDF value at x=1.96 for the standard normal
+pdf = normal_pdf(1.96, mu=0.0, sigma=1.0)
+
+# P(X ≤ 1.96)
+cdf = normal_cdf(1.96, mu=0.0, sigma=1.0)
+
+# P(X ≥ 1.96)
+survival = 1.0 - normal_cdf(1.96, mu=0.0, sigma=1.0)
+
+# P(−1.96 ≤ X ≤ 1.96)
+prob = normal_prob_between(-1.96, 1.96, mu=0.0, sigma=1.0)
+
+# Find x such that P(X ≤ x) = 0.975 (inverse CDF)
+x = normal_ppf(0.975, mu=0.0, sigma=1.0)
+```
+
+#### Expected Value
+
+```python
+from src.utils.expected_value import (
+    expected_value,
+    variance,
+    std_dev,
+    entropy,
+    mgf,
+    load_file,
+)
+
+outcomes = [0, 1, 5, 10]
+probs    = [0.50, 0.25, 0.15, 0.10]
+
+# E[X]
+ev = expected_value(outcomes, probs)
+
+# Var(X) and SD(X)
+var = variance(outcomes, probs)
+sd  = std_dev(outcomes, probs)
+
+# Shannon entropy (bits)
+H = entropy(probs)
+
+# Moment generating function M_X(t) at t=0.5
+M = mgf(outcomes, probs, t=0.5)
+
+# Load a distribution from a CSV or JSON file
+outcomes, probs = load_file("payouts.csv")
 ```
 
 #### Monte Carlo Simulator

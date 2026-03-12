@@ -11,7 +11,7 @@ This document outlines candidate tools for future addition to `pythodds`. Each e
 | `binom`    | PMF, CDF, and survival function for a Binomial(n, p) distribution | Analysts testing pass/fail rates, A/B testers, QA engineers |
 | `birthday` | Collision probability for uniform and non-uniform pools; range tables; JSON/CSV output | Security researchers, data engineers checking ID uniqueness, statisticians |
 
-All existing tools are **pure-Python, zero-dependency, CLI-first**, with optional use as an importable library. Proposed tools follow the same constraints and conventions.
+All existing tools are pure-Python, zero-dependency, CLI-first, with optional use as an importable library. Proposed tools follow the same constraints and conventions.
 
 ---
 
@@ -32,9 +32,9 @@ poisson -k 5 -l 2.5 --target 8 --min-prob 0.05
 ```
 
 ### Target User Base
-- **DevOps / SREs** monitoring error rates, alert thresholds, and incident frequency
-- **Actuaries and risk analysts** modelling claim arrival rates
-- **Scientists and researchers** already using `binom` for discrete probability problems
+- DevOps / SREs: _monitoring error rates, alert thresholds, and incident frequency_
+- Actuaries and risk analysts: _modeling claim arrival rates_
+- Scientists and researchers: _already using `binom` for discrete probability problems_
 - Directly adjacent to the existing audience: anyone comfortable with `binom -n 100 -k 3 -p 0.03` will immediately understand `poisson -k 3 -l 3.0`
 
 ---
@@ -57,9 +57,9 @@ normal --quantile 0.975 -m 0 -s 1
 ```
 
 ### Target User Base
-- **Students and educators** verifying z-table lookups without needing scipy
-- **QA engineers and manufacturing analysts** checking whether process measurements fall within tolerance bands
-- **Data scientists** who want a quick sanity-check tool without spinning up a Python REPL
+- Students and educators: _verifying z-table lookups without needing scipy_
+- QA engineers and manufacturing analysts: _checking whether process measurements fall within tolerance bands_
+- Data scientists: _who want a quick sanity-check tool without spinning up a Python REPL_
 - Broader than `binom`/`birthday` — the most universally accessible addition to the suite
 
 ---
@@ -87,9 +87,9 @@ zscore --reverse --prob 0.975 --tail lower
 ```
 
 ### Target User Base
-- **Students and educators** standardising exam scores or verifying z-table lookups
-- **QA engineers** computing how many standard deviations a measurement falls from spec
-- **Financial analysts** normalising asset returns for cross-security comparison
+- Students and educators: _standardizing exam scores or verifying z-table lookups_
+- QA engineers: _computing how many standard deviations a measurement falls from spec_
+- Financial analysts: _normalizing asset returns for cross-security comparison_
 - A focused companion to `normal` — where `normal` computes full PDF/CDF/quantile for arbitrary distributions, `zscore` answers the single question: "how many sigmas away is this value, and how unusual is that?"
 
 ---
@@ -103,7 +103,7 @@ zscore --reverse --prob 0.975 --tail lower
 - Output: minimum sample size, achieved power or margin of error at that n
 
 ### Application
-Answers "how many observations do I need?" before running a study, experiment, or audit. Whether sizing an A/B test, planning a clinical trial, or determining how many items to inspect in a batch, sample size calculation is prerequisite to every inferential analysis.
+Answers _"how many observations do I need?"_ before running a study, experiment, or audit. Whether sizing an A/B test, planning a clinical trial, or determining how many items to inspect in a batch, sample size calculation is prerequisite to every inferential analysis.
 
 ```bash
 # Minimum n to estimate a proportion within ±3% at 95% confidence
@@ -117,9 +117,9 @@ sample --type comparison --p1 0.40 --p2 0.50 --alpha 0.05 --sweep 50 300
 ```
 
 ### Target User Base
-- **A/B testers and product analysts** sizing experiments before launch
-- **Clinical researchers** meeting pre-specified sample size requirements
-- **Auditors** determining how many records to sample for a given detection sensitivity
+- A/B testers and product analysts: _sizing experiments before launch_
+- Clinical researchers: _meeting pre-specified sample size requirements_
+- Auditors: _determining how many records to sample for a given detection sensitivity_
 - Natural prerequisite companion to `confint` and `pvalue` — the "before" step to those tools' "after" analyses
 
 ---
@@ -147,9 +147,9 @@ ttest --type paired --diffs 2.1,-0.3,4.5,1.8,3.2,-1.1,2.9
 ```
 
 ### Target User Base
-- **Students and educators** working through hypothesis-testing exercises
-- **Product and UX researchers** comparing metric means between two variants
-- **Lab scientists** analysing small-n experiments where z-tests are inappropriate
+- Students and educators: _working through hypothesis-testing exercises_
+- Product and UX researchers: _comparing metric means between two variants_
+- Lab scientists: _analyzing small-n experiments where z-tests are inappropriate_
 - The "small-sample" counterpart to `zscore` and `normal` — users who know their n is small will reach for `ttest` first
 
 ---
@@ -177,9 +177,9 @@ chisq --test gof --observed 52,48 --expected 50,50 --alpha 0.10
 ```
 
 ### Target User Base
-- **Survey analysts and market researchers** testing whether response distributions fit expectations
-- **Biologists and geneticists** checking population allele frequency assumptions
-- **A/B testers** comparing multi-category outcome distributions between variants
+- Survey analysts and market researchers: _testing whether response distributions fit expectations_
+- Biologists and geneticists: _checking population allele frequency assumptions_
+- A/B testers: _comparing multi-category outcome distributions between variants_
 - Pairs naturally with `binom` (binary outcomes) and `pvalue` — the categorical-data generalisation of binary proportion tests
 
 ---
@@ -193,7 +193,7 @@ chisq --test gof --observed 52,48 --expected 50,50 --alpha 0.10
 - Output: slope, intercept, R², F-statistic, overall p-value, coefficient CIs; optional residual table and prediction interval
 
 ### Application
-Quantifies the linear relationship between two continuous variables and makes predictions with uncertainty bounds. Applicable across domains: calibration curves in lab science, price-versus-demand modelling, performance-versus-load curves in engineering, and trend lines in operations.
+Quantifies the linear relationship between two continuous variables and makes predictions with uncertainty bounds. Applicable across domains: calibration curves in lab science, price-versus-demand modeling, performance-versus-load curves in engineering, and trend lines in operations.
 
 ```bash
 # Fit a line to paired x, y values
@@ -208,10 +208,10 @@ linreg --x 10,20,30,40,50 --y 15,28,41,55,68 --format json
 ```
 
 ### Target User Base
-- **Scientists and engineers** fitting calibration curves or modelling physical relationships
-- **Economists and analysts** estimating demand or trend lines from tabular data
-- **Students** learning regression who want a no-setup CLI alternative to Excel or a notebook
-- Extends the suite into predictive modelling — the natural destination after summarising data with `expected` and testing with `ttest` or `chisq`
+- Scientists and engineers: _fitting calibration curves or modeling physical relationships_
+- Economists and analysts: _estimating demand or trend lines from tabular data_
+- Students _learning regression who want a no-setup CLI alternative to Excel or a notebook_
+- Extends the suite into predictive modeling — the natural destination after summarising data with `expected` and testing with `ttest` or `chisq`
 
 ---
 
@@ -232,9 +232,9 @@ expected --file payouts.csv
 ```
 
 ### Target User Base
-- **Game designers and odds analysts** modelling prize tables or betting structures
-- **Educators** teaching probability theory who want a quick computation tool
-- **Researchers** exploring custom distributions before committing to a full scipy/numpy setup
+- Game designers and odds analysts: _modeling prize tables or betting structures_
+- Educators: _teaching probability theory who want a quick computation tool_
+- Researchers: _exploring custom distributions before committing to a full scipy/numpy setup_
 - Power users of `birthday --weights` who want deeper summary statistics on their custom pools
 
 ---
@@ -259,9 +259,9 @@ hypergeo -N 100 -K 10 -n 15 -k 2
 ```
 
 ### Target User Base
-- **Auditors and compliance analysts** sizing samples to detect defects with known confidence
-- **Card game / tabletop RPG designers** computing draw probabilities
-- **Scientists** running enrichment analyses (e.g. gene-set overlap)
+- Auditors and compliance analysts: _sizing samples to detect defects with known confidence_
+- Card game / tabletop RPG designers: _computing draw probabilities_
+- Scientists: _running enrichment analyses (e.g. gene-set overlap)_
 - Direct conceptual neighbour of `binom` — the natural "sampling without replacement" counterpart; existing `binom` users will find the interface familiar
 
 ---
@@ -276,7 +276,7 @@ hypergeo -N 100 -K 10 -n 15 -k 2
 - CLI flags: `-n`/`--trials`, `-k`/`--streak-length`, `-p`/`--prob`, `--longest`, `--precision`
 
 ### Application
-Answers questions like "In 162 baseball games with a 0.300 batting average, what is the probability of a hitting streak of at least 20 games?" or "In 50 sales calls with a 10% close rate, what is the probability of getting 3 consecutive closes?". Streak/run probability is a common question in sports analytics, quality control (consecutive defects), and trading (win/loss streaks).
+Answers questions like "In 162 baseball games with a .320 batting average, what is the probability of a hitting streak of at least 20 games?" or "In 50 sales calls with a 10% close rate, what is the probability of getting 3 consecutive closes?". Streak/run probability is a common question in sports analytics, quality control (consecutive defects), and trading (win/loss streaks).
 
 ```bash
 # P(at least one streak of 5+ heads in 100 fair coin flips)
@@ -287,10 +287,10 @@ streak -n 162 -p 0.300 --longest
 ```
 
 ### Target User Base
-- **Sports analysts and bettors** evaluating hot/cold streaks
-- **Traders and quants** assessing drawdown streaks in a strategy's win/loss record
-- **QA engineers** monitoring consecutive failures in automated test suites
-- Users already comfortable with `binom` who want to reason about sequential structure, not just aggregate counts
+- Sports analysts and bettors: _evaluating hot/cold streaks_
+- Traders and quants: _assessing drawdown streaks in a strategy's win/loss record_
+- QA engineers: _monitoring consecutive failures in automated test suites_
+- Users comfortable with `binom` who want to reason about sequential structure, not just aggregate counts
 
 ---
 
@@ -314,9 +314,9 @@ bayes --prior 0.01 --likelihood-pos 0.99 --likelihood-neg 0.05 --iterations 2
 ```
 
 ### Target User Base
-- **Medical and public health analysts** interpreting diagnostic test results
-- **Security analysts** updating threat probability as evidence accumulates
-- **Students** learning Bayesian reasoning who need a tactile, command-line walkthrough
+- Medical and public health analysts: _interpreting diagnostic test results_
+- Security analysts: _updating threat probability as evidence accumulates_
+- Students: _learning Bayesian reasoning who need a tactile, command-line walkthrough_
 - A natural complement to the frequentist tools (`binom`, `poisson`) already in the suite — giving `pythodds` both frequentist and Bayesian perspectives
 
 ---
@@ -355,9 +355,9 @@ plotdist --dist binomial --params n=10 p=0.3 --text
 ```
 
 ### Target User Base
-- **Educators and students** who want a visual companion to the existing numeric tools
-- **Analysts** building quick presentation-ready charts from the CLI without opening a notebook
-- **Existing `binom` and `birthday` users** who want to "see" the distributions they're already querying numerically
+- Educators and students: _who want a visual companion to the existing numeric tools_
+- Analysts: _building quick presentation-ready charts from the CLI without opening a notebook_
+- Existing `binom` and `birthday` users: _who want to "see" the distributions they're already querying numerically_
 - The `--text` fallback makes this useful even in headless / SSH environments
 
 ---
@@ -386,9 +386,9 @@ simulate --experiment binomial --params n=20 k=8 p=0.5 --scale 0.01 --seed 42
 ```
 
 ### Target User Base
-- **Students and educators** verifying analytical results through simulation
-- **Researchers** stress-testing edge cases where closed-form approximations may lose accuracy
-- **Power users** of existing tools who want to validate outputs empirically
+- Students and educators: _verifying analytical results through simulation_
+- Researchers: _stress-testing edge cases where closed-form approximations may lose accuracy_
+- Power users: _of existing tools who want to validate outputs empirically_
 - The `--scale` flag is especially valuable for users who don't know how many trials are "enough" for a given precision target
 
 ---
@@ -417,10 +417,10 @@ oddsconv --vig --prob 0.526 0.526
 ```
 
 ### Target User Base
-- **Sports bettors and traders** working across platforms that use different odds formats
-- **Quantitative analysts** building pricing models who need a fast reference tool
-- **Educators** teaching probability through real-world gambling/markets examples
-- Complements `binom` and `expected` for users doing sports analytics or betting modelling end-to-end
+- Sports bettors and traders: _working across platforms that use different odds formats_
+- Quantitative analysts: _building pricing models who need a fast reference tool_
+- Educators: _teaching probability through real-world gambling/markets examples_
+- Complements `binom` and `expected` for users doing sports analytics or betting modeling end-to-end
 
 ---
 
@@ -448,9 +448,9 @@ confint --method wilson --p 0.4 --sweep 50 500 --step 50
 ```
 
 ### Target User Base
-- **A/B testers and product analysts** reporting conversion rate confidence intervals
-- **Clinical and public health researchers** computing prevalence estimates
-- **Students** learning inferential statistics who want a CLI alternative to lookup tables
+- A/B testers and product analysts: _reporting conversion rate confidence intervals_
+- Clinical and public health researchers: _computing prevalence estimates_
+- Students: _learning inferential statistics who want a CLI alternative to lookup tables_
 - The `--sweep` flag is particularly useful for researchers planning sample sizes — a direct extension of `birthday`'s range-table philosophy applied to inference
 
 ---
@@ -478,10 +478,10 @@ pvalue --test chi2 --observed 18,22,20,15,25 --expected 20,20,20,20,20
 ```
 
 ### Target User Base
-- **Data analysts and scientists** conducting quick hypothesis tests from summary statistics
-- **Students** in introductory statistics courses who want a CLI calculator for assignments
-- **QA/software teams** running statistical tests on experiment results
-- Natural follow-on to `binom` for users who reach "I have a result — is it significant?" — the logical next step after PMF/CDF queries
+- Data analysts and scientists: _conducting quick hypothesis tests from summary statistics_
+- Students: _in introductory statistics courses who want a CLI calculator for assignments_
+- QA/software teams: _running statistical tests on experiment results_
+- Natural follow-on to `binom` for users who reach _"I have a result — is it significant?"_ — the logical next step after PMF/CDF queries
 
 ---
 
@@ -509,9 +509,9 @@ sensitivity --func normal-cdf --params x=1.5 mu=0 sigma=1 --range-pct 30 --outpu
 ```
 
 ### Target User Base
-- **Risk analysts and quants** who need to know which inputs drive a probability estimate
-- **Researchers** presenting results who want to show robustness (or fragility) of a finding
-- **Advanced users** of the existing tools who want to understand how outputs change as their assumptions change
+- Risk analysts and quants: _who need to know which inputs drive a probability estimate_
+- Researchers: _presenting results who want to show robustness (or fragility) of a finding_
+- Advanced users: _of existing tools who want to understand how outputs change as their assumptions change_
 - The dynamic `--range-pct` flag makes this especially accessible: users don't need to specify exact ranges, just a percentage tolerance
 
 ---
@@ -547,9 +547,9 @@ randforest --file train.csv --target outcome --predict-file new_obs.csv
 ```
 
 ### Target User Base
-- **Data analysts and data scientists** who want a quick model baseline from the command line without writing boilerplate notebook code
-- **Researchers** doing exploratory feature importance analysis on tabular datasets before committing to a full modelling pipeline
-- **Students** learning ensemble methods who want a tactile CLI interface to complement sklearn tutorials
+- Data analysts and data scientists: _who want a quick model baseline from the command line without writing boilerplate notebook code_
+- Researchers: _doing exploratory feature importance analysis on tabular datasets before committing to a full modeling pipeline_
+- Students: _learning ensemble methods who want a tactile CLI interface to complement sklearn tutorials_
 - Power users of `linreg` who need a non-linear, multi-feature model with built-in feature importance — the natural "what if the relationship isn't linear?" follow-on
 
 ---
@@ -581,7 +581,7 @@ forecast --data counts.csv --method double --periods 4 --backtest 4 --format jso
 ### Target User Base
 - Operations and supply-chain analysts - _projecting demand with uncertainty bounds_
 - Finance and business analysts - _building revenue or cost forecasts with explicit variance_
-- **DevOps / SREs** forecasting queue depths, error rates, or resource utilisation ahead of capacity planning
+- DevOps / SREs: _forecasting queue depths, error rates, or resource utilisation ahead of capacity planning_
 - The natural "what happens next?" complement to `poisson` and `expected` — users who model a current rate will want to project it forward
 
 ---
@@ -609,9 +609,9 @@ ewma --data error_counts.csv --lambda 0.3 --format json
 ```
 
 ### Target User Base
-- **DevOps / SREs and platform engineers** building statistical process control charts for service metrics
-- **Manufacturing and QA engineers** running EWMA control charts on production measurements
-- **Analysts** needing a lightweight alternative to full SPC software for monitoring KPIs
+- DevOps / SREs and platform engineers: _building statistical process control charts for service metrics_
+- Manufacturing and QA engineers: _running EWMA control charts on production measurements_
+- Analysts: _needing a lightweight alternative to full SPC software for monitoring KPIs_
 - Direct companion to `forecast` — `forecast` projects future values, `ewma` monitors current values for deviation from expected behaviour
 
 ---
@@ -639,9 +639,9 @@ vartest --test bartlett --data "1.2,1.5,1.3" "2.1,2.4,2.2,2.0" --alpha 0.01
 ```
 
 ### Target User Base
-- **Researchers and analysts** validating the equal-variance assumption before running a two-sample t-test
-- **QA and manufacturing engineers** comparing process variability across production lines or shifts
-- **Students** learning applied statistics who need to check assumptions, not just run tests
+- Researchers and analysts: _validating the equal-variance assumption before running a two-sample t-test_
+- QA and manufacturing engineers: _comparing process variability across production lines or shifts_
+- Students: _learning applied statistics who need to check assumptions, not just run tests_
 - A natural pre-flight check for `ttest` — the question "can I use `--equal-var`?" is answered directly by `vartest`
 
 ---
@@ -669,9 +669,9 @@ bootci --data sensor_readings.csv --stat var --samples 50000 --format json
 ```
 
 ### Target User Base
-- **Researchers and statisticians** who need variance estimates without assuming a parametric distribution
-- **Data scientists** validating model performance metrics (e.g. bootstrap CI for RMSE or R²) on small samples
-- **Students** learning resampling methods as an alternative to closed-form interval formulas
+- Researchers and statisticians: _who need variance estimates without assuming a parametric distribution_
+- Data scientists: _validating model performance metrics (e.g. bootstrap CI for RMSE or R²) on small samples_
+- Students: _learning resampling methods as an alternative to closed-form interval formulas_
 - Complements `confint` (parametric) — when the user isn't sure their data is normal, `bootci` is the distribution-free alternative
 
 ---
@@ -700,9 +700,9 @@ mlreg --file train.csv --target output --predict-file new_inputs.csv --alpha 0.1
 ```
 
 ### Target User Base
-- **Analysts and data scientists** who need a CLI multiple regression tool without opening a notebook or statistical package
-- **Researchers** reporting coefficient estimates with standard errors and prediction intervals
-- **Engineers** modelling a response variable (yield, latency, defect rate) as a function of multiple controllable inputs
+- Analysts and data scientists: _who need a CLI multiple regression tool without opening a notebook or statistical package_
+- Researchers: _reporting coefficient estimates with standard errors and prediction intervals_
+- Engineers: _modeling a response variable (yield, latency, defect rate) as a function of multiple controllable inputs_
 - Extends `linreg` to multiple predictors and adds the critical distinction between confidence intervals (mean response variance) and prediction intervals (individual response variance) — the correct tool when "how uncertain is a single new forecast?" matters
 
 ---
