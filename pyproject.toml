@@ -1,6 +1,6 @@
 [project]
 name = "pythodds"
-version = "0.5.2"
+version = "0.6.0"
 description = "Command line utilities for statistics, odds, and probabilities"
 readme = "README.md"
 authors = [
@@ -31,7 +31,9 @@ classifiers = [
 [project.scripts]
 binom = "src.utils.binomial_distribution:main"
 birthday = "src.utils.birthday_problem:main"
+normal = "src.utils.normal_gaussian:main"
 poisson = "src.utils.poisson_distribution:main"
+expected = "src.utils.expected_value:main"
 streak = "src.utils.streak_probability:main"
 simulate = "src.utils.monte_carlo:main"
 
@@ -57,6 +59,7 @@ addopts = "--ignore=tests/test_sales_tax_product.py --cov=src/utils --cov-report
 omit = [
     "src/__init__.py",
     "src/utils/__init__.py",
+    "tests/__init__.py",
     "sales_tax_product.py",
 ]
 
