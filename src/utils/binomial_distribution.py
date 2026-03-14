@@ -92,6 +92,30 @@ def format_prob(x: float, precision: int) -> str:
     return f"{fmt.format(x)} ({fmt.format(pct)}%)"
 
 
+def render_distribution_bar(le: float, exact: float, ge: float, width: int) -> str:
+    """Return a 100%-stacked ANSI bar representing P(X<k) | P(X=k) | P(X>k)."""
+    left = le - exact  # P(X < k)
+    mid = exact  # P(X = k)
+    right = ge - exact  # P(X > k)
+
+    left_w = round(left * width)
+    mid_w = round(mid * width)
+    right_w = max(0, width - left_w - mid_w)
+
+    RED = "\033[41m"
+    YEL = "\033[43m"
+    GRN = "\033[42m"
+    RST = "\033[0m"
+
+    bar = RED + " " * left_w + YEL + " " * mid_w + GRN + " " * right_w + RST
+    legend = (
+        f"{RED} {RST} <k {left * 100:.1f}%  "
+        f"{YEL} {RST} =k {mid * 100:.1f}%  "
+        f"{GRN} {RST} >k {right * 100:.1f}%"
+    )
+    return bar + "\n" + legend
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
 
@@ -111,10 +135,16 @@ def main(argv: Optional[list[str]] = None) -> int:
     le = binomial_cdf_le(n, k, p)
     ge = binomial_cdf_ge(n, k, p)
 
-    print(f"n={n}, k={k}, p={p}")
-    print(f"P(X = {k}): {format_prob(exact, precision)}")
-    print(f"P(X <= {k}): {format_prob(le, precision)}")
-    print(f"P(X >= {k}): {format_prob(ge, precision)}")
+    lines = [
+        f"n={n}, k={k}, p={p}",
+        f"P(X = {k}):  {format_prob(exact, precision)}",
+        f"P(X <= {k}): {format_prob(le, precision)}",
+        f"P(X >= {k}): {format_prob(ge, precision)}",
+    ]
+    for line in lines:
+        print(line)
+    bar_width = max(len(line) for line in lines)
+    print(render_distribution_bar(le, exact, ge, bar_width))
 
     if args.target is not None:
         target = args.target
