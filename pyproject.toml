@@ -1,6 +1,6 @@
 [project]
 name = "pythodds"
-version = "0.7.1"
+version = "0.7.3"
 description = "Command line utilities for statistics, odds, and probabilities"
 readme = "README.md"
 authors = [
@@ -25,6 +25,7 @@ classifiers = [
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Mathematics",
 ]
 
