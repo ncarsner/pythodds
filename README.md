@@ -10,15 +10,18 @@ A command-line utility and Python library for calculating statistics, odds, and 
 
 ## Features
 
-- **Binomial Distribution**: Calculate PMF, CDF, and survival functions for binomial distributions
-- **Birthday Problem**: Compute collision probabilities for uniform and non-uniform pools, find minimum group sizes, and generate probability tables
-- **Normal Distribution**: Compute PDF, CDF, survival probabilities, interval probabilities, and the inverse CDF (percent-point function) for a Gaussian N(μ, σ²) distribution
-- **Expected Value**: Compute E[X], Var(X), SD(X), Shannon entropy, and the moment generating function for discrete probability distributions; supports inline input or CSV/JSON files
-- **Poisson Distribution**: Compute PMF, CDF, and survival probabilities, find minimum event counts for a target cumulative probability, and generate full probability tables
-- **Streak Probability**: Compute the probability of at least one consecutive run of successes and the expected length of the longest streak
-- **Monte Carlo Simulator**: Empirically estimate probabilities for binomial, birthday, streak, and Poisson experiments with confidence intervals and analytical comparison
-- **Command-line Interface**: Easy-to-use CLI tools (`binom`, `birthday`, `normal`, `expected`, `poisson`, `streak`, and `simulate` commands)
-- **Pure Python**: No external dependencies required for core calculations
+| | | |
+|-|-|-|
+| **Binomial Distribution** |  Calculate PMF, CDF, and survival functions for binomial distributions |
+| **Bayes' Theorem** | Compute posterior probabilities from priors, likelihoods, and either direct evidence or a false-positive rate |
+| **Birthday Problem** | Compute collision probabilities for uniform and non-uniform pools, find minimum group sizes, and generate probability tables |
+| **Normal Distribution** | Compute PDF, CDF, survival probabilities, interval probabilities, and the inverse CDF (percent-point function) for a Gaussian N(μ, σ²) distribution |
+| **Expected Value** | Compute E[X], Var(X), SD(X), Shannon entropy, and the moment generating function for discrete probability distributions; supports inline input or CSV/JSON files |
+| **Poisson Distribution** | Compute PMF, CDF, and survival probabilities, find minimum event counts for a target cumulative probability, and generate full probability tables |
+| **Streak Probability** | Compute the probability of at least one consecutive run of successes and the expected length of the longest streak |
+| **Monte Carlo Simulator** | Empirically estimate probabilities for binomial, birthday, streak, and Poisson experiments with confidence intervals and analytical comparison |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `streak`, and `simulate` commands |
+| **Pure Python** | No external dependencies required for core calculations |
 
 ## Installation
 
@@ -36,11 +39,11 @@ cd pythodds
 pip install -e .
 ```
 
-## Usage
-
-### Command Line
+## Command Line Usage
 
 #### `binom` — Binomial Distribution
+
+Computes exact, cumulative, and survival probabilities for a Binomial(n, p) distribution, and renders a color-coded stacked progress bar showing the share of mass below `k`, at `k`, and above `k`.
 
 ```bash
 # Calculate binomial distribution probabilities
@@ -50,6 +53,41 @@ binom -n 10 -k 3 -p 0.4
 binom -n 100 -k 30 -p 0.35 --target 40 --min-prob 0.05
 ```
 
+Typical output includes a stacked terminal bar like this:
+
+```text
+n=10, k=3, p=0.4
+P(X = 3):  0.214991 (21.499100%)
+P(X <= 3): 0.382281 (38.228100%)
+P(X >= 3): 0.832710 (83.271000%)
+[stacked ANSI bar for <k | =k | >k]
+```
+---
+#### `bayes` — Bayes' Theorem Posterior Probability
+
+Computes posterior probability $P(A\mid B)$ from a prior probability, likelihood, and either direct evidence $P(B)$ or a false-positive rate $P(B\mid \neg A)$.
+
+```bash
+# Medical test example: prevalence 1%, sensitivity 99%, false-positive rate 5%
+bayes -p 0.01 -l 0.99 -f 0.05
+
+# Provide evidence directly instead of a false-positive rate
+bayes -p 0.2 -l 0.8 -e 0.5
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-p` | `--prior` | Prior probability $P(A)$, between `0` and `1` |
+| `-l` | `--likelihood` | Likelihood $P(B\mid A)$, between `0` and `1` |
+| `-e` | `--evidence` | Evidence probability $P(B)$, between `0` and `1` |
+| `-f` | `--false-positive` | False-positive rate $P(B\mid \neg A)$, between `0` and `1` |
+| `-P` | `--precision` | Decimal places for printed values (default: `6`) |
+
+> `-e/--evidence` and `-f/--false-positive` are mutually exclusive; one is required.
+
+---
 #### `birthday` — Birthday Problem Collision Probability
 
 Computes the probability that at least two items in a group share the same value when drawn from a pool of equally-likely possibilities. Defaults to a pool size of 365.25 (calendar days).
@@ -86,6 +124,7 @@ birthday --range 1 60 --format <json|csv>
 | `-f` | `--format` | Output format: `table` (default), `json`, or `csv` |
 | `-P` | `--precision` | Decimal places for printed probabilities (default: `6`) |
 
+---
 #### `normal` — Normal (Gaussian) Distribution
 
 Computes PDF, CDF, survival probabilities, interval probabilities, and the inverse CDF (percent-point function) for a N(μ, σ²) distribution. Uses only the Python standard library.
@@ -117,6 +156,7 @@ normal --quantile 0.975 -m 0 -s 1
 
 > `-x/--value`, `--between`, and `-q/--quantile` are mutually exclusive; one is required.
 
+---
 #### `expected` — Expected Value & Discrete Distribution Statistics
 
 Computes E[X], Var(X), SD(X), Shannon entropy, and optionally the moment generating function (MGF) for a discrete probability distribution supplied inline or via a CSV/JSON file.
@@ -147,6 +187,7 @@ expected --outcomes 0,1 --probs 0.3,0.7 --mgf 0.5
 
 > `--outcomes` and `--file` are mutually exclusive; one is required. `--probs` is required when using `--outcomes`.
 
+---
 #### `poisson` — Poisson Distribution
 
 Computes PMF, CDF, and survival probabilities for a Poisson(λ) distribution. Models rare, independent events occurring at a known average rate — server errors per hour, calls per minute, defects per batch, and so on.
@@ -182,6 +223,7 @@ poisson -l 3.0 -r 0 20 -f csv
 | `-f` | `--format` | Output format: `table` (default), `json`, or `csv` |
 | `-P` | `--precision` | Decimal places for printed probabilities (default: `6`) |
 
+---
 #### `streak` — Streak / Consecutive Run Probability
 
 Computes the exact probability of at least one run of k consecutive successes in n independent Bernoulli trials, and the expected length of the longest run. Uses dynamic programming for exact O(n·k) computation.
@@ -209,6 +251,7 @@ streak -n 50 -p 0.40 --longest
 
 > `-k/--streak-length` and `--longest` are mutually exclusive; one is required.
 
+---
 #### `simulate` — Monte Carlo Probability Simulator
 
 Runs repeated random experiments to estimate probabilities empirically, with optional confidence intervals and analytical comparison against `binom`, `birthday`, `poisson`, and `streak`.
@@ -253,6 +296,7 @@ simulate --experiment binomial --params n=20 k=8 p=0.5 --scale 0.005
 | `streak` | `n=INT k=INT p=FLOAT` |
 | `poisson` | `lam=FLOAT k=INT` |
 
+---
 ### Python Library
 
 #### Binomial Distribution
@@ -268,6 +312,18 @@ cdf = binomial_cdf_le(10, 3, 0.4)
 
 # P(X >= 3) for Binomial(n=10, p=0.4)
 survival = binomial_cdf_ge(10, 3, 0.4)
+```
+
+#### Bayes' Theorem
+
+```python
+from src.utils.bayes_theorem import bayes_posterior, evidence_from_false_positive
+
+# Derive P(B) from a prior, likelihood, and false-positive rate
+evidence = evidence_from_false_positive(0.01, 0.99, 0.05)
+
+# Posterior P(A|B)
+posterior = bayes_posterior(0.01, 0.99, evidence)
 ```
 
 #### Birthday Problem
@@ -291,44 +347,6 @@ prob_nu = collision_prob_nonuniform(30, [0.10, 0.15, 0.20, 0.30, 0.25])
 
 # Expected number of duplicate pairs
 pairs = expected_duplicate_pairs(23, 365.25)
-```
-
-#### Poisson Distribution
-
-```python
-from src.utils.poisson_distribution import (
-    poisson_pmf,
-    poisson_cdf_le,
-    poisson_cdf_ge,
-    min_k_for_prob,
-)
-
-# P(X = 7) for Poisson(λ=3.0)
-pmf = poisson_pmf(7, 3.0)
-
-# P(X ≤ 7) for Poisson(λ=3.0)
-cdf = poisson_cdf_le(7, 3.0)
-
-# P(X ≥ 7) for Poisson(λ=3.0)
-survival = poisson_cdf_ge(7, 3.0)
-
-# Minimum k such that P(X ≤ k) >= 0.95
-k = min_k_for_prob(0.95, 3.0)
-```
-
-#### Streak Probability
-
-```python
-from src.utils.streak_probability import (
-    prob_at_least_one_streak,
-    expected_longest_streak,
-)
-
-# P(at least one run of 5 consecutive heads in 100 fair coin flips)
-p = prob_at_least_one_streak(100, 5, 0.5)
-
-# Expected length of the longest run of successes in 162 trials at .300
-e = expected_longest_streak(162, 0.300)
 ```
 
 #### Normal Distribution
@@ -388,6 +406,45 @@ M = mgf(outcomes, probs, t=0.5)
 # Load a distribution from a CSV or JSON file
 outcomes, probs = load_file("payouts.csv")
 ```
+
+#### Poisson Distribution
+
+```python
+from src.utils.poisson_distribution import (
+    poisson_pmf,
+    poisson_cdf_le,
+    poisson_cdf_ge,
+    min_k_for_prob,
+)
+
+# P(X = 7) for Poisson(λ=3.0)
+pmf = poisson_pmf(7, 3.0)
+
+# P(X ≤ 7) for Poisson(λ=3.0)
+cdf = poisson_cdf_le(7, 3.0)
+
+# P(X ≥ 7) for Poisson(λ=3.0)
+survival = poisson_cdf_ge(7, 3.0)
+
+# Minimum k such that P(X ≤ k) >= 0.95
+k = min_k_for_prob(0.95, 3.0)
+```
+
+#### Streak Probability
+
+```python
+from src.utils.streak_probability import (
+    prob_at_least_one_streak,
+    expected_longest_streak,
+)
+
+# P(at least one run of 5 consecutive heads in 100 fair coin flips)
+p = prob_at_least_one_streak(100, 5, 0.5)
+
+# Expected length of the longest run of successes in 162 trials at .300
+e = expected_longest_streak(162, 0.300)
+```
+
 
 #### Monte Carlo Simulator
 
