@@ -10,8 +10,8 @@ A command-line utility and Python library for calculating statistics, odds, and 
 
 ## Features
 
-| | | |
-|-|-|-|
+| | |
+|-|-|
 | **Binomial Distribution** |  Calculate PMF, CDF, and survival functions for binomial distributions |
 | **Bayes' Theorem** | Compute posterior probabilities from priors, likelihoods, and either direct evidence or a false-positive rate |
 | **Birthday Problem** | Compute collision probabilities for uniform and non-uniform pools, find minimum group sizes, and generate probability tables |
