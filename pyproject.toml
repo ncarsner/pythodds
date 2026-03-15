@@ -1,6 +1,6 @@
 [project]
 name = "pythodds"
-version = "0.7.3"
+version = "0.8.0"
 description = "Command line utilities for statistics, odds, and probabilities"
 readme = "README.md"
 authors = [
@@ -38,6 +38,7 @@ expected = "src.utils.expected_value:main"
 streak = "src.utils.streak_probability:main"
 simulate = "src.utils.monte_carlo:main"
 bayes = "src.utils.bayes_theorem:main"
+pythag = "src.utils.pythagorean_record:main"
 
 [build-system]
 requires = ["hatchling"]

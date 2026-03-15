@@ -18,9 +18,11 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Normal Distribution** | Compute PDF, CDF, survival probabilities, interval probabilities, and the inverse CDF (percent-point function) for a Gaussian N(μ, σ²) distribution |
 | **Expected Value** | Compute E[X], Var(X), SD(X), Shannon entropy, and the moment generating function for discrete probability distributions; supports inline input or CSV/JSON files |
 | **Poisson Distribution** | Compute PMF, CDF, and survival probabilities, find minimum event counts for a target cumulative probability, and generate full probability tables |
+| **Pythagorean Record** | Calculate team winning percentage expectations using Bill James' Pythagorean formula or the SABR linear formula; project in-progress season records and compare actual vs. expected performance |
 | **Streak Probability** | Compute the probability of at least one consecutive run of successes and the expected length of the longest streak |
 | **Monte Carlo Simulator** | Empirically estimate probabilities for binomial, birthday, streak, and Poisson experiments with confidence intervals and analytical comparison |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `streak`, and `simulate` commands |
+
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `pythag`, `streak`, and `simulate` commands |
 | **Pure Python** | No external dependencies required for core calculations |
 
 ## Installation
@@ -252,13 +254,61 @@ streak -n 50 -p 0.40 --longest
 > `-k/--streak-length` and `--longest` are mutually exclusive; one is required.
 
 ---
+#### `pythag` — Pythagorean Record / Win Expectation
+
+Calculates expected winning percentage for sports teams based on runs/points scored and allowed. Supports both the traditional Pythagorean formula (Bill James) and the newer linear formula from SABR research (Rothman, 2014). Can project final season records for teams in progress.
+
+```bash
+# MLB team using linear formula (default)
+pythag --scored 800 --allowed 650
+
+# Compare both linear and Pythagorean methods
+pythag --scored 800 --allowed 650 --method both
+
+# Use traditional Pythagorean formula with custom exponent
+pythag --scored 800 --allowed 650 --method pythagorean --exponent 1.83
+
+# NFL team projection
+pythag --scored 420 --allowed 300 --sport nfl
+
+# NBA team projection
+pythag --scored 8500 --allowed 8200 --sport nba
+
+# In-progress season: team is 45-37 after 82 games (shows projection)
+pythag --scored 550 --allowed 490 --current-wins 45 --games-played 82
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-s` | `--scored` | Runs/points scored by the team (required) |
+| `-a` | `--allowed` | Runs/points allowed by the team (required) |
+| | `--sport` | Sport/league: `mlb` (default), `nfl`, or `nba` |
+| `-m` | `--method` | Calculation method: `linear` (default), `pythagorean`, or `both` |
+| `-e` | `--exponent` | Exponent for Pythagorean formula (default: `2.0`; optimal ~1.83 for baseball) |
+| `-g` | `--games` | Total games in season (default: 162 for mlb, 17 for nfl, 82 for nba) |
+| `-w` | `--current-wins` | Current wins (for in-progress season projection) |
+| `-p` | `--games-played` | Games already played (for in-progress season projection) |
+| `-P` | `--precision` | Decimal places for percentages (default: `2`) |
+
+> `--current-wins` and `--games-played` must be used together for in-progress projections.
+
+**Formulas:**
+- **Pythagorean (James):** `EXP(W%) = RS^exp / (RS^exp + RA^exp)`
+- **Linear (Rothman, 2014):**
+  - MLB: `EXP(W%) = 0.000683(RS - RA) + 0.50`
+  - NFL: `EXP(W%) = 0.001538(PS - PA) + 0.50`
+  - NBA: `EXP(W%) = 0.000351(PS - PA) + 0.50`
+
+---
 #### `simulate` — Monte Carlo Probability Simulator
 
 Runs repeated random experiments to estimate probabilities empirically, with optional confidence intervals and analytical comparison against `binom`, `birthday`, `poisson`, and `streak`.
 
 ```bash
 # Estimate P(X >= 5) for Binomial(n=10, p=0.4) over 100,000 trials
-simulate --experiment binomial --params n=10 k=5 p=0.4 --trials 100000
+simulate --experiment binom --params n=10 k=5 p=0.4 --trials 100000
 
 # Birthday collision probability for a group of 23 with a 95% confidence interval
 simulate --experiment birthday --params pool=365 group=23 --confidence
@@ -270,14 +320,14 @@ simulate --experiment streak --params n=100 k=5 p=0.5 --trials 50000
 simulate --experiment poisson --params lam=3.0 k=7 --seed 42
 
 # Auto-size trial count to achieve a target standard error of 0.005
-simulate --experiment binomial --params n=20 k=8 p=0.5 --scale 0.005
+simulate --experiment binom --params n=20 k=8 p=0.5 --scale 0.005
 ```
 
 **Options:**
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
-| `-e` | `--experiment` | Experiment type: `binomial`, `birthday`, `streak`, or `poisson` (required) |
+| `-e` | `--experiment` | Experiment type: `binom`, `birthday`, `streak`, or `poisson` (required) |
 | `-p` | `--params` | Space-separated `KEY=VALUE` experiment parameters (see below) |
 | `-t` | `--trials` | Number of simulation trials (default: 10,000) |
 | | `--scale` | Target standard error; auto-computes `--trials` (overrides `-t`) |
@@ -291,7 +341,7 @@ simulate --experiment binomial --params n=20 k=8 p=0.5 --scale 0.005
 
 | Experiment | Required params |
 |------------|-----------------|
-| `binomial` | `n=INT k=INT p=FLOAT` |
+| `binom` | `n=INT k=INT p=FLOAT` |
 | `birthday` | `pool=INT group=INT` |
 | `streak` | `n=INT k=INT p=FLOAT` |
 | `poisson` | `lam=FLOAT k=INT` |
@@ -428,6 +478,31 @@ survival = poisson_cdf_ge(7, 3.0)
 
 # Minimum k such that P(X ≤ k) >= 0.95
 k = min_k_for_prob(0.95, 3.0)
+```
+
+#### Pythagorean Record
+
+```python
+from src.utils.pythagorean_record import (
+    pythagorean_expectation,
+    linear_expectation,
+    expected_wins,
+)
+
+# Traditional Pythagorean formula: expected win % for 800 RS, 650 RA
+win_pct = pythagorean_expectation(800, 650, exponent=2.0)
+
+# Linear formula (SABR 2014): expected win % for MLB
+win_pct = linear_expectation(800, 650, sport="mlb")
+
+# Linear formula for NFL
+win_pct = linear_expectation(420, 300, sport="nfl")
+
+# Linear formula for NBA
+win_pct = linear_expectation(8500, 8200, sport="nba")
+
+# Convert win percentage to expected wins
+wins = expected_wins(win_pct, games=162)
 ```
 
 #### Streak Probability
