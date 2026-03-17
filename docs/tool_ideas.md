@@ -17,19 +17,22 @@ All existing tools are pure-Python, zero-dependency, CLI-first, with optional us
 
 ## 1. `poisson` — Distribution Calculator
 
-### Architecture
+<!-- ### Architecture
 - **Core functions:** `poisson_pmf(k, lam)`, `poisson_cdf_le(k, lam)`, `poisson_cdf_ge(k, lam)`
 - Uses `math.lgamma` for numerical stability at large `k`
 - CLI flags mirror `binom`: `-k`/`--events`, `-l`/`--rate`, `--target`, `--min-prob`, `--precision`
 - Output: PMF, CDF ≤ k, survival ≥ k; optional threshold check
+--->
 
 ### Application
 The Poisson distribution models the probability of a given number of rare, independent events occurring in a fixed interval of time or space. Natural companion to `binom` for low-probability / high-trial-count scenarios (e.g. "given 3 server errors per hour on average, what is the probability of seeing 7 or more in the next hour?").
 
+<!--
 ```bash
 poisson -k 7 -l 3.0
 poisson -k 5 -l 2.5 --target 8 --min-prob 0.05
 ```
+-->
 
 ### Target User Base
 - DevOps / SREs: _monitoring error rates, alert thresholds, and incident frequency_
@@ -41,20 +44,22 @@ poisson -k 5 -l 2.5 --target 8 --min-prob 0.05
 
 ## 2. `normal` — Gaussian Distribution Calculator
 
-### Architecture
+<!-- ### Architecture
 - **Core functions:** `normal_pdf(x, mu, sigma)`, `normal_cdf(x, mu, sigma)`, `normal_ppf(p, mu, sigma)` (percent-point / quantile function)
 - Implemented via `math.erf` — no external dependencies
 - CLI flags: `-x`/`--value`, `-m`/`--mean`, `-s`/`--std`, `--between LOW HIGH`, `--quantile P`, `--precision`
 - Output: PDF at x, P(X ≤ x), P(X ≥ x), optionally P(LOW ≤ X ≤ HIGH) or the x-value at quantile p
+--->
 
 ### Application
 The normal distribution is the most widely used continuous distribution. Covers z-score calculations, confidence interval boundary checks, standardisation questions, and quality control (Six Sigma-style defect rate estimation).
 
+<!--
 ```bash
 normal -x 1.96 -m 0 -s 1
 normal --between -1.96 1.96 -m 0 -s 1
 normal --quantile 0.975 -m 0 -s 1
-```
+``` -->
 
 ### Target User Base
 - Students and educators: _verifying z-table lookups without needing scipy_
@@ -217,19 +222,21 @@ linreg --x 10,20,30,40,50 --y 15,28,41,55,68 --format json
 
 ## 8. `expected` — Expected Value and Variance Calculator
 
-### Architecture
+<!-- ### Architecture
 - Accepts a discrete probability distribution as paired lists or a CSV/JSON file: `--outcomes 1,2,3,4,5,6 --probs 0.1,0.2,0.3,0.2,0.1,0.1`
 - **Core functions:** `expected_value(outcomes, probs)`, `variance(outcomes, probs)`, `std_dev(outcomes, probs)`, `entropy(probs)`
 - Optional: moment generating function value at a given `t` (`--mgf T`)
 - Output: E[X], Var(X), SD(X), Shannon entropy
+--->
 
 ### Application
 A general-purpose tool for computing summary statistics of any user-defined discrete distribution. Useful for analysing custom payout tables, lottery structures, card game odds, or any scenario where the user supplies raw outcomes and weights — complementing `birthday`'s `--weights` flag philosophy.
 
+<!--
 ```bash
 expected --outcomes 0,1,5,10 --probs 0.50,0.25,0.15,0.10
 expected --file payouts.csv
-```
+``` -->
 
 ### Target User Base
 - Game designers and odds analysts: _modeling prize tables or betting structures_
@@ -268,23 +275,25 @@ hypergeo -N 100 -K 10 -n 15 -k 2
 
 ## 10. `streak` — Consecutive Success/Failure Streak Probability
 
-### Architecture
+<!-- ### Architecture
 - **Core functions:**
   - `prob_at_least_one_streak(n, k, p)` — probability of at least one run of `k` consecutive successes in `n` independent Bernoulli trials
   - `expected_longest_streak(n, p)` — expected length of the longest run
 - Uses dynamic programming (DP table) for exact computation; O(n·k) time and O(k) space
 - CLI flags: `-n`/`--trials`, `-k`/`--streak-length`, `-p`/`--prob`, `--longest`, `--precision`
+--->
 
 ### Application
 Answers questions like "In 162 baseball games with a .320 batting average, what is the probability of a hitting streak of at least 20 games?" or "In 50 sales calls with a 10% close rate, what is the probability of getting 3 consecutive closes?". Streak/run probability is a common question in sports analytics, quality control (consecutive defects), and trading (win/loss streaks).
 
+<!-->
 ```bash
 # P(at least one streak of 5+ heads in 100 fair coin flips)
 streak -n 100 -k 5 -p 0.5
 
 # Expected longest run of successes
 streak -n 162 -p 0.300 --longest
-```
+``` -->
 
 ### Target User Base
 - Sports analysts and bettors: _evaluating hot/cold streaks_
@@ -296,22 +305,24 @@ streak -n 162 -p 0.300 --longest
 
 ## 11. `bayes` — Bayesian Probability Updater
 
-### Architecture
+<!-- ### Architecture
 - **Core functions:** `posterior(prior, likelihood, evidence)`, `update(prior, likelihood_hit, likelihood_miss)` (sequential updates)
 - Accepts a prior, a likelihood of evidence given hypothesis, and a likelihood of evidence given ¬hypothesis
 - CLI supports `--prior`, `--likelihood-pos`, `--likelihood-neg`, and `--iterations` for repeated updating (e.g. multiple test results)
 - Output: posterior probability after each update step; table or single value
+--->
 
 ### Application
 Bayesian updating underpins medical testing (sensitivity/specificity), spam filtering, and iterative belief revision. This tool provides an accessible, step-by-step command-line interface for P(H|E) calculations without requiring a full probabilistic programming library.
 
+<!---
 ```bash
 # Medical test: disease prevalence 1%, test sensitivity 99%, false positive rate 5%
 bayes --prior 0.01 --likelihood-pos 0.99 --likelihood-neg 0.05
 
 # Two sequential positive tests
 bayes --prior 0.01 --likelihood-pos 0.99 --likelihood-neg 0.05 --iterations 2
-```
+``` -->
 
 ### Target User Base
 - Medical and public health analysts: _interpreting diagnostic test results_
@@ -364,7 +375,7 @@ plotdist --dist binomial --params n=10 p=0.3 --text
 
 ## 13. `simulate` — Monte Carlo Probability Simulator
 
-### Dependencies
+<!-- ### Dependencies
 - **Optional:** `numpy` (vectorised sampling, significantly faster for large `--trials`; pure `random` module used as fallback)
 
 ### Architecture
@@ -383,7 +394,7 @@ simulate --experiment birthday --params pool=365 group=23 --trials 50000 --confi
 
 # Auto-scale trials for ±0.01 standard error
 simulate --experiment binomial --params n=20 k=8 p=0.5 --scale 0.01 --seed 42
-```
+``` -->
 
 ### Target User Base
 - Students and educators: _verifying analytical results through simulation_
@@ -709,7 +720,7 @@ mlreg --file train.csv --target output --predict-file new_inputs.csv --alpha 0.1
 
 ## 24. `pearson` — Pearson Correlation Coefficient
 
-### Dependencies
+<!-- ### Dependencies
 - None (pure Python)
 
 ### Architecture
@@ -717,12 +728,12 @@ mlreg --file train.csv --target output --predict-file new_inputs.csv --alpha 0.1
 - Computes Pearson's r (linear correlation) between two continuous variables with full hypothesis testing framework
 - Uses `math` for t-distribution CDF via numerical approximation
 - CLI flags: `--x VALUES`, `--y VALUES`, `--file CSV --x-col COL --y-col COL`, `--alpha F`, `--sided {one,two}`, `--precision INT`, `--format {table,json,csv}`
-- Output: r, r², t-statistic, degrees of freedom, p-value, confidence interval for ρ (population correlation), decision at `--alpha`
+- Output: r, r², t-statistic, degrees of freedom, p-value, confidence interval for ρ (population correlation), decision at `--alpha` -->
 
 ### Application
 Measures the strength and direction of linear association between two continuous variables. Essential for feature selection in modeling, relationship analysis in research, and validation that predictor-response relationships are approximately linear before fitting regression. Applicable across economics (price vs demand), finance (asset correlation), psychology (test score relationships), and any domain requiring correlation analysis.
 
-```bash
+<!-- ```bash
 # Correlation between two variables
 pearson --x 1,2,3,4,5 --y 2.1,3.8,6.2,7.9,10.1
 
@@ -731,7 +742,7 @@ pearson --file data.csv --x-col height --y-col weight --alpha 0.05
 
 # One-tailed test ("is the correlation positive?")
 pearson --x 10,20,30,40,50 --y 15,28,41,55,68 --sided one --format json
-```
+``` -->
 
 ### Target User Base
 - Data scientists and analysts: _quantifying feature-to-target relationships before modeling_

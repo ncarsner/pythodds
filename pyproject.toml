@@ -57,14 +57,14 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "--ignore=tests/test_sales_tax_product.py --cov=src/utils --cov-report=term-missing --cov-report=xml"
+addopts = "--ignore=tests/_test_sales_tax_product.py --cov=src/utils --cov-report=term-missing --cov-report=xml"
 
 [tool.coverage.run]
 omit = [
     "src/__init__.py",
     "src/utils/__init__.py",
     "tests/__init__.py",
-    "_sales_tax_product.py",
+    "_*.py",
 ]
 
 [tool.coverage.report]
