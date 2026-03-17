@@ -18,11 +18,42 @@ probability meets a provided minimum threshold (`--min-prob`).
 """
 
 
+def _log_comb(n: int, k: int) -> float:
+    """Compute log(n choose k) using lgamma to avoid overflow."""
+    if k < 0 or k > n:
+        return float("-inf")
+    if k == 0 or k == n:
+        return 0.0
+    return math.lgamma(n + 1) - math.lgamma(k + 1) - math.lgamma(n - k + 1)
+
+
 def binomial_pmf(n: int, k: int, p: float) -> float:
-    """Probability mass function P(X = k) for Binomial(n, p)."""
+    """Probability mass function P(X = k) for Binomial(n, p).
+
+    Uses log-space calculations to avoid overflow with large n values.
+    """
     if k < 0 or k > n:
         return 0.0
-    return math.comb(n, k) * (p**k) * (1 - p) ** (n - k)
+    if p == 0.0:
+        return 1.0 if k == 0 else 0.0
+    if p == 1.0:
+        return 1.0 if k == n else 0.0
+
+    # Use log-space calculation to avoid overflow
+    # log(P) = log(comb(n,k)) + k*log(p) + (n-k)*log(1-p)
+    log_prob = _log_comb(n, k)
+    if k > 0:
+        log_prob += k * math.log(p)
+    if k < n:
+        log_prob += (n - k) * math.log(1 - p)
+
+    # Handle extreme values before exp to avoid overflow
+    if log_prob < -700:  # exp(-700) ≈ 0
+        return 0.0
+    elif log_prob > 700:  # exp(700) would overflow, clamp to 1.0
+        return 1.0
+
+    return math.exp(log_prob)
 
 
 def binomial_cdf_le(n: int, k: int, p: float) -> float:
