@@ -18,11 +18,12 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Normal Distribution** | Compute PDF, CDF, survival probabilities, interval probabilities, and the inverse CDF (percent-point function) for a Gaussian N(μ, σ²) distribution |
 | **Expected Value** | Compute E[X], Var(X), SD(X), Shannon entropy, and the moment generating function for discrete probability distributions; supports inline input or CSV/JSON files |
 | **Poisson Distribution** | Compute PMF, CDF, and survival probabilities, find minimum event counts for a target cumulative probability, and generate full probability tables |
-| **Pythagorean Record** | Calculate team winning percentage expectations using Bill James' Pythagorean formula or the SABR linear formula; project in-progress season records and compare actual vs. expected performance |
 | **Streak Probability** | Compute the probability of at least one consecutive run of successes and the expected length of the longest streak |
+| **Pythagorean Record** | Calculate team winning percentage expectations using Bill James' Pythagorean formula or the SABR linear formula; project in-progress season records and compare actual vs. expected performance |
+| **Pearson Correlation** | Compute Pearson's r, r², t-statistic, p-value, and confidence intervals; test for linear relationships between two continuous variables; supports inline data or CSV input |
 | **Monte Carlo Simulator** | Empirically estimate probabilities for binomial, birthday, streak, and Poisson experiments with confidence intervals and analytical comparison |
 
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `pythag`, `streak`, and `simulate` commands |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `streak`, `pythag`, `pearson`, and `simulate` commands |
 | **Pure Python** | No external dependencies required for core calculations |
 
 ## Installation
@@ -302,6 +303,50 @@ pythag --scored 550 --allowed 490 --current-wins 45 --games-played 82
   - NBA: `EXP(W%) = 0.000351(PS - PA) + 0.50`
 
 ---
+#### `pearson` — Pearson Correlation Coefficient
+
+Computes the Pearson correlation coefficient (r) to measure the linear relationship between two continuous variables. Values range from -1 (perfect negative correlation) to 1 (perfect positive correlation), with 0 indicating no linear relationship. Includes hypothesis testing, p-values, and confidence intervals using Fisher's Z-transformation.
+
+```bash
+# Compute correlation from command-line values
+pearson --x 1,2,3,4,5 --y 2.1,3.8,6.2,7.9,10.1
+
+# Load data from CSV file
+pearson --file data.csv --x-col height --y-col weight
+
+# Include hypothesis test at α=0.05 significance level
+pearson --x 10,20,30,40,50 --y 15,28,41,55,68 --alpha 0.05
+
+# One-tailed test for positive correlation
+pearson --x 1,2,3,4,5 --y 2,4,5,4,5 --alpha 0.05 --sided one
+
+# Custom precision for output
+pearson --x 1,2,3,4 --y 2,4,6,8 --precision 4
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--x` | Comma-separated x values (use with `--y`) |
+| | `--y` | Comma-separated y values (required with `--x`) |
+| | `--file` | CSV file path (use with `--x-col` and `--y-col`) |
+| | `--x-col` | Column name for x values in CSV (required with `--file`) |
+| | `--y-col` | Column name for y values in CSV (required with `--file`) |
+| | `--alpha` | Significance level for hypothesis test and CI (e.g., `0.05`) |
+| | `--sided` | Hypothesis test type: `one` or `two` (default: `two`) |
+| `-P` | `--precision` | Decimal places for printed values (default: `6`) |
+
+> `--x` and `--file` are mutually exclusive; one is required. When using `--x`, must also provide `--y`. When using `--file`, must also provide `--x-col` and `--y-col`.
+
+**Output includes:**
+- **Pearson's r**: Correlation coefficient measuring linear relationship strength
+- **r²**: Coefficient of determination (proportion of variance explained)
+- **Interpretation**: Qualitative description of correlation strength and direction
+- **Hypothesis test** (if `--alpha` provided): t-statistic, p-value, significance result
+- **Confidence interval** (if `--alpha` provided): CI for population correlation ρ using Fisher Z-transformation
+
+---
 #### `simulate` — Monte Carlo Probability Simulator
 
 Runs repeated random experiments to estimate probabilities empirically, with optional confidence intervals and analytical comparison against `binom`, `birthday`, `poisson`, and `streak`.
@@ -480,6 +525,21 @@ survival = poisson_cdf_ge(7, 3.0)
 k = min_k_for_prob(0.95, 3.0)
 ```
 
+#### Streak Probability
+
+```python
+from src.utils.streak_probability import (
+    prob_at_least_one_streak,
+    expected_longest_streak,
+)
+
+# P(at least one run of 5 consecutive heads in 100 fair coin flips)
+p = prob_at_least_one_streak(100, 5, 0.5)
+
+# Expected length of the longest run of successes in 162 trials at .300
+e = expected_longest_streak(162, 0.300)
+```
+
 #### Pythagorean Record
 
 ```python
@@ -505,21 +565,34 @@ win_pct = linear_expectation(8500, 8200, sport="nba")
 wins = expected_wins(win_pct, games=162)
 ```
 
-#### Streak Probability
+#### Pearson Correlation
 
 ```python
-from src.utils.streak_probability import (
-    prob_at_least_one_streak,
-    expected_longest_streak,
+from src.utils.pearson_correlation import (
+    pearson_r,
+    correlation_t_statistic,
+    correlation_p_value,
+    correlation_confidence_interval,
 )
 
-# P(at least one run of 5 consecutive heads in 100 fair coin flips)
-p = prob_at_least_one_streak(100, 5, 0.5)
+x = [1, 2, 3, 4, 5]
+y = [2.1, 3.8, 6.2, 7.9, 10.1]
 
-# Expected length of the longest run of successes in 162 trials at .300
-e = expected_longest_streak(162, 0.300)
+# Compute Pearson's r
+r = pearson_r(x, y)
+
+# r² (coefficient of determination)
+r_squared = r * r
+
+# t-statistic for testing H₀: ρ = 0
+t_stat = correlation_t_statistic(r, n=len(x))
+
+# p-value for two-tailed test
+p_value = correlation_p_value(r, n=len(x), sided="two")
+
+# 95% confidence interval for population correlation ρ
+ci_lower, ci_upper = correlation_confidence_interval(r, n=len(x), alpha=0.05)
 ```
-
 
 #### Monte Carlo Simulator
 

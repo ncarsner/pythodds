@@ -707,6 +707,273 @@ mlreg --file train.csv --target output --predict-file new_inputs.csv --alpha 0.1
 
 ---
 
+## 24. `pearson` — Pearson Correlation Coefficient
+
+### Dependencies
+- None (pure Python)
+
+### Architecture
+- **Core functions:** `pearson_r(x, y)` → correlation coefficient; `pearson_test(x, y, alpha)` → r, t-statistic, p-value, confidence interval
+- Computes Pearson's r (linear correlation) between two continuous variables with full hypothesis testing framework
+- Uses `math` for t-distribution CDF via numerical approximation
+- CLI flags: `--x VALUES`, `--y VALUES`, `--file CSV --x-col COL --y-col COL`, `--alpha F`, `--sided {one,two}`, `--precision INT`, `--format {table,json,csv}`
+- Output: r, r², t-statistic, degrees of freedom, p-value, confidence interval for ρ (population correlation), decision at `--alpha`
+
+### Application
+Measures the strength and direction of linear association between two continuous variables. Essential for feature selection in modeling, relationship analysis in research, and validation that predictor-response relationships are approximately linear before fitting regression. Applicable across economics (price vs demand), finance (asset correlation), psychology (test score relationships), and any domain requiring correlation analysis.
+
+```bash
+# Correlation between two variables
+pearson --x 1,2,3,4,5 --y 2.1,3.8,6.2,7.9,10.1
+
+# From CSV with hypothesis test at α=0.05
+pearson --file data.csv --x-col height --y-col weight --alpha 0.05
+
+# One-tailed test ("is the correlation positive?")
+pearson --x 10,20,30,40,50 --y 15,28,41,55,68 --sided one --format json
+```
+
+### Target User Base
+- Data scientists and analysts: _quantifying feature-to-target relationships before modeling_
+- Researchers: _testing hypotheses about linear associations between measured variables_
+- Students: _learning correlation analysis without needing scipy/pandas_
+- A natural precursor to `linreg` — users wondering "should I fit a line?" first ask "is there a correlation?" via `pearson`
+
+---
+
+## 25. `spearman` — Spearman Rank Correlation
+
+### Dependencies
+- None (pure Python)
+
+### Architecture
+- **Core functions:** `spearman_rho(x, y)` → rank correlation coefficient; `spearman_test(x, y, alpha)` → ρ, t-statistic, p-value
+- Computes Spearman's ρ (monotonic correlation) by ranking data and applying Pearson's formula to ranks; handles ties via average rank assignment
+- Shares testing infrastructure with `pearson` (t-distribution approximation)
+- CLI flags: `--x VALUES`, `--y VALUES`, `--file CSV --x-col COL --y-col COL`, `--alpha F`, `--sided {one,two}`, `--precision INT`, `--format {table,json,csv}`, `--show-ranks` (outputs ranked data for inspection)
+- Output: ρ, t-statistic, p-value, confidence interval (via Fisher z-transformation), decision at `--alpha`
+
+### Application
+Measures monotonic (not necessarily linear) association between variables, robust to outliers and non-normal distributions. Ideal for ordinal data (rankings, survey Likert scales), skewed continuous data, or when the relationship shape is unknown but suspected to be monotonic. Common in psychology, social sciences, quality ranking, and exploratory analysis where `pearson` assumptions may not hold.
+
+```bash
+# Rank correlation between two variables
+spearman --x 1,2,3,4,10 --y 2,3,5,6,20
+
+# From CSV with hypothesis test
+spearman --file survey.csv --x-col satisfaction --y-col loyalty --alpha 0.01
+
+# Show ranks in output for diagnostic inspection
+spearman --x 100,150,120,180,200 --y 5,3,4,2,1 --show-ranks --format table
+```
+
+### Target User Base
+- Survey analysts and social scientists: _analyzing ordinal or Likert-scale relationships_
+- Data scientists: _performing robust correlation analysis on skewed or outlier-prone data_
+- Students: _learning non-parametric methods as an alternative to Pearson_
+- Complements `pearson` — when data violate normality/linearity assumptions, or when measuring rank concordance vs. linear fit, `spearman` is the go-to choice
+
+---
+
+## 26. `taylor` — Taylor Series Approximation
+
+### Dependencies
+- None (pure Python)
+
+### Architecture
+- **Core functions:** `taylor_series(func, a, x, n)` → approximation value and coefficients; `taylor_error(func, a, x, n)` → actual value, approximation, absolute and relative error
+- Computes the n-th order Taylor series expansion of common mathematical functions around a point `a` and evaluates at `x`
+- Supported functions: `exp`, `sin`, `cos`, `tan`, `ln`, `sqrt`, `sinh`, `cosh`, and user-defined custom functions via `--custom "f(x) = ..."`
+- CLI flags: `--func {exp,sin,cos,ln,sqrt,sinh,cosh,custom}`, `--center A` (expansion point), `--eval X` (evaluation point), `--order N`, `--terms` (show individual terms), `--compare` (compare to true value), `--precision INT`, `--format {table,json}`
+- Output: series coefficients, partial sums (1st through n-th order), final approximation, comparison to actual function value with error metrics
+
+### Application
+Taylor series are fundamental for numerical approximation, understanding function behavior near a point, and deriving efficient computational methods. Applications include numerical analysis (algorithm design for sin/cos/exp in calculators), physics (linearizing equations of motion), signal processing (filter design), machine learning (second-order optimization via Hessian approximations), and teaching calculus concepts tactilely.
+
+```bash
+# Approximate e^x at x=1 using 5th-order Taylor series around x=0
+taylor --func exp --center 0 --eval 1 --order 5 --compare
+
+# Show individual terms of sin(x) expansion at x=π/4 around 0
+taylor --func sin --center 0 --eval 0.7854 --order 7 --terms
+
+# Compare increasing order approximations: sweep orders 1–10
+taylor --func ln --center 1 --eval 1.5 --order 10 --compare --format json
+```
+
+### Target User Base
+- Students and educators: _visualizing Taylor series convergence and approximation quality_
+- Numerical analysts and engineers: _designing or debugging custom function approximations_
+- Scientists: _deriving linearized models (1st-order) or quadratic approximations (2nd-order) of complex equations_
+- The first truly "pure math" tool in the suite — where other tools focus on probability/statistics, `taylor` serves users building computational methods or learning analysis
+
+---
+
+## 27. `compound` — Compound Interest & Time Value of Money
+
+### Dependencies
+- None (pure Python)
+
+### Architecture
+- **Core functions:** `future_value(pv, r, n, t)`, `present_value(fv, r, n, t)`, `annuity(pmt, r, n, t)`, `pmt_from_pv(pv, r, n, t)`, `effective_rate(nom_rate, n)`, `continuous_compound(pv, r, t)`
+- Computes compound interest, annuities, payment schedules, and effective annual rates
+- Modes: `--mode {fv,pv,annuity,payment,effective,continuous}`
+- CLI flags: `--pv F` (present value), `--fv F` (future value), `--rate F` (interest rate per period), `--periods INT` (compounding periods per year), `--time F` (years), `--pmt F` (payment per period), `--precision INT`, `--format {table,json,csv}`, `--schedule` (amortization table)
+- Output: computed value, total interest earned/paid, effective annual rate; optional payment schedule with per-period interest/principal breakdown
+
+### Application
+Fundamental to personal finance (savings, loans, mortgages), investment analysis (NPV, IRR prerequisites), retirement planning (annuity valuation), and business finance (capital budgeting). Answers "how much will I have in 30 years?", "what monthly payment fits my budget?", "what is the effective APR given monthly compounding?". Ubiquitous across finance, economics, and real-world decision-making.
+
+```bash
+# Future value: $10,000 at 5% annual interest, compounded monthly, for 10 years
+compound --mode fv --pv 10000 --rate 0.05 --periods 12 --time 10
+
+# Monthly payment on a $300,000 loan at 4% over 30 years
+compound --mode payment --pv 300000 --rate 0.04 --periods 12 --time 30
+
+# Effective annual rate for 6% nominal rate, compounded daily
+compound --mode effective --rate 0.06 --periods 365
+
+# Amortization schedule for a loan
+compound --mode payment --pv 50000 --rate 0.06 --periods 12 --time 5 --schedule
+```
+
+### Target User Base
+- Individuals: _planning savings, comparing loan offers, or evaluating investment returns_
+- Financial analysts: _computing NPV inputs, comparing financing options, or teaching time value of money_
+- Students: _learning finance who need a CLI calculator for homework or exam prep_
+- The most immediately practical "real-life math" tool — every adult with a bank account or loan can use this daily
+
+---
+
+## 28. `matrix` — Matrix Operations & Linear Algebra
+
+### Dependencies
+- **Optional:** `numpy` (efficient operations on large matrices, eigenvalues, SVD); falls back to pure-Python nested lists for small matrices
+
+### Architecture
+- **Core functions:** `add`, `multiply`, `transpose`, `inverse`, `determinant`, `trace`, `rank`, `eigenvalues`, `eigenvectors`, `svd`, `solve` (linear system Ax = b)
+- Accepts matrix input via `--matrix "[[1,2],[3,4]]"` or `--file CSV`; multiple matrices for operations via `--matrix-a`, `--matrix-b`
+- CLI flags: `--op {add,multiply,transpose,inverse,det,trace,rank,eigen,svd,solve}`, `--matrix`/`--matrix-a`/`--matrix-b`, `--vector` (for solve mode), `--precision INT`, `--format {table,json,latex}`, `--show-steps` (for Gaussian elimination in solve/inverse)
+- Output: result matrix/value, condition number (for inverse/solve), optional step-by-step algorithm trace
+
+### Application
+Linear algebra underpins machine learning (PCA, neural network backprop), computer graphics (3D transformations), physics (quantum mechanics, classical mechanics matrix formulations), economics (input-output models, Markov chains), and engineering (control theory, structural analysis). Whether solving a system of equations, computing eigenvectors for dimensionality reduction, or checking matrix singularity, this tool provides CLI access without MATLAB/Octave.
+
+```bash
+# Matrix multiplication
+matrix --op multiply --matrix-a "[[1,2],[3,4]]" --matrix-b "[[5,6],[7,8]]"
+
+# Determinant and inverse
+matrix --op det --matrix "[[2,1],[5,3]]"
+matrix --op inverse --matrix "[[4,7],[2,6]]" --precision 4
+
+# Solve Ax = b
+matrix --op solve --matrix "[[3,1],[-1,2]]" --vector "[9,8]" --show-steps
+
+# Eigenvalues and eigenvectors (numpy required for large matrices)
+matrix --op eigen --matrix "[[6,-1],[2,3]]" --format json
+
+# SVD for dimensionality reduction inspection
+matrix --op svd --file data_matrix.csv
+```
+
+### Target User Base
+- Students: _verifying homework solutions for linear algebra courses_
+- Data scientists: _inspecting matrix properties (rank, condition number) before regression/PCA_
+- Engineers and physicists: _solving small linear systems or transformation matrices_
+- Complements `mlreg` (which uses matrix algebra internally) — power users who want to inspect the $(X^TX)^{-1}$ matrix or check for multicollinearity via determinant/eigenvalues
+
+---
+
+## 29. `prime` — Prime Number Tools & Factorization
+
+### Dependencies
+- None (pure Python)
+
+### Architecture
+- **Core functions:** `is_prime(n)`, `next_prime(n)`, `prime_factors(n)`, `prime_sieve(limit)`, `nth_prime(n)`, `prime_count(limit)`
+- Modes: `--test N` (primality test), `--factor N` (prime factorization), `--next N` (next prime ≥ N), `--nth N` (n-th prime), `--sieve LIMIT` (all primes ≤ limit), `--count LIMIT` (π(limit), prime counting function)
+- Uses Miller-Rabin for large-integer primality, trial division + Pollard's rho for factorization, Sieve of Eratosthenes for enumeration
+- CLI flags: `--test`, `--factor`, `--next`, `--nth`, `--sieve`, `--count`, `--format {table,json,csv}`, `--precision INT` (for factorization display)
+- Output: boolean (primality), list of factors with exponents, prime value, list of primes, count
+
+### Application
+Prime numbers are central to cryptography (RSA key generation, Diffie-Hellman), number theory research, coding theory, hashing algorithms, and mathematical puzzles. Prime factorization is used in simplifying fractions, LCM/GCD computation, and understanding multiplicative structure. Practical uses include checking if a number is suitable for a hash table size (prefer primes), generating test cases, and teaching modular arithmetic.
+
+```bash
+# Test if a number is prime
+prime --test 104729
+
+# Prime factorization
+prime --factor 123456
+
+# Next prime after a given number
+prime --next 1000000
+
+# First 100 primes via sieve
+prime --sieve 541 --format csv
+
+# The 10,000th prime number
+prime --nth 10000
+
+# Count of primes up to 1 million (π(10⁶))
+prime --count 1000000
+```
+
+### Target User Base
+- Cryptographers and security engineers: _generating or validating prime numbers for key generation_
+- Students and educators: _exploring number theory concepts, prime distributions, and factorization_
+- Programmers: _choosing prime-sized hash tables or moduli for algorithms_
+- Mathematicians and hobbyists: _investigating prime patterns, twin primes, or gaps_
+- A recreational and practical tool — spanning from teaching tool to production cryptography support
+
+---
+
+## 30. `fibonacci` — Fibonacci Sequence & Golden Ratio
+
+### Dependencies
+- None (pure Python)
+
+### Architecture
+- **Core functions:** `fib(n)` (n-th Fibonacci number), `fib_seq(n)` (first n terms), `golden_ratio()`, `fib_ratio(n)` (ratio F(n)/F(n-1) approaching φ), `lucas(n)` (Lucas numbers), `binet_formula(n)` (closed-form calculation)
+- Modes: `--nth N`, `--seq N`, `--ratio N`, `--lucas N`, `--golden`, `--approx N` (compare iterative vs. Binet formula), `--properties` (φ properties, φ² = φ + 1, etc.)
+- Uses matrix exponentiation for large n (O(log n) time), memoization for sequences
+- CLI flags: `--nth`, `--seq`, `--ratio`, `--lucas`, `--golden`, `--approx`, `--properties`, `--precision INT`, `--format {table,json,csv}`
+- Output: Fibonacci number(s), ratio, φ constant, comparison table (showing convergence of F(n)/F(n-1) → φ)
+
+### Application
+The Fibonacci sequence appears in nature (phyllotaxis, branching, spirals), art (golden rectangle, golden spiral in composition), finance (Fibonacci retracements in technical analysis), computer science (algorithm analysis, data structure performance), and mathematics (number theory, combinatorics). The golden ratio is ubiquitous in design, architecture, and aesthetics. Practical uses include algorithm complexity analysis (Fibonacci heap), teaching recursion/DP, and exploring growth patterns.
+
+```bash
+# The 50th Fibonacci number
+fibonacci --nth 50
+
+# First 20 terms of the sequence
+fibonacci --seq 20 --format csv
+
+# Show convergence of ratio to golden ratio
+fibonacci --ratio 30
+
+# Compare iterative vs. Binet formula accuracy
+fibonacci --approx 40
+
+# Properties of the golden ratio
+fibonacci --golden --properties --precision 15
+
+# Lucas numbers (related sequence)
+fibonacci --lucas 15
+```
+
+### Target User Base
+- Students and educators: _teaching recursion, dynamic programming, or mathematical sequences_
+- Designers and artists: _using the golden ratio for layout, composition, or proportion calculations_
+- Traders: _applying Fibonacci retracement levels in technical analysis_
+- Computer scientists: _analyzing algorithm complexity or Fibonacci heap performance_
+- A blend of educational, aesthetic, and practical applications — one of the most recognizable mathematical sequences with wide interdisciplinary appeal
+
+---
+
 ## Summary Table
 
 | Command | Distribution / Concept | Deps (optional*) | Zero-dep fallback? | Closest existing tool |
@@ -734,5 +1001,12 @@ mlreg --file train.csv --target output --predict-file new_inputs.csv --alpha 0.1
 | `vartest`     | Variance equality tests (F, Levene, Bartlett) | None             | N/A                | `ttest`                       |
 | `bootci`      | Bootstrap confidence intervals       | `numpy`*                  | ✅ `random.choices` | `confint`                   |
 | `mlreg`       | Multiple linear regression + pred. intervals | `numpy`, `pandas`*  | N/A                | `linreg`                      |
+| `pearson`     | Pearson correlation coefficient              | None                      | N/A                | `linreg`                      |
+| `spearman`    | Spearman rank correlation                    | None                      | N/A                | `pearson`                     |
+| `taylor`      | Taylor series approximation                  | None                      | N/A                | N/A                           |
+| `compound`    | Compound interest & time value of money      | None                      | N/A                | `expected`                    |
+| `matrix`      | Matrix operations & linear algebra           | `numpy`*                  | ✅ nested lists    | `mlreg`                       |
+| `prime`       | Prime number tools & factorization           | None                      | N/A                | N/A                           |
+| `fibonacci`   | Fibonacci sequence & golden ratio            | None                      | N/A                | N/A                           |
 
 \* _Optional dependency: functionality exists but reduced output capability without the package._
