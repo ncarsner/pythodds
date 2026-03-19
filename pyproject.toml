@@ -1,6 +1,6 @@
 [project]
 name = "pythodds"
-version = "0.9.1"
+version = "0.10.0"
 description = "Command line utilities for statistics, odds, and probabilities"
 readme = "README.md"
 authors = [
@@ -40,6 +40,8 @@ simulate = "src.utils.monte_carlo:main"
 bayes = "src.utils.bayes_theorem:main"
 pythag = "src.utils.pythagorean_record:main"
 pearson = "src.utils.pearson_correlation:main"
+sample = "src.utils.sample_size:main"
+linreg = "src.utils.linear_regression:main"
 
 [build-system]
 requires = ["hatchling"]
