@@ -21,10 +21,12 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Streak Probability** | Compute the probability of at least one consecutive run of successes and the expected length of the longest streak |
 | **Pythagorean Record** | Calculate team winning percentage expectations using Bill James' Pythagorean formula or the SABR linear formula; project in-progress season records and compare actual vs. expected performance |
 | **Pearson Correlation** | Compute Pearson's r, r², t-statistic, p-value, and confidence intervals; test for linear relationships between two continuous variables; supports inline data or CSV input |
+| **Linear Regression** | Perform ordinary least squares (OLS) regression with full statistical inference: coefficients, standard errors, R², F-statistic, t-tests, confidence intervals, and predictions with confidence/prediction intervals |
 | **Monte Carlo Simulator** | Empirically estimate probabilities for binomial, birthday, streak, and Poisson experiments with confidence intervals and analytical comparison |
-
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `streak`, `pythag`, `pearson`, and `simulate` commands |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `streak`, `pythag`, `pearson`, `linreg`, and `simulate` commands |
 | **Pure Python** | No external dependencies required for core calculations |
+
+<!-- | **Sample Size Calculator** | Determine minimum sample sizes for proportion estimation, mean difference detection, and two-proportion comparisons; includes power analysis sweeps | -->
 
 ## Installation
 
@@ -32,6 +34,10 @@ Install from PyPI:
 
 ```bash
 pip install pythodds
+```
+or
+```
+uv add pythodds
 ```
 
 Or install from source:
@@ -188,7 +194,8 @@ expected --outcomes 0,1 --probs 0.3,0.7 --mgf 0.5
 | | `--mgf T` | Also compute the moment generating function M_X(t) at t=T |
 | `-P` | `--precision` | Decimal places for printed values (default: `6`) |
 
-> `--outcomes` and `--file` are mutually exclusive; one is required. `--probs` is required when using `--outcomes`.
+> `--outcomes` and `--file` are mutually exclusive; one is required<br>
+> `--probs` is required when using `--outcomes`
 
 ---
 #### `poisson` — Poisson Distribution
@@ -337,7 +344,9 @@ pearson --x 1,2,3,4 --y 2,4,6,8 --precision 4
 | | `--sided` | Hypothesis test type: `one` or `two` (default: `two`) |
 | `-P` | `--precision` | Decimal places for printed values (default: `6`) |
 
-> `--x` and `--file` are mutually exclusive; one is required. When using `--x`, must also provide `--y`. When using `--file`, must also provide `--x-col` and `--y-col`.
+> `--x` and `--file` are mutually exclusive; one is required.<br>
+> When using `--x`, must also provide `--y`.<br>
+> When using `--file`, must also provide `--x-col` and `--y-col`
 
 **Output includes:**
 - **Pearson's r**: Correlation coefficient measuring linear relationship strength
@@ -345,6 +354,106 @@ pearson --x 1,2,3,4 --y 2,4,6,8 --precision 4
 - **Interpretation**: Qualitative description of correlation strength and direction
 - **Hypothesis test** (if `--alpha` provided): t-statistic, p-value, significance result
 - **Confidence interval** (if `--alpha` provided): CI for population correlation ρ using Fisher Z-transformation
+
+<!-- ---
+#### `sample` — Sample Size Calculator
+
+Calculates the minimum sample size needed for statistical studies. Supports proportion estimation within a margin of error, mean difference detection with specified power, and two-proportion comparisons. Includes power analysis sweeps to show achieved power across a range of sample sizes.
+
+```bash
+# Minimum n to estimate a proportion within ±3% at 95% confidence
+sample --type proportion --prop 0.5 --margin 0.03
+
+# Minimum n to detect a mean shift of 5 units (σ=12) with 80% power
+sample --type mean --delta 5 --std 12 --power 0.80
+
+# Two-proportion comparison: detect difference between 40% and 50%
+sample --type comparison --p1 0.40 --p2 0.50 --alpha 0.05 --power 0.80
+
+# Power analysis sweep: show achieved power for n = 50 to 300
+sample --type mean --delta 5 --std 12 --sweep 50 300 --step 25
+
+# One-sided test with 90% power
+sample --type mean --delta 3 --std 8 --power 0.90 --sided one
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--type` | Calculation type: `proportion`, `mean`, or `comparison` (required) |
+| | `--prop` | Expected proportion for proportion estimation (0 to 1) |
+| | `--margin` | Desired margin of error for proportion (e.g., `0.03` for ±3%) |
+| | `--std`, `--sigma` | Population standard deviation for mean calculations |
+| | `--delta` | Minimum detectable effect size (mean difference) |
+| | `--p1` | Proportion in group 1 for comparison |
+| | `--p2` | Proportion in group 2 for comparison |
+| | `--alpha` | Significance level (default: `0.05`) |
+| | `--power` | Statistical power (1-β) for mean/comparison (default: `0.80`) |
+| | `--sided` | Test type: `one` or `two` (default: `two`) |
+| | `--sweep MIN MAX` | Show power across range of sample sizes |
+| | `--step` | Step size for sweep (default: `10`) |
+| `-P` | `--precision` | Decimal places for printed values (default: `4`) |
+
+**Calculation types:**
+- **Proportion**: Determines sample size to estimate a single proportion within a specified margin of error at a given confidence level
+- **Mean**: Determines sample size to detect a mean difference (effect size) with specified statistical power
+- **Comparison**: Determines sample size per group to detect a difference between two proportions with specified power -->
+
+---
+#### `linreg` — Linear Regression (OLS)
+
+Performs simple linear regression using ordinary least squares (OLS) to fit a line `y = slope * x + intercept`. Provides comprehensive statistical inference including coefficient tests, model fit statistics, and predictions with confidence and prediction intervals.
+
+```bash
+# Fit a line to comma-separated x, y values
+linreg --x 1,2,3,4,5 --y 2.1,3.9,6.2,7.8,10.1
+
+# Load data from CSV file
+linreg --file data.csv --x-col height --y-col weight
+
+# With prediction at x=6
+linreg --x 1,2,3,4,5 --y 2,4,6,8,10 --predict 6
+
+# With 90% confidence intervals (α=0.10)
+linreg --x 10,20,30,40,50 --y 15,28,41,55,68 --alpha 0.10 --predict 60
+
+# Custom precision
+linreg --x 1,2,3,4 --y 2.1,4.3,5.8,8.2 --precision 4
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--x` | Comma-separated x values (use with `--y`) |
+| | `--y` | Comma-separated y values (required with `--x`) |
+| | `--file` | CSV file path (use with `--x-col` and `--y-col`) |
+| | `--x-col` | Column name for x values in CSV (required with `--file`) |
+| | `--y-col` | Column name for y values in CSV (required with `--file`) |
+| | `--predict` | x value for prediction with confidence/prediction intervals |
+| | `--alpha` | Significance level for confidence intervals (default: `0.05`) |
+| `-P` | `--precision` | Decimal places for printed values (default: `6`) |
+
+> `--x` and `--file` are mutually exclusive; one is required<br>
+> When using `--x`, must also provide `--y`<br>
+> When using `--file`, must also provide `--x-col` and `--y-col`
+
+**Output includes:**
+- **Model equation**: Fitted line `y = slope * x + intercept`
+- **Coefficients**: Slope and intercept with standard errors, t-statistics, p-values, and confidence intervals
+- **Model fit**: R² (coefficient of determination), residual standard error, F-statistic, overall model significance
+- **Predictions** (if `--predict` specified):
+  - Point estimate at the specified x value
+  - Confidence interval for the mean response (where we expect the average y)
+  - Prediction interval for an individual observation (wider, accounts for individual variability)
+
+**Statistical notes:**
+- **R²**: Proportion of variance in y explained by x (0 to 1; higher is better)
+- **Confidence interval**: Uncertainty in estimating the mean response
+- **Prediction interval**: Uncertainty for a single new observation (always wider than confidence interval)
+- **t-tests**: Test whether each coefficient is significantly different from zero
+- **F-statistic**: Tests whether the overall model is significant (better than just predicting the mean)
 
 ---
 #### `simulate` — Monte Carlo Probability Simulator
@@ -582,7 +691,7 @@ y = [2.1, 3.8, 6.2, 7.9, 10.1]
 r = pearson_r(x, y)
 
 # r² (coefficient of determination)
-r_squared = r * r
+r_squared = r ** 2
 
 # t-statistic for testing H₀: ρ = 0
 t_stat = correlation_t_statistic(r, n=len(x))
@@ -592,6 +701,66 @@ p_value = correlation_p_value(r, n=len(x), sided="two")
 
 # 95% confidence interval for population correlation ρ
 ci_lower, ci_upper = correlation_confidence_interval(r, n=len(x), alpha=0.05)
+```
+
+<!-- #### Sample Size Calculator
+
+```python
+from src.utils.sample_size import (
+    sample_size_proportion,
+    sample_size_mean,
+    sample_size_comparison,
+    achieved_power_mean,
+    achieved_power_comparison,
+)
+
+# Minimum sample size to estimate a proportion within ±3% at 95% confidence
+n = sample_size_proportion(p=0.5, margin=0.03, alpha=0.05)
+
+# Minimum sample size to detect a mean difference of 5 with σ=12 at 80% power
+n = sample_size_mean(sigma=12, delta=5, alpha=0.05, power=0.80, sided="two")
+
+# Sample sizes for two-proportion comparison (detect 0.40 vs 0.50 with 80% power)
+n1, n2 = sample_size_comparison(p1=0.40, p2=0.50, alpha=0.05, power=0.80, sided="two")
+
+# Achieved power for a given sample size
+power = achieved_power_mean(n=100, sigma=12, delta=5, alpha=0.05, sided="two")
+
+# Achieved power for two-proportion comparison
+power = achieved_power_comparison(n_per_group=150, p1=0.40, p2=0.50, alpha=0.05, sided="two")
+``` -->
+
+#### Linear Regression
+
+```python
+from src.utils.linear_regression import (
+    linear_regression,
+    predict,
+    mean,
+)
+
+x = [1, 2, 3, 4, 5]
+y = [2.1, 3.9, 6.2, 7.8, 10.1]
+
+# Perform linear regression
+model = linear_regression(x, y)
+
+# Access model attributes
+print(f"Slope: {model.slope}")
+print(f"Intercept: {model.intercept}")
+print(f"R²: {model.r_squared}")
+print(f"Residual SE: {model.residual_std_error}")
+print(f"t-statistic (slope): {model.t_slope}")
+
+# Make a prediction with confidence and prediction intervals
+x_new = 6.0
+prediction, conf_lower, conf_upper, pred_lower, pred_upper = predict(
+    model, x_new, alpha=0.05
+)
+
+print(f"Prediction at x={x_new}: {prediction}")
+print(f"95% Confidence interval: [{conf_lower}, {conf_upper}]")
+print(f"95% Prediction interval: [{pred_lower}, {pred_upper}]")
 ```
 
 #### Monte Carlo Simulator
