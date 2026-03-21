@@ -22,11 +22,11 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Pythagorean Record** | Calculate team winning percentage expectations using Bill James' Pythagorean formula or the SABR linear formula; project in-progress season records and compare actual vs. expected performance |
 | **Pearson Correlation** | Compute Pearson's r, r², t-statistic, p-value, and confidence intervals; test for linear relationships between two continuous variables; supports inline data or CSV input |
 | **Linear Regression** | Perform ordinary least squares (OLS) regression with full statistical inference: coefficients, standard errors, R², F-statistic, t-tests, confidence intervals, and predictions with confidence/prediction intervals |
+| **Sample Size Calculator** | Determine minimum sample sizes for proportion estimation, mean difference detection, and two-proportion comparisons; includes power analysis sweeps |
 | **Monte Carlo Simulator** | Empirically estimate probabilities for binomial, birthday, streak, and Poisson experiments with confidence intervals and analytical comparison |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `streak`, `pythag`, `pearson`, `linreg`, and `simulate` commands |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `streak`, `pythag`, `pearson`, `linreg`, `sample`, and `simulate` commands |
 | **Pure Python** | No external dependencies required for core calculations |
 
-<!-- | **Sample Size Calculator** | Determine minimum sample sizes for proportion estimation, mean difference detection, and two-proportion comparisons; includes power analysis sweeps | -->
 
 ## Installation
 
@@ -355,7 +355,7 @@ pearson --x 1,2,3,4 --y 2,4,6,8 --precision 4
 - **Hypothesis test** (if `--alpha` provided): t-statistic, p-value, significance result
 - **Confidence interval** (if `--alpha` provided): CI for population correlation ρ using Fisher Z-transformation
 
-<!-- ---
+---
 #### `sample` — Sample Size Calculator
 
 Calculates the minimum sample size needed for statistical studies. Supports proportion estimation within a margin of error, mean difference detection with specified power, and two-proportion comparisons. Includes power analysis sweeps to show achieved power across a range of sample sizes.
@@ -381,16 +381,16 @@ sample --type mean --delta 3 --std 8 --power 0.90 --sided one
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
-| | `--type` | Calculation type: `proportion`, `mean`, or `comparison` (required) |
+| | `--type` | Calculation type: `proportion`, `mean`, or `comparison` _(required)_ |
 | | `--prop` | Expected proportion for proportion estimation (0 to 1) |
-| | `--margin` | Desired margin of error for proportion (e.g., `0.03` for ±3%) |
+| | `--margin` | Desired margin of error for proportion _(e.g., `0.03` for ±3%)_ |
 | | `--std`, `--sigma` | Population standard deviation for mean calculations |
 | | `--delta` | Minimum detectable effect size (mean difference) |
 | | `--p1` | Proportion in group 1 for comparison |
 | | `--p2` | Proportion in group 2 for comparison |
 | | `--alpha` | Significance level (default: `0.05`) |
-| | `--power` | Statistical power (1-β) for mean/comparison (default: `0.80`) |
-| | `--sided` | Test type: `one` or `two` (default: `two`) |
+| | `--power` | Statistical power (1-β) for mean/comparison _(default: `0.80`)_ |
+| | `--sided` | Test type: `one` or `two` _(default: `two`)_ |
 | | `--sweep MIN MAX` | Show power across range of sample sizes |
 | | `--step` | Step size for sweep (default: `10`) |
 | `-P` | `--precision` | Decimal places for printed values (default: `4`) |
@@ -398,7 +398,7 @@ sample --type mean --delta 3 --std 8 --power 0.90 --sided one
 **Calculation types:**
 - **Proportion**: Determines sample size to estimate a single proportion within a specified margin of error at a given confidence level
 - **Mean**: Determines sample size to detect a mean difference (effect size) with specified statistical power
-- **Comparison**: Determines sample size per group to detect a difference between two proportions with specified power -->
+- **Comparison**: Determines sample size per group to detect a difference between two proportions with specified power
 
 ---
 #### `linreg` — Linear Regression (OLS)
@@ -703,7 +703,7 @@ p_value = correlation_p_value(r, n=len(x), sided="two")
 ci_lower, ci_upper = correlation_confidence_interval(r, n=len(x), alpha=0.05)
 ```
 
-<!-- #### Sample Size Calculator
+#### Sample Size Calculator
 
 ```python
 from src.utils.sample_size import (
@@ -728,7 +728,7 @@ power = achieved_power_mean(n=100, sigma=12, delta=5, alpha=0.05, sided="two")
 
 # Achieved power for two-proportion comparison
 power = achieved_power_comparison(n_per_group=150, p1=0.40, p2=0.50, alpha=0.05, sided="two")
-``` -->
+```
 
 #### Linear Regression
 
