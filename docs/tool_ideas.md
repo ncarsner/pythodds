@@ -122,7 +122,7 @@ sample --type comparison --p1 0.40 --p2 0.50 --alpha 0.05 --sweep 50 300
 ```
 
 ### Target User Base
-- A/B testers and product analysts: _sizing experiments before launch_
+- A/B testers, product analysts: _sizing experiments before launch_
 - Clinical researchers: _meeting pre-specified sample size requirements_
 - Auditors: _determining how many records to sample for a given detection sensitivity_
 - Natural prerequisite companion to `confint` and `pvalue` — the "before" step to those tools' "after" analyses
@@ -138,7 +138,7 @@ sample --type comparison --p1 0.40 --p2 0.50 --alpha 0.05 --sweep 50 300
 - Output: t-statistic, degrees of freedom, p-value, decision at `--alpha`, confidence interval for the mean difference
 
 ### Application
-The workhorse of small-sample inference. One-tailed tests answer directional questions ("is the treated group *faster*?"); two-tailed tests answer symmetric questions ("is there *any* difference?"). Covers one-sample, independent two-sample (Welch and equal-variance), and paired designs.
+The workhorse of small-sample inference. One-tailed tests answer directional questions ("is the treated group _faster_?"); two-tailed tests answer symmetric questions ("is there _any_ difference?"). Covers one-sample, independent two-sample (Welch and equal-variance), and paired designs.
 
 ```bash
 # One-sample, two-tailed: is the mean different from 100? (n=20, mean=97.3, std=8.1)
@@ -284,9 +284,9 @@ hypergeo -N 100 -K 10 -n 15 -k 2
 --->
 
 ### Application
-Answers questions like "In 162 baseball games with a .320 batting average, what is the probability of a hitting streak of at least 20 games?" or "In 50 sales calls with a 10% close rate, what is the probability of getting 3 consecutive closes?". Streak/run probability is a common question in sports analytics, quality control (consecutive defects), and trading (win/loss streaks).
+Answers questions like "In 162 baseball games with a .320 batting average, what is the probability of a hitting streak of at least 10 games?" or "In 50 sales calls with a 10% close rate, what is the probability of getting 3 consecutive closes?". Streak/run probability is a common question in sports analytics, quality control (consecutive defects), and trading (win/loss streaks).
 
-<!-->
+<!--
 ```bash
 # P(at least one streak of 5+ heads in 100 fair coin flips)
 streak -n 100 -k 5 -p 0.5
@@ -310,7 +310,7 @@ streak -n 162 -p 0.300 --longest
 - Accepts a prior, a likelihood of evidence given hypothesis, and a likelihood of evidence given ¬hypothesis
 - CLI supports `--prior`, `--likelihood-pos`, `--likelihood-neg`, and `--iterations` for repeated updating (e.g. multiple test results)
 - Output: posterior probability after each update step; table or single value
---->
+-->
 
 ### Application
 Bayesian updating underpins medical testing (sensitivity/specificity), spam filtering, and iterative belief revision. This tool provides an accessible, step-by-step command-line interface for P(H|E) calculations without requiring a full probabilistic programming library.
@@ -755,19 +755,21 @@ pearson --x 10,20,30,40,50 --y 15,28,41,55,68 --sided one --format json
 ## 25. `spearman` — Spearman Rank Correlation
 
 ### Dependencies
-- None (pure Python)
+- `scipy`
 
+<!--
 ### Architecture
 - **Core functions:** `spearman_rho(x, y)` → rank correlation coefficient; `spearman_test(x, y, alpha)` → ρ, t-statistic, p-value
 - Computes Spearman's ρ (monotonic correlation) by ranking data and applying Pearson's formula to ranks; handles ties via average rank assignment
 - Shares testing infrastructure with `pearson` (t-distribution approximation)
 - CLI flags: `--x VALUES`, `--y VALUES`, `--file CSV --x-col COL --y-col COL`, `--alpha F`, `--sided {one,two}`, `--precision INT`, `--format {table,json,csv}`, `--show-ranks` (outputs ranked data for inspection)
 - Output: ρ, t-statistic, p-value, confidence interval (via Fisher z-transformation), decision at `--alpha`
+-->
 
 ### Application
 Measures monotonic (not necessarily linear) association between variables, robust to outliers and non-normal distributions. Ideal for ordinal data (rankings, survey Likert scales), skewed continuous data, or when the relationship shape is unknown but suspected to be monotonic. Common in psychology, social sciences, quality ranking, and exploratory analysis where `pearson` assumptions may not hold.
 
-```bash
+<!-- ```bash
 # Rank correlation between two variables
 spearman --x 1,2,3,4,10 --y 2,3,5,6,20
 
@@ -776,13 +778,13 @@ spearman --file survey.csv --x-col satisfaction --y-col loyalty --alpha 0.01
 
 # Show ranks in output for diagnostic inspection
 spearman --x 100,150,120,180,200 --y 5,3,4,2,1 --show-ranks --format table
-```
+``` -->
 
 ### Target User Base
 - Survey analysts and social scientists: _analyzing ordinal or Likert-scale relationships_
 - Data scientists: _performing robust correlation analysis on skewed or outlier-prone data_
 - Students: _learning non-parametric methods as an alternative to Pearson_
-- Complements `pearson` — when data violate normality/linearity assumptions, or when measuring rank concordance vs. linear fit, `spearman` is the go-to choice
+- Complements `pearson` — _when data violate normality/linearity assumptions, or when measuring rank concordance vs. linear fit, `spearman` is the go-to choice_
 
 ---
 
