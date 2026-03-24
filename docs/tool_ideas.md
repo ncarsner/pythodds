@@ -17,22 +17,8 @@ All existing tools are pure-Python, zero-dependency, CLI-first, with optional us
 
 ## 1. `poisson` — Distribution Calculator
 
-<!-- ### Architecture
-- **Core functions:** `poisson_pmf(k, lam)`, `poisson_cdf_le(k, lam)`, `poisson_cdf_ge(k, lam)`
-- Uses `math.lgamma` for numerical stability at large `k`
-- CLI flags mirror `binom`: `-k`/`--events`, `-l`/`--rate`, `--target`, `--min-prob`, `--precision`
-- Output: PMF, CDF ≤ k, survival ≥ k; optional threshold check
---->
-
 ### Application
 The Poisson distribution models the probability of a given number of rare, independent events occurring in a fixed interval of time or space. Natural companion to `binom` for low-probability / high-trial-count scenarios (e.g. "given 3 server errors per hour on average, what is the probability of seeing 7 or more in the next hour?").
-
-<!--
-```bash
-poisson -k 7 -l 3.0
-poisson -k 5 -l 2.5 --target 8 --min-prob 0.05
-```
--->
 
 ### Target User Base
 - DevOps / SREs: _monitoring error rates, alert thresholds, and incident frequency_
@@ -44,22 +30,8 @@ poisson -k 5 -l 2.5 --target 8 --min-prob 0.05
 
 ## 2. `normal` — Gaussian Distribution Calculator
 
-<!-- ### Architecture
-- **Core functions:** `normal_pdf(x, mu, sigma)`, `normal_cdf(x, mu, sigma)`, `normal_ppf(p, mu, sigma)` (percent-point / quantile function)
-- Implemented via `math.erf` — no external dependencies
-- CLI flags: `-x`/`--value`, `-m`/`--mean`, `-s`/`--std`, `--between LOW HIGH`, `--quantile P`, `--precision`
-- Output: PDF at x, P(X ≤ x), P(X ≥ x), optionally P(LOW ≤ X ≤ HIGH) or the x-value at quantile p
---->
-
 ### Application
 The normal distribution is the most widely used continuous distribution. Covers z-score calculations, confidence interval boundary checks, standardisation questions, and quality control (Six Sigma-style defect rate estimation).
-
-<!--
-```bash
-normal -x 1.96 -m 0 -s 1
-normal --between -1.96 1.96 -m 0 -s 1
-normal --quantile 0.975 -m 0 -s 1
-``` -->
 
 ### Target User Base
 - Students and educators: _verifying z-table lookups without needing scipy_
@@ -191,26 +163,8 @@ chisq --test gof --observed 52,48 --expected 50,50 --alpha 0.10
 
 ## 7. `linreg` — Simple Linear Regression
 
-### Architecture
-- **Core functions:** `linreg(x, y)` → slope, intercept, R², SE(slope), SE(intercept), t-statistics and p-values; `predict(x_new, model, alpha)` → point estimate with confidence and prediction intervals
-- Closed-form OLS via `math` and `statistics` — no external dependencies
-- CLI flags: `--x`/`--y` (comma-separated values), `--file CSV`, `--predict X`, `--alpha`, `--format {table,json,csv}`, `--precision`
-- Output: slope, intercept, R², F-statistic, overall p-value, coefficient CIs; optional residual table and prediction interval
-
 ### Application
 Quantifies the linear relationship between two continuous variables and makes predictions with uncertainty bounds. Applicable across domains: calibration curves in lab science, price-versus-demand modeling, performance-versus-load curves in engineering, and trend lines in operations.
-
-```bash
-# Fit a line to paired x, y values
-linreg --x 1,2,3,4,5 --y 2.1,3.9,6.2,7.8,10.1
-
-# Fit from a CSV file and predict at x=6 with 95% confidence interval
-linreg --file data.csv --predict 6 --alpha 0.05
-linreg --file data.csv --predict 10 --conf 0.95
-
-# JSON output for downstream processing
-linreg --x 10,20,30,40,50 --y 15,28,41,55,68 --format json
-```
 
 ### Target User Base
 - Scientists and engineers: _fitting calibration curves or modeling physical relationships_
@@ -222,21 +176,8 @@ linreg --x 10,20,30,40,50 --y 15,28,41,55,68 --format json
 
 ## 8. `expected` — Expected Value and Variance Calculator
 
-<!-- ### Architecture
-- Accepts a discrete probability distribution as paired lists or a CSV/JSON file: `--outcomes 1,2,3,4,5,6 --probs 0.1,0.2,0.3,0.2,0.1,0.1`
-- **Core functions:** `expected_value(outcomes, probs)`, `variance(outcomes, probs)`, `std_dev(outcomes, probs)`, `entropy(probs)`
-- Optional: moment generating function value at a given `t` (`--mgf T`)
-- Output: E[X], Var(X), SD(X), Shannon entropy
---->
-
 ### Application
 A general-purpose tool for computing summary statistics of any user-defined discrete distribution. Useful for analysing custom payout tables, lottery structures, card game odds, or any scenario where the user supplies raw outcomes and weights — complementing `birthday`'s `--weights` flag philosophy.
-
-<!--
-```bash
-expected --outcomes 0,1,5,10 --probs 0.50,0.25,0.15,0.10
-expected --file payouts.csv
-``` -->
 
 ### Target User Base
 - Game designers and odds analysts: _modeling prize tables or betting structures_
@@ -275,25 +216,8 @@ hypergeo -N 100 -K 10 -n 15 -k 2
 
 ## 10. `streak` — Consecutive Success/Failure Streak Probability
 
-<!-- ### Architecture
-- **Core functions:**
-  - `prob_at_least_one_streak(n, k, p)` — probability of at least one run of `k` consecutive successes in `n` independent Bernoulli trials
-  - `expected_longest_streak(n, p)` — expected length of the longest run
-- Uses dynamic programming (DP table) for exact computation; O(n·k) time and O(k) space
-- CLI flags: `-n`/`--trials`, `-k`/`--streak-length`, `-p`/`--prob`, `--longest`, `--precision`
---->
-
 ### Application
 Answers questions like "In 162 baseball games with a .320 batting average, what is the probability of a hitting streak of at least 10 games?" or "In 50 sales calls with a 10% close rate, what is the probability of getting 3 consecutive closes?". Streak/run probability is a common question in sports analytics, quality control (consecutive defects), and trading (win/loss streaks).
-
-<!--
-```bash
-# P(at least one streak of 5+ heads in 100 fair coin flips)
-streak -n 100 -k 5 -p 0.5
-
-# Expected longest run of successes
-streak -n 162 -p 0.300 --longest
-``` -->
 
 ### Target User Base
 - Sports analysts and bettors: _evaluating hot/cold streaks_
@@ -305,24 +229,8 @@ streak -n 162 -p 0.300 --longest
 
 ## 11. `bayes` — Bayesian Probability Updater
 
-<!-- ### Architecture
-- **Core functions:** `posterior(prior, likelihood, evidence)`, `update(prior, likelihood_hit, likelihood_miss)` (sequential updates)
-- Accepts a prior, a likelihood of evidence given hypothesis, and a likelihood of evidence given ¬hypothesis
-- CLI supports `--prior`, `--likelihood-pos`, `--likelihood-neg`, and `--iterations` for repeated updating (e.g. multiple test results)
-- Output: posterior probability after each update step; table or single value
--->
-
 ### Application
 Bayesian updating underpins medical testing (sensitivity/specificity), spam filtering, and iterative belief revision. This tool provides an accessible, step-by-step command-line interface for P(H|E) calculations without requiring a full probabilistic programming library.
-
-<!---
-```bash
-# Medical test: disease prevalence 1%, test sensitivity 99%, false positive rate 5%
-bayes --prior 0.01 --likelihood-pos 0.99 --likelihood-neg 0.05
-
-# Two sequential positive tests
-bayes --prior 0.01 --likelihood-pos 0.99 --likelihood-neg 0.05 --iterations 2
-``` -->
 
 ### Target User Base
 - Medical and public health analysts: _interpreting diagnostic test results_
@@ -374,27 +282,6 @@ plotdist --dist binomial --params n=10 p=0.3 --text
 ---
 
 ## 13. `simulate` — Monte Carlo Probability Simulator
-
-<!-- ### Dependencies
-- **Optional:** `numpy` (vectorised sampling, significantly faster for large `--trials`; pure `random` module used as fallback)
-
-### Architecture
-- Runs repeated random experiments to estimate probabilities empirically, cross-validating analytical results from `binom`, `birthday`, etc.
-- Modes: `--experiment {binomial,birthday,streak,custom}`
-- User-supplied variables: `--trials N` (number of simulations), `--params KEY=VALUE [...]`, `--seed INT` (reproducibility), `--confidence` (prints 95% CI around the estimate)
-- Output: estimated probability, standard error, optional comparison to analytical value, optional CSV of per-trial results (`--dump`)
-- `--scale` flag dynamically adjusts trial count based on desired precision: `--scale 0.001` runs enough trials to achieve ±0.1% standard error
-
-```bash
-# Empirically estimate P(X >= 5) for Binomial(10, 0.4) using 100,000 simulations
-simulate --experiment binomial --params n=10 k=5 p=0.4 --trials 100000
-
-# Birthday problem simulation for a pool of 365, group of 23
-simulate --experiment birthday --params pool=365 group=23 --trials 50000 --confidence
-
-# Auto-scale trials for ±0.01 standard error
-simulate --experiment binomial --params n=20 k=8 p=0.5 --scale 0.01 --seed 42
-``` -->
 
 ### Target User Base
 - Students and educators: _verifying analytical results through simulation_
@@ -720,29 +607,8 @@ mlreg --file train.csv --target output --predict-file new_inputs.csv --alpha 0.1
 
 ## 24. `pearson` — Pearson Correlation Coefficient
 
-<!-- ### Dependencies
-- None (pure Python)
-
-### Architecture
-- **Core functions:** `pearson_r(x, y)` → correlation coefficient; `pearson_test(x, y, alpha)` → r, t-statistic, p-value, confidence interval
-- Computes Pearson's r (linear correlation) between two continuous variables with full hypothesis testing framework
-- Uses `math` for t-distribution CDF via numerical approximation
-- CLI flags: `--x VALUES`, `--y VALUES`, `--file CSV --x-col COL --y-col COL`, `--alpha F`, `--sided {one,two}`, `--precision INT`, `--format {table,json,csv}`
-- Output: r, r², t-statistic, degrees of freedom, p-value, confidence interval for ρ (population correlation), decision at `--alpha` -->
-
 ### Application
 Measures the strength and direction of linear association between two continuous variables. Essential for feature selection in modeling, relationship analysis in research, and validation that predictor-response relationships are approximately linear before fitting regression. Applicable across economics (price vs demand), finance (asset correlation), psychology (test score relationships), and any domain requiring correlation analysis.
-
-<!-- ```bash
-# Correlation between two variables
-pearson --x 1,2,3,4,5 --y 2.1,3.8,6.2,7.9,10.1
-
-# From CSV with hypothesis test at α=0.05
-pearson --file data.csv --x-col height --y-col weight --alpha 0.05
-
-# One-tailed test ("is the correlation positive?")
-pearson --x 10,20,30,40,50 --y 15,28,41,55,68 --sided one --format json
-``` -->
 
 ### Target User Base
 - Data scientists and analysts: _quantifying feature-to-target relationships before modeling_
@@ -757,28 +623,8 @@ pearson --x 10,20,30,40,50 --y 15,28,41,55,68 --sided one --format json
 ### Dependencies
 - `scipy`
 
-<!--
-### Architecture
-- **Core functions:** `spearman_rho(x, y)` → rank correlation coefficient; `spearman_test(x, y, alpha)` → ρ, t-statistic, p-value
-- Computes Spearman's ρ (monotonic correlation) by ranking data and applying Pearson's formula to ranks; handles ties via average rank assignment
-- Shares testing infrastructure with `pearson` (t-distribution approximation)
-- CLI flags: `--x VALUES`, `--y VALUES`, `--file CSV --x-col COL --y-col COL`, `--alpha F`, `--sided {one,two}`, `--precision INT`, `--format {table,json,csv}`, `--show-ranks` (outputs ranked data for inspection)
-- Output: ρ, t-statistic, p-value, confidence interval (via Fisher z-transformation), decision at `--alpha`
--->
-
 ### Application
 Measures monotonic (not necessarily linear) association between variables, robust to outliers and non-normal distributions. Ideal for ordinal data (rankings, survey Likert scales), skewed continuous data, or when the relationship shape is unknown but suspected to be monotonic. Common in psychology, social sciences, quality ranking, and exploratory analysis where `pearson` assumptions may not hold.
-
-<!-- ```bash
-# Rank correlation between two variables
-spearman --x 1,2,3,4,10 --y 2,3,5,6,20
-
-# From CSV with hypothesis test
-spearman --file survey.csv --x-col satisfaction --y-col loyalty --alpha 0.01
-
-# Show ranks in output for diagnostic inspection
-spearman --x 100,150,120,180,200 --y 5,3,4,2,1 --show-ranks --format table
-``` -->
 
 ### Target User Base
 - Survey analysts and social scientists: _analyzing ordinal or Likert-scale relationships_
@@ -1002,24 +848,24 @@ fibonacci --lucas 15
 | `hypergeo`    | Hypergeometric                       | None                      | N/A                | `binom`                       |
 | `streak`      | Run / streak probability             | None                      | N/A                | `binom`                       |
 | `bayes`       | Bayesian posterior update            | None                      | N/A                | `birthday`                    |
-| `plotdist`    | Distribution visualiser              | `matplotlib`, `numpy`*    | ✅ Unicode text    | `binom` / `birthday`          |
-| `simulate`    | Monte Carlo simulator                | `numpy`*                  | ✅ `random` module | `binom` / `birthday`          |
+| `plotdist`    | Distribution visualiser              | `matplotlib`, `numpy`*    | ✅ Unicode text    | `binom` / `birthday`         |
+| `simulate`    | Monte Carlo simulator                | `numpy`*                  | ✅ `random` module | `binom` / `birthday`         |
 | `oddsconv`    | Odds format converter + vig calc     | None                      | N/A                | `expected`                    |
 | `confint`     | Confidence interval calculator       | None                      | N/A                | `binom` / `normal`            |
 | `pvalue`      | p-value and hypothesis test          | None                      | N/A                | `binom`                       |
-| `sensitivity` | Parameter sensitivity / tornado      | `matplotlib`*             | ✅ ranked table    | all tools                     |
-| `randforest`  | Random forest classifier / regressor | `scikit-learn`, `numpy`*, `pandas`* | ✅ numpy/pandas | `linreg`          |
-| `forecast`    | Time series forecasting + pred. intervals | `statsmodels`*, `numpy`* | ✅ pure-Python ES | `poisson` / `expected`   |
+| `sensitivity` | Parameter sensitivity / tornado      | `matplotlib`*             | ✅ ranked table    | all tools                    |
+| `randforest`  | Random forest classifier / regressor | `scikit-learn`, `numpy`*, `pandas`* | ✅ numpy/pandas | `linreg`              |
+| `forecast`    | Time series forecasting + pred. intervals | `statsmodels`*, `numpy`* | ✅ pure-Python ES | `poisson` / `expected`     |
 | `ewma`        | EWMA control chart + variance limits | None                      | N/A                | `forecast`                    |
 | `vartest`     | Variance equality tests (F, Levene, Bartlett) | None             | N/A                | `ttest`                       |
 | `bootci`      | Bootstrap confidence intervals       | `numpy`*                  | ✅ `random.choices` | `confint`                   |
-| `mlreg`       | Multiple linear regression + pred. intervals | `numpy`, `pandas`*  | N/A                | `linreg`                      |
-| `pearson`     | Pearson correlation coefficient              | None                      | N/A                | `linreg`                      |
-| `spearman`    | Spearman rank correlation                    | None                      | N/A                | `pearson`                     |
-| `taylor`      | Taylor series approximation                  | None                      | N/A                | N/A                           |
-| `compound`    | Compound interest & time value of money      | None                      | N/A                | `expected`                    |
-| `matrix`      | Matrix operations & linear algebra           | `numpy`*                  | ✅ nested lists    | `mlreg`                       |
-| `prime`       | Prime number tools & factorization           | None                      | N/A                | N/A                           |
-| `fibonacci`   | Fibonacci sequence & golden ratio            | None                      | N/A                | N/A                           |
+| `mlreg`       | Multiple linear regression + pred. intervals | `numpy`, `pandas`*  | N/A                | `linreg`                    |
+| `pearson`     | Pearson correlation coefficient              | None                      | N/A                | `linreg`              |
+| `spearman`    | Spearman rank correlation                    | None                      | N/A                | `pearson`             |
+| `taylor`      | Taylor series approximation                  | None                      | N/A                | N/A                   |
+| `compound`    | Compound interest & time value of money      | None                      | N/A                | `expected`            |
+| `matrix`      | Matrix operations & linear algebra           | `numpy`*                  | ✅ nested lists    | `mlreg`               |
+| `prime`       | Prime number tools & factorization           | None                      | N/A                | N/A                   |
+| `fibonacci`   | Fibonacci sequence & golden ratio            | None                      | N/A                | N/A                   |
 
 \* _Optional dependency: functionality exists but reduced output capability without the package._
