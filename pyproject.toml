@@ -1,6 +1,6 @@
 [project]
 name = "pythodds"
-version = "0.12.0"
+version = "0.13.0"
 description = "Command line utilities for statistics, odds, and probabilities"
 readme = "README.md"
 authors = [
@@ -42,6 +42,7 @@ pythag = "src.utils.pythagorean_record:main"
 pearson = "src.utils.pearson_correlation:main"
 spearman = "src.utils.spearman_correlation:main"
 sample = "src.utils.sample_size:main"
+prime = "src.utils.prime_numbers:main"
 linreg = "src.utils.linear_regression:main"
 
 [build-system]
