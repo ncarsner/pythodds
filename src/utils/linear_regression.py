@@ -23,16 +23,16 @@ Computes:
 
 Usage examples:
   # Fit a line to x, y values
-  python linear_regression.py --x 1,2,3,4,5 --y 2.1,3.9,6.2,7.8,10.1
+  linreg --x 1,2,3,4,5 --y 2.1,3.9,6.2,7.8,10.1
 
   # From CSV file
-  python linear_regression.py --file data.csv --x-col height --y-col weight
+  linreg --file data.csv --x-col height --y-col weight
 
   # With prediction at x=6
-  python linear_regression.py --x 1,2,3,4,5 --y 2,4,6,8,10 --predict 6
+  linreg --x 1,2,3,4,5 --y 2,4,6,8,10 --predict 6
 
   # With confidence level for intervals
-  python linear_regression.py --x 10,20,30 --y 15,28,41 --alpha 0.05 --predict 40
+  linreg --x 10,20,30 --y 15,28,41 --alpha 0.05 --predict 40
 """
 
 
@@ -532,16 +532,16 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         epilog="""
 Examples:
   # Fit a line to x, y values
-  %(prog)s --x 1,2,3,4,5 --y 2.1,3.9,6.2,7.8,10.1
+  linreg --x 1,2,3,4,5 --y 2.1,3.9,6.2,7.8,10.1
 
   # From CSV file
-  %(prog)s --file data.csv --x-col height --y-col weight
+  linreg --file data.csv --x-col height --y-col weight
 
   # With prediction at x=6
-  %(prog)s --x 1,2,3,4,5 --y 2,4,6,8,10 --predict 6
+  linreg --x 1,2,3,4,5 --y 2,4,6,8,10 --predict 6
 
   # With 90%% confidence intervals
-  %(prog)s --x 10,20,30 --y 15,28,41 --alpha 0.10 --predict 40
+  linreg --x 10,20,30 --y 15,28,41 --alpha 0.10 --predict 40
         """,
     )
 
