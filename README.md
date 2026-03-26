@@ -18,6 +18,7 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Normal Distribution** | Compute PDF, CDF, survival probabilities, interval probabilities, and the inverse CDF (percent-point function) for a Gaussian N(μ, σ²) distribution |
 | **Expected Value** | Compute E[X], Var(X), SD(X), Shannon entropy, and the moment generating function for discrete probability distributions; supports inline input or CSV/JSON files |
 | **Poisson Distribution** | Compute PMF, CDF, and survival probabilities, find minimum event counts for a target cumulative probability, and generate full probability tables |
+| **Prime Numbers** | Check primality, find the nth prime, count primes up to a limit (π function), list primes in a range, and compute prime factorizations |
 | **Streak Probability** | Compute the probability of at least one consecutive run of successes and the expected length of the longest streak |
 | **Pythagorean Record** | Calculate team winning percentage expectations using Bill James' Pythagorean formula or the SABR linear formula; project in-progress season records and compare actual vs. expected performance |
 | **Pearson Correlation** | Compute Pearson's r, r², t-statistic, p-value, and confidence intervals; test for linear relationships between two continuous variables; supports inline data or CSV input |
@@ -25,7 +26,7 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Linear Regression** | Perform ordinary least squares (OLS) regression with full statistical inference: coefficients, standard errors, R², F-statistic, t-tests, confidence intervals, and predictions with confidence/prediction intervals |
 | **Sample Size Calculator** | Determine minimum sample sizes for proportion estimation, mean difference detection, and two-proportion comparisons; includes power analysis sweeps |
 | **Monte Carlo Simulator** | Empirically estimate probabilities for binomial, birthday, streak, and Poisson experiments with confidence intervals and analytical comparison |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, and `simulate` commands |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, and `simulate` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -96,6 +97,80 @@ bayes -p 0.2 -l 0.8 -e 0.5
 | `-P` | `--precision` | Decimal places for printed values (default: `6`) |
 
 > `-e/--evidence` and `-f/--false-positive` are mutually exclusive; one is required.
+
+---
+#### `prime` — Prime Number Operations
+
+Provides tools for working with prime numbers: primality testing, finding the nth prime, counting primes up to a limit (prime counting function π), listing primes in a range, and computing prime factorizations.
+
+```bash
+# Check if a number is prime
+prime -is 97
+prime --check 100
+
+# Find the nth prime number (1-indexed)
+prime -n 100
+prime --nth 10000
+
+# Count primes up to a limit (π function)
+prime -C 1000
+prime --count 1000000
+
+# List all primes in a range [start, end]
+prime -R 50 100
+prime --range 1 50
+
+# Compute prime factorization
+prime -F 360
+prime --factorize 2024
+
+# Output as JSON
+prime --check 97 --format json
+prime --range 1 100 --format json
+prime --factorize 360 --format json
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-is` | `--check` | Check if N is prime |
+| `-n` | `--nth` | Find the Nth prime number (1-indexed) |
+| `-C` | `--count` | Count primes up to and including LIMIT (π function) |
+| `-R` | `--range START END` | List all primes in the range [START, END] inclusive |
+| `-F` | `--factorize` | Compute prime factorization of N |
+| | `--format` | Output format: `text` (default) or `json` |
+
+> Operation flags are mutually exclusive; exactly one is required.
+
+**Implementation details:**
+- **Primality testing**: Uses trial division with 6k±1 optimization
+- **Nth prime**: Uses Sieve of Eratosthenes with prime counting estimation
+- **Prime counting**: Implements the prime counting function π(n)
+- **Range listing**: Efficient sieve-based generation
+- **Factorization**: Trial division returning `{prime: exponent}` dict
+
+**Example outputs:**
+
+```bash
+$ prime --check 97
+97 is prime
+
+$ prime --nth 100
+The 100th prime number is 541
+
+$ prime --count 100
+π(100) = 25 (there are 25 primes ≤ 100)
+
+$ prime --factorize 360
+Prime factorization of 360:
+  360 = 2³ × 3² × 5
+
+Factor breakdown:
+  2^3 = 8
+  3^2 = 9
+  5^1 = 5
+```
 
 ---
 #### `birthday` — Birthday Problem Collision Probability
@@ -690,6 +765,40 @@ survival = poisson_cdf_ge(7, 3.0)
 
 # Minimum k such that P(X ≤ k) >= 0.95
 k = min_k_for_prob(0.95, 3.0)
+```
+
+#### Prime Numbers
+
+```python
+from src.utils.prime_numbers import (
+    is_prime,
+    nth_prime,
+    count_primes,
+    primes_in_range,
+    prime_factorization,
+    sieve_of_eratosthenes,
+    format_factorization,
+)
+
+# Check if a number is prime
+if is_prime(97):
+    print("97 is prime")
+
+# Find the 100th prime number
+p = nth_prime(100)  # Returns 541
+
+# Count primes up to 1000 (π function)
+count = count_primes(1000)  # Returns 168
+
+# Get all primes in a range
+primes = primes_in_range(50, 100)  # [53, 59, 61, 67, 71, 73, 79, 83, 89, 97]
+
+# Generate all primes up to a limit using Sieve of Eratosthenes
+all_primes = sieve_of_eratosthenes(100)  # [2, 3, 5, 7, 11, ..., 97]
+
+# Prime factorization
+factors = prime_factorization(360)  # {2: 3, 3: 2, 5: 1} → 2³ × 3² × 5
+formatted = format_factorization(factors)  # "2³ × 3² × 5"
 ```
 
 #### Streak Probability
