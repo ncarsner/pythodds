@@ -26,7 +26,8 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Linear Regression** | Perform ordinary least squares (OLS) regression with full statistical inference: coefficients, standard errors, R², F-statistic, t-tests, confidence intervals, and predictions with confidence/prediction intervals |
 | **Sample Size Calculator** | Determine minimum sample sizes for proportion estimation, mean difference detection, and two-proportion comparisons; includes power analysis sweeps |
 | **Monte Carlo Simulator** | Empirically estimate probabilities for binomial, birthday, streak, and Poisson experiments with confidence intervals and analytical comparison |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, and `simulate` commands |
+| **Bootstrap Confidence Intervals** | Compute non-parametric confidence intervals for statistics (mean, median, standard deviation) using bootstrap resampling; distribution-free alternative requiring no normality assumptions |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, and `simulate` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -632,6 +633,56 @@ simulate --experiment binom --params n=20 k=8 p=0.5 --scale 0.005
 | `birthday` | `pool=INT group=INT` |
 | `streak` | `n=INT k=INT p=FLOAT` |
 | `poisson` | `lam=FLOAT k=INT` |
+
+---
+#### `bootci` — Bootstrap Confidence Intervals
+
+Computes non-parametric confidence intervals for a statistic (mean, median, or standard deviation) using bootstrap resampling. This distribution-free method makes no assumptions about the underlying population distribution, making it ideal when normality assumptions are questionable or for small sample sizes.
+
+```bash
+# Compute 95% CI for the mean of a dataset
+bootci --data 10 20 30 40 50 --stat mean
+
+# Compute 90% CI for the median with 50,000 bootstrap resamples
+bootci --data 14.2 13.8 15.1 14.5 13.9 15.3 --stat median --n-bootstrap 50000 --confidence 0.90
+
+# Compute CI for standard deviation with custom precision
+bootci --data 1.2 3.4 5.6 7.8 9.1 --stat stdev --precision 3
+
+# Use a random seed for reproducibility
+bootci --data 5.5 6.2 7.1 5.8 6.5 --stat mean --seed 42
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--data` | Space-separated data points. If not provided, reads from stdin |
+| | `--stat` | Statistic to compute: `mean`, `median`, or `stdev` (required) |
+| | `--n-bootstrap` | Number of bootstrap resamples (default: `10000`) |
+| | `--confidence` | Confidence level, e.g., `0.95` for 95% CI (default: `0.95`) |
+| | `--seed` | Random seed for reproducibility |
+| `-P` | `--precision` | Decimal places for printed values (default: `4`) |
+
+**Method:**
+- Uses the **percentile method**: generates bootstrap resamples by sampling with replacement from the original data
+- Each resample has the same size as the original dataset
+- Computes the statistic for each resample
+- Confidence interval is derived from the appropriate percentiles of the bootstrap distribution
+
+**When to use bootstrap:**
+- **Small sample sizes** where asymptotic normality assumptions are unreliable
+- **Non-normal distributions** or skewed data
+- **Robust statistics** like median or standard deviation
+- **No parametric assumptions** available or appropriate
+
+**Example output:**
+```text
+Data: n=6, statistic=mean
+Original mean: 15.4833
+Bootstrap samples: 10000
+95.0% Confidence Interval: [13.7000, 17.1167]
+```
 
 ---
 ### Python Library

@@ -747,38 +747,8 @@ matrix --op svd --file data_matrix.csv
 
 ## 29. `prime` — Prime Number Tools & Factorization
 
-### Dependencies
-- None (pure Python)
-
-### Architecture
-- **Core functions:** `is_prime(n)`, `next_prime(n)`, `prime_factors(n)`, `prime_sieve(limit)`, `nth_prime(n)`, `prime_count(limit)`
-- Modes: `--test N` (primality test), `--factor N` (prime factorization), `--next N` (next prime ≥ N), `--nth N` (n-th prime), `--sieve LIMIT` (all primes ≤ limit), `--count LIMIT` (π(limit), prime counting function)
-- Uses Miller-Rabin for large-integer primality, trial division + Pollard's rho for factorization, Sieve of Eratosthenes for enumeration
-- CLI flags: `--test`, `--factor`, `--next`, `--nth`, `--sieve`, `--count`, `--format {table,json,csv}`, `--precision INT` (for factorization display)
-- Output: boolean (primality), list of factors with exponents, prime value, list of primes, count
-
 ### Application
 Prime numbers are central to cryptography (RSA key generation, Diffie-Hellman), number theory research, coding theory, hashing algorithms, and mathematical puzzles. Prime factorization is used in simplifying fractions, LCM/GCD computation, and understanding multiplicative structure. Practical uses include checking if a number is suitable for a hash table size (prefer primes), generating test cases, and teaching modular arithmetic.
-
-```bash
-# Test if a number is prime
-prime --test 104729
-
-# Prime factorization
-prime --factor 123456
-
-# Next prime after a given number
-prime --next 1000000
-
-# First 100 primes via sieve
-prime --sieve 541 --format csv
-
-# The 10,000th prime number
-prime --nth 10000
-
-# Count of primes up to 1 million (π(10⁶))
-prime --count 1000000
-```
 
 ### Target User Base
 - Cryptographers and security engineers: _generating or validating prime numbers for key generation_
