@@ -27,7 +27,9 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Sample Size Calculator** | Determine minimum sample sizes for proportion estimation, mean difference detection, and two-proportion comparisons; includes power analysis sweeps |
 | **Monte Carlo Simulator** | Empirically estimate probabilities for binomial, birthday, streak, and Poisson experiments with confidence intervals and analytical comparison |
 | **Bootstrap Confidence Intervals** | Compute non-parametric confidence intervals for statistics (mean, median, standard deviation) using bootstrap resampling; distribution-free alternative requiring no normality assumptions |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, and `simulate` commands |
+| **Time Series Forecasting** | Forecast future values with prediction intervals using simple, double (Holt's), or Holt-Winters exponential smoothing; supports backtesting and multiple output formats |
+| **Collatz Conjecture** | Evaluate the Collatz conjecture (3n+1 problem) for positive integers up to n; track which numbers reach 1 and report the largest consecutive verified sequence |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `forecast`, `collatz`, and `simulate` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -685,7 +687,127 @@ Bootstrap samples: 10000
 ```
 
 ---
-### Python Library
+#### `forecast` — Time Series Forecasting with Prediction Intervals
+
+Fits exponential smoothing models to time series data and generates point forecasts with prediction intervals. Supports simple exponential smoothing (level only), double exponential smoothing (Holt's method: level + trend), and Holt-Winters exponential smoothing (level + trend + seasonal). Useful for sales forecasting, demand planning, and trend analysis.
+
+```bash
+# Simple exponential smoothing: 6-period forecast from inline data
+forecast --data 120,135,148,130,142,155,160 --method simple --periods 6
+
+# Double exponential smoothing (Holt's method) from CSV file
+forecast --data sales.csv --method double --periods 12
+
+# Holt-Winters with weekly seasonality (7-day cycle)
+forecast --data data.csv --method holt-winters --seasonal-period 7 --periods 14
+
+# Holt-Winters with monthly seasonality from CSV file
+forecast --data monthly_sales.csv --method holt-winters --seasonal-period 12 --periods 6
+
+# Backtest: hold out last 4 observations to evaluate accuracy
+forecast --data data.csv --method double --periods 4 --backtest 4
+
+# Custom smoothing parameters with 90% prediction intervals
+forecast --data sales.csv --method double --alpha 0.4 --beta 0.2 --periods 10 --confidence 0.90
+
+# Output as JSON
+forecast --data 100,110,120,130,140 --method simple --periods 3 --format json
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--data` | CSV file path or comma-separated values (required) |
+| | `--method` | Forecasting method: `simple`, `double`, or `holt-winters` (default: `simple`) |
+| | `--periods` | Number of periods to forecast (default: `1`) |
+| | `--alpha` | Level smoothing parameter, 0 < α ≤ 1 (default: `0.3`) |
+| | `--beta` | Trend smoothing parameter, 0 < β ≤ 1 (default: `0.1`) |
+| | `--gamma` | Seasonal smoothing parameter, 0 < γ ≤ 1 (default: `0.1`) |
+| | `--seasonal-period` | Seasonal period for Holt-Winters (default: `12`) |
+| | `--seasonal-type` | Seasonal component: `additive` or `multiplicative` (default: `additive`) |
+| | `--confidence` | Confidence level for prediction intervals, ≥0.5 and <1.0 (default: `0.95`) |
+| | `--format` | Output format: `table` (default), `json`, or `csv` |
+| | `--precision` | Decimal precision for output (default: `2`) |
+| | `--backtest K` | Hold out last K observations for backtesting and compute RMSE/MAE |
+
+**Forecasting methods:**
+- **Simple exponential smoothing**: Best for data with no clear trend or seasonality; smooths level only
+- **Double exponential smoothing (Holt's method)**: Captures level and linear trend; suitable for trending data without seasonality
+- **Holt-Winters**: Captures level, trend, and seasonal patterns; ideal for data with recurring seasonal cycles (weekly, monthly, quarterly, etc.)
+
+**Smoothing parameters:**
+- **α (alpha)**: Controls how quickly the model adapts to changes in the level
+- **β (beta)**: Controls how quickly the model adapts to changes in the trend
+- **γ (gamma)**: Controls how quickly the model adapts to changes in the seasonal pattern
+
+Higher values (closer to 1) place more weight on recent observations; lower values smooth out noise but respond more slowly to changes.
+
+**Example output:**
+```text
+==============================================================
+FORECAST
+==============================================================
+Method: double
+Periods ahead: 6
+Confidence level: 95.0%
+
+Period   Forecast   Lower (95%)   Upper (95%)
+------   --------   -----------   -----------
+1        168.00     162.34        173.66
+2        176.00     168.21        183.79
+3        184.00     173.95        194.05
+4        192.00     179.58        204.42
+5        200.00     185.13        214.87
+6        208.00     190.60        225.40
+==============================================================
+
+Model Statistics:
+  RMSE: 5.12
+  MAE:  4.23
+```
+
+---
+#### `collatz` — Collatz Conjecture (3n+1 Problem)
+
+Evaluates the Collatz conjecture for positive integers up to n. For each starting value, follows the Collatz sequence (if even, divide by 2; if odd, multiply by 3 and add 1) to determine whether it eventually reaches 1. Reports the largest consecutive integer k such that all integers from 1 to k are verified to reach 1.
+
+```bash
+# Check integers from 1 to 10000
+collatz --n 10000
+
+# Check with verbose progress output every 1000 integers
+collatz --n 100000 --interval 1000 --verbose
+
+# Check a large range with less frequent progress updates
+collatz --n 1000000 --interval 10000
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--n` | Upper bound (inclusive) of starting integers to check (required) |
+| | `--interval` | How often (in starts) to update/print progress (default: `1000`) |
+| | `--verbose` | Print progress messages during computation |
+
+**Background:**
+The Collatz conjecture (also known as the 3n+1 problem) is an unsolved problem in mathematics. The conjecture states that for any positive integer, repeatedly applying these rules will eventually reach 1:
+- If the number is even, divide it by 2
+- If the number is odd, multiply by 3 and add 1
+
+For example, starting with 6: 6 → 3 → 10 → 5 → 16 → 8 → 4 → 2 → 1
+
+**Example output:**
+```bash
+$ collatz --n 10000
+max_valid = 10000
+```
+
+This indicates that all integers from 1 to 10000 have been verified to eventually reach 1.
+
+---
+### 🐍 Python Library
 
 #### Binomial Distribution
 
@@ -1034,13 +1156,133 @@ se = standard_error(p_hat, len(results))
 ci = wilson_ci(p_hat, len(results))
 ```
 
+#### Bootstrap Confidence Intervals
+
+```python
+from src.utils.bootstrap_confidence_intervals import (
+    bootstrap_resample,
+    compute_confidence_interval,
+    get_stat_function,
+)
+import statistics
+import random
+
+# Sample data
+data = [14.2, 13.8, 15.1, 14.5, 13.9, 15.3, 14.7, 14.1]
+
+# Set random seed for reproducibility
+random.seed(42)
+
+# Get the statistic function (mean, median, or stdev)
+stat_func = get_stat_function("mean")
+
+# Compute original statistic
+original_stat = stat_func(data)
+
+# Generate bootstrap resamples
+n_bootstrap = 10_000
+bootstrap_stats = bootstrap_resample(data, n_bootstrap, stat_func)
+
+# Compute 95% confidence interval using percentile method
+ci_lower, ci_upper = compute_confidence_interval(bootstrap_stats, confidence=0.95)
+
+print(f"Original mean: {original_stat:.4f}")
+print(f"95% CI: [{ci_lower:.4f}, {ci_upper:.4f}]")
+
+# For median
+median_func = get_stat_function("median")
+bootstrap_medians = bootstrap_resample(data, n_bootstrap, median_func)
+median_ci = compute_confidence_interval(bootstrap_medians, 0.90)
+print(f"90% CI for median: [{median_ci[0]:.4f}, {median_ci[1]:.4f}]")
+```
+
+#### Time Series Forecasting
+
+```python
+from src.utils.forecast_time_series import (
+    simple_exponential_smoothing,
+    double_exponential_smoothing,
+    holt_winters,
+    forecast_simple,
+    forecast_double,
+    forecast_holt_winters,
+)
+
+# Time series data
+sales_data = [120, 135, 148, 130, 142, 155, 160, 165, 172, 180]
+
+# Simple exponential smoothing (level only)
+fitted_simple, level = simple_exponential_smoothing(sales_data, alpha=0.3)
+forecasts_simple = forecast_simple(level, periods=3)
+print(f"Simple ES forecasts: {forecasts_simple}")
+
+# Double exponential smoothing (Holt's method: level + trend)
+fitted_double, level, trend = double_exponential_smoothing(sales_data, alpha=0.3, beta=0.1)
+forecasts_double = forecast_double(level, trend, periods=6)
+print(f"Double ES forecasts: {forecasts_double}")
+
+# Holt-Winters (level + trend + seasonal)
+# Requires at least 2 * seasonal_period data points
+monthly_data = [100, 110, 95, 105, 120, 115, 130, 140, 125, 135, 150,
+                145, 105, 115, 100, 110, 125, 120, 135, 145, 130, 140, 155, 150]
+fitted_hw, level, trend, seasonal = holt_winters(
+    monthly_data,
+    alpha=0.3,
+    beta=0.1,
+    gamma=0.1,
+    seasonal_period=12,
+    seasonal_type='additive'
+)
+forecasts_hw = forecast_holt_winters(
+    level, trend, seasonal, periods=6,
+    seasonal_period=12, seasonal_type='additive'
+)
+print(f"Holt-Winters forecasts: {[f'{x:.2f}' for x in forecasts_hw]}")
+```
+
+#### Collatz Conjecture
+
+```python
+from src.utils.collatz_conjecture import CollatzChecker, collatz_next
+
+# Create a Collatz checker instance
+checker = CollatzChecker()
+
+# Test the Collatz sequence for a single number
+n = 27
+sequence = [n]
+while n != 1:
+    n = collatz_next(n)
+    sequence.append(n)
+print(f"Collatz sequence for 27: {sequence[:10]}...")  # First 10 steps
+
+# Check all integers from 1 to 10000
+checker.ensure_up_to(10_000, check_interval=1000, verbose=False)
+print(f"Largest consecutive verified integer: {checker.max_valid}")
+
+# Check if specific numbers are proven to reach 1
+print(f"Is 9999 proven? {checker.proven(9999)}")
+print(f"Is 10000 proven? {checker.proven(10000)}")
+
+# Access the steps histogram (steps required to reach 1)
+print(f"Number of integers requiring exactly 10 steps: {checker.steps_histogram.get(10, 0)}")
+
+# Verify a larger range
+large_checker = CollatzChecker()
+large_checker.ensure_up_to(100_000, check_interval=10_000, verbose=False)
+print(f"Largest consecutive verified (up to 100k): {large_checker.max_valid}")
+print(f"Total numbers resolved: {len(large_checker.resolved)}")
+```
+
 ## Development
 
 Clone the repository and install in editable mode:
 
 ```bash
 git clone https://github.com/ncarsner/pythodds.git
+
 cd pythodds
+
 pip install -e .
 ```
 

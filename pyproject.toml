@@ -1,6 +1,6 @@
 [project]
 name = "pythodds"
-version = "0.14.0"
+version = "0.15.0"
 description = "Command line utilities for statistics, odds, and probabilities"
 readme = "README.md"
 authors = [
@@ -15,7 +15,7 @@ dependencies = [
     "scipy>=1.17.1",
 ]
 
-keywords = ["statistics", "probability", "binomial", "odds", "cli"]
+keywords = ["statistics", "probability", "binomial", "odds", "correlation", "distribution", "confidence", "cli"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
@@ -45,6 +45,8 @@ sample = "src.utils.sample_size:main"
 prime = "src.utils.prime_numbers:main"
 linreg = "src.utils.linear_regression:main"
 bootci = "src.utils.bootstrap_confidence_intervals:main"
+forecast = "src.utils.forecast_time_series:main"
+collatz = "src.utils.collatz_conjecture:main"
 
 [build-system]
 requires = ["hatchling"]

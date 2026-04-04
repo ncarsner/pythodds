@@ -73,16 +73,16 @@ zscore --reverse --prob 0.975 --tail lower
 
 ## 4. `sample` — Sample Size Calculator
 
-### Architecture
+<!-- ### Architecture
 - **Core functions:** `sample_size_proportion(p, margin, alpha)`, `sample_size_mean(sigma, delta, alpha, power)`, `sample_size_comparison(p1, p2, alpha, power)`
 - z/t quantiles via `math.erf` — no external dependencies
 - CLI flags: `--type {proportion,mean,comparison}`, `-p`/`--prop`, `--delta`, `--std`, `--margin`, `--alpha`, `--power`, `--sided {one,two}`, `--sweep` (table of n vs. achieved power)
-- Output: minimum sample size, achieved power or margin of error at that n
+- Output: minimum sample size, achieved power or margin of error at that n -->
 
 ### Application
 Answers _"how many observations do I need?"_ before running a study, experiment, or audit. Whether sizing an A/B test, planning a clinical trial, or determining how many items to inspect in a batch, sample size calculation is prerequisite to every inferential analysis.
 
-```bash
+<!-- ```bash
 # Minimum n to estimate a proportion within ±3% at 95% confidence
 sample --type proportion --p 0.5 --margin 0.03
 
@@ -91,7 +91,7 @@ sample --type mean --delta 5 --std 12 --power 0.80
 
 # Sweep: show achieved power across n = 50–300 for a two-proportion comparison
 sample --type comparison --p1 0.40 --p2 0.50 --alpha 0.05 --sweep 50 300
-```
+``` -->
 
 ### Target User Base
 - A/B testers, product analysts: _sizing experiments before launch_
@@ -454,9 +454,9 @@ randforest --file train.csv --target outcome --predict-file new_obs.csv
 
 ## 19. `forecast` — Time Series Forecasting with Prediction Intervals
 
-### Dependencies
+<!-- ### Dependencies
 - **Optional:** `statsmodels` (Holt-Winters / ETS models with optimised smoothing parameters); falls back to pure-Python simple and double exponential smoothing
-- **Optional:** `numpy` (faster array operations for large series)
+- **Optional:** `numpy` (faster array operations for large series) -->
 
 ### Architecture
 - Fits an exponential smoothing model to a user-supplied time series and generates point forecasts with symmetric prediction intervals derived from in-sample residual variance
@@ -546,8 +546,8 @@ vartest --test bartlett --data "1.2,1.5,1.3" "2.1,2.4,2.2,2.0" --alpha 0.01
 
 ## 22. `bootci` — Bootstrap Confidence Intervals
 
-### Dependencies
-- **Optional:** `numpy` (vectorised resampling for large `--samples`; falls back to `random.choices` from the standard library)
+<!-- ### Dependencies
+- **Optional:** `numpy` (vectorised resampling for large `--samples`; falls back to `random.choices` from the standard library) -->
 
 ### Architecture
 - Estimates confidence intervals for any sample statistic via non-parametric bootstrap resampling — no distributional assumptions required
@@ -555,7 +555,7 @@ vartest --test bartlett --data "1.2,1.5,1.3" "2.1,2.4,2.2,2.0" --alpha 0.01
 - CLI flags: `--data CSV_OR_VALUES`, `--stat STAT`, `--samples INT` (bootstrap replicates, default 10 000), `--alpha F` (default 0.05), `--method {percentile,bca}` (basic percentile or bias-corrected accelerated), `--seed INT`, `--format {table,json}`
 - Output: observed statistic, bootstrap SE, lower and upper CI bounds, bootstrap distribution summary (mean, SD of replicates)
 
-```bash
+<!-- ```bash
 # 95% bootstrap CI for the mean of a small sample
 bootci --data 14.2,13.8,15.1,14.5,13.9,15.3 --stat mean --samples 10000
 
@@ -564,7 +564,7 @@ bootci --data measurements.csv --stat median --method bca --seed 42
 
 # CI for variance, exported as JSON
 bootci --data sensor_readings.csv --stat var --samples 50000 --format json
-```
+``` -->
 
 ### Target User Base
 - Researchers and statisticians: _who need variance estimates without assuming a parametric distribution_
