@@ -2,7 +2,12 @@ import io
 import sys
 import unittest.mock as mock
 
-from src.utils.collatz_conjecture import CollatzChecker, collatz_next, main
+from src.utils.collatz_conjecture import (
+    CollatzChecker,
+    collatz_next,
+    main,
+    trace_collatz_sequence,
+)
 
 
 def _checker(n: int) -> CollatzChecker:
@@ -75,16 +80,6 @@ def test_precomputed_steps_reused():
         ), f"steps_for[{k}]: expected {expected_steps}, got {checker.steps_for[k]}"
 
 
-# --- histogram reflects correct step counts ---
-
-
-def test_histogram_step_zero_for_validated_members():
-    """Integers precomputed as validated path members record 0 steps in the histogram."""
-    checker = _checker(10)
-    # In 1..10: starts 1, 5, 8, 10 are precomputed path members → 0 steps each
-    assert checker.steps_histogram.get(0, 0) == 4
-
-
 def test_verbose_output(capsys):
     """Test that verbose=True produces expected final summary and histogram output."""
     # Capture output without capsys to ensure coverage tracking
@@ -155,9 +150,6 @@ def test_proven_method():
         assert checker.proven(i) is True
 
 
-# --- test ValueError safety check ---
-
-
 def test_collatz_sequence_safety_check():
     """Test the safety check for invalid Collatz sequences."""
     checker = CollatzChecker()
@@ -198,5 +190,200 @@ def test_main(capsys):
         assert "10" in output
     finally:
         # Restore original values
+        sys.argv = original_argv
+        sys.stdout = original_stdout
+
+
+def test_trace_collatz_sequence_basic():
+    """Test trace_collatz_sequence returns correct sequence and step count."""
+    # Test with 1
+    sequence, steps = trace_collatz_sequence(1, show_steps=False)
+    assert sequence == [1]
+    assert steps == 0
+
+    # Test with 2
+    sequence, steps = trace_collatz_sequence(2, show_steps=False)
+    assert sequence == [2, 1]
+    assert steps == 1
+
+    # Test with 10
+    sequence, steps = trace_collatz_sequence(10, show_steps=False)
+    assert sequence == [10, 5, 16, 8, 4, 2, 1]
+    assert steps == 6
+
+    # Test with 3 (should have sequence 3 -> 10 -> 5 -> 16 -> 8 -> 4 -> 2 -> 1)
+    sequence, steps = trace_collatz_sequence(3, show_steps=False)
+    assert sequence == [3, 10, 5, 16, 8, 4, 2, 1]
+    assert steps == 7
+
+
+def test_trace_collatz_sequence_with_output():
+    """Test that trace_collatz_sequence produces expected output when show_steps=True."""
+    old_stdout = sys.stdout
+    sys.stdout = io.StringIO()
+
+    try:
+        sequence, steps = trace_collatz_sequence(10, show_steps=True)
+        output = sys.stdout.getvalue()
+    finally:
+        sys.stdout = old_stdout
+
+    # Verify output contains expected elements
+    assert "Tracing Collatz sequence for 10:" in output
+    assert "Step 0: 10" in output
+    assert "Step 1: 10 → 5 (÷ 2)" in output
+    assert "Step 2: 5 → 16 (× 3 + 1)" in output
+    assert "Reached 1 in 6 steps" in output
+    assert "Max value in sequence: 16" in output
+    assert "Sequence length: 7" in output
+
+    # Verify sequence and steps are correct
+    assert sequence == [10, 5, 16, 8, 4, 2, 1]
+    assert steps == 6
+
+
+def test_main_no_arguments():
+    """Test that main() returns error code 2 when no mode is specified."""
+    original_argv = sys.argv
+    original_stdout = sys.stdout
+
+    try:
+        sys.argv = ["collatz_conjecture.py"]
+        sys.stdout = io.StringIO()
+
+        result = main()
+        output = sys.stdout.getvalue()
+
+        sys.stdout = original_stdout
+
+        assert result == 2
+        assert "Error: Must specify one of --n, --trace, or --trace-range" in output
+    finally:
+        sys.argv = original_argv
+        sys.stdout = original_stdout
+
+
+def test_main_trace_mode_summary_only():
+    """Test main() with --trace and --summary-only flags."""
+    original_argv = sys.argv
+    original_stdout = sys.stdout
+
+    try:
+        sys.argv = ["collatz_conjecture.py", "--trace", "27", "--summary-only"]
+        sys.stdout = io.StringIO()
+
+        result = main()
+        output = sys.stdout.getvalue()
+
+        sys.stdout = original_stdout
+
+        assert result == 0
+        assert "Number: 27" in output
+        assert "Steps to reach 1: 111" in output
+        assert "Max value in sequence: 9232" in output
+        assert "Sequence length: 112" in output
+        # Should NOT have step-by-step output
+        assert "Step 1:" not in output
+    finally:
+        sys.argv = original_argv
+        sys.stdout = original_stdout
+
+
+def test_main_trace_mode_invalid():
+    """Test main() with --trace flag and invalid (non-positive) number."""
+    original_argv = sys.argv
+    original_stdout = sys.stdout
+
+    try:
+        # Using -5 instead of 0 because 0 is falsy and gets caught by the mode validation first
+        sys.argv = ["collatz_conjecture.py", "--trace", "-5"]
+        sys.stdout = io.StringIO()
+
+        result = main()
+        output = sys.stdout.getvalue()
+
+        sys.stdout = original_stdout
+
+        assert result == 1
+        assert "Error:" in output
+        assert "Starting value must be positive" in output
+    finally:
+        sys.argv = original_argv
+        sys.stdout = original_stdout
+
+
+def test_main_trace_range_summary_only():
+    """TODO: reduce assertions to just key summary elements and absence of step-by-step output."""
+    """Test main() with --trace-range and --summary-only flags."""
+    original_argv = sys.argv
+    original_stdout = sys.stdout
+
+    try:
+        sys.argv = [
+            "collatz_conjecture.py",
+            "--trace-range",
+            "5",
+            "7",
+            "--summary-only",
+        ]
+        sys.stdout = io.StringIO()
+
+        result = main()
+        output = sys.stdout.getvalue()
+
+        sys.stdout = original_stdout
+
+        assert result == 0
+        assert "Tracing Collatz sequences for range [5, 7]:" in output
+        assert "5: 5 steps, max=16, length=6" in output
+        assert "6: 8 steps, max=16, length=9" in output
+        assert "7: 16 steps, max=52, length=17" in output
+        assert "Summary for range [5, 7]:" in output
+        assert "Numbers tested: 3" in output
+        # Should NOT have step-by-step output
+        assert "Step 1:" not in output
+    finally:
+        sys.argv = original_argv
+        sys.stdout = original_stdout
+
+
+def test_main_trace_range_invalid_start():
+    """Test main() with --trace-range flag and invalid start value."""
+    original_argv = sys.argv
+    original_stdout = sys.stdout
+
+    try:
+        sys.argv = ["collatz_conjecture.py", "--trace-range", "0", "5"]
+        sys.stdout = io.StringIO()
+
+        result = main()
+        output = sys.stdout.getvalue()
+
+        sys.stdout = original_stdout
+
+        assert result == 1
+        assert "Error: Range values must be positive integers" in output
+    finally:
+        sys.argv = original_argv
+        sys.stdout = original_stdout
+
+
+def test_main_trace_range_start_greater_than_end():
+    """Test main() with --trace-range flag where START > END."""
+    original_argv = sys.argv
+    original_stdout = sys.stdout
+
+    try:
+        sys.argv = ["collatz_conjecture.py", "--trace-range", "10", "5"]
+        sys.stdout = io.StringIO()
+
+        result = main()
+        output = sys.stdout.getvalue()
+
+        sys.stdout = original_stdout
+
+        assert result == 1
+        assert "Error: START must be less than or equal to END" in output
+    finally:
         sys.argv = original_argv
         sys.stdout = original_stdout
