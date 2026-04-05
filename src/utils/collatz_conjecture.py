@@ -13,6 +13,9 @@ Behavior:
 
 Usage:
     python collatz_conjecture.py --n 100000 --interval 1000
+    python collatz_conjecture.py --trace 27
+    python collatz_conjecture.py --trace-range 1 10
+    python collatz_conjecture.py --trace-range 1 10 --summary-only
 
 """
 
@@ -25,6 +28,48 @@ from typing import Dict, List, Set
 
 def collatz_next(x: int) -> int:
     return x // 2 if x % 2 == 0 else 3 * x + 1
+
+
+def trace_collatz_sequence(
+    start: int, show_steps: bool = True
+) -> tuple[list[int], int]:
+    """
+    Trace the Collatz sequence from a starting number to 1.
+
+    Args:
+        start: Starting positive integer
+        show_steps: If True, prints each step in the sequence
+
+    Returns:
+        Tuple of (sequence, step_count) where sequence is the list of values
+        and step_count is the number of steps to reach 1
+    """
+    if start < 1:
+        raise ValueError(f"Starting value must be positive, got {start}")
+
+    sequence = [start]
+    x = start
+
+    if show_steps:
+        print(f"\nTracing Collatz sequence for {start}:")
+        print(f"  Step 0: {x}")
+
+    step = 0
+    while x != 1:
+        x = collatz_next(x)
+        step += 1
+        sequence.append(x)
+
+        if show_steps:
+            operation = "÷ 2" if sequence[-2] % 2 == 0 else "× 3 + 1"
+            print(f"  Step {step}: {sequence[-2]} → {x} ({operation})")
+
+    if show_steps:
+        print(f"  Reached 1 in {step} steps")
+        print(f"  Max value in sequence: {max(sequence)}")
+        print(f"  Sequence length: {len(sequence)}")
+
+    return sequence, step
 
 
 class CollatzChecker:
@@ -142,27 +187,114 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="Collatz checker with caching and incremental max_valid"
     )
-    p.add_argument(
+
+    # Mode selection (mutually exclusive)
+    mode_group = p.add_mutually_exclusive_group()
+    mode_group.add_argument(
         "--n",
         type=int,
-        required=True,
         help="Upper bound (inclusive) of starting integers to check",
     )
+    mode_group.add_argument(
+        "--trace",
+        type=int,
+        metavar="NUM",
+        help="Show step-by-step Collatz sequence for a specific number",
+    )
+    mode_group.add_argument(
+        "--trace-range",
+        type=int,
+        nargs=2,
+        metavar=("START", "END"),
+        help="Show step-by-step sequences for a range of numbers (inclusive)",
+    )
+
+    # Options
     p.add_argument(
         "--interval",
         type=int,
         default=1000,
-        help="How often (in starts) to update/print progress",
+        help="How often (in starts) to update/print progress (for --n mode)",
     )
     p.add_argument("--verbose", action="store_true", help="Print progress messages")
+    p.add_argument(
+        "--summary-only",
+        action="store_true",
+        help="For trace modes, show only summary statistics instead of step-by-step",
+    )
     return p.parse_args()
 
 
-def main() -> None:
+def main():
     args = parse_args()
-    checker = CollatzChecker()
-    checker.ensure_up_to(args.n, check_interval=args.interval, verbose=args.verbose)
-    print(f"max_valid = {checker.max_valid}")
+
+    # Validate that at least one mode is selected
+    if not any([args.n, args.trace, args.trace_range]):
+        print("Error: Must specify one of --n, --trace, or --trace-range")
+        return 2
+
+    # Handle trace mode for a single number
+    if args.trace:
+        try:
+            sequence, steps = trace_collatz_sequence(
+                args.trace, show_steps=not args.summary_only
+            )
+            if args.summary_only:
+                print(f"Number: {args.trace}")
+                print(f"Steps to reach 1: {steps}")
+                print(f"Max value in sequence: {max(sequence)}")
+                print(f"Sequence length: {len(sequence)}")
+        except ValueError as e:
+            print(f"Error: {e}")
+            return 1
+        return 0
+
+    # Handle trace-range mode
+    if args.trace_range:
+        start, end = args.trace_range
+        if start < 1 or end < 1:
+            print("Error: Range values must be positive integers")
+            return 1
+        if start > end:
+            print("Error: START must be less than or equal to END")
+            return 1
+
+        print(f"Tracing Collatz sequences for range [{start}, {end}]:\n")
+        results = []
+
+        for num in range(start, end + 1):
+            sequence, steps = trace_collatz_sequence(
+                num, show_steps=not args.summary_only
+            )
+            results.append((num, steps, max(sequence), len(sequence)))
+
+            if args.summary_only:
+                print(
+                    f"{num}: {steps} steps, max={max(sequence)}, length={len(sequence)}"
+                )
+
+        # Print summary statistics
+        print(f"\n{'='*60}")
+        print(f"Summary for range [{start}, {end}]:")
+        print(f"  Numbers tested: {len(results)}")
+        print(f"  Average steps: {sum(r[1] for r in results) / len(results):.2f}")
+        print(
+            f"  Max steps: {max(r[1] for r in results)} (number: {max(results, key=lambda x: x[1])[0]})"
+        )
+        print(
+            f"  Min steps: {min(r[1] for r in results)} (number: {min(results, key=lambda x: x[1])[0]})"
+        )
+        print(
+            f"  Highest peak: {max(r[2] for r in results)} (number: {max(results, key=lambda x: x[2])[0]})"
+        )
+        return 0
+
+    # Handle standard mode with --n
+    if args.n:
+        checker = CollatzChecker()
+        checker.ensure_up_to(args.n, check_interval=args.interval, verbose=args.verbose)
+        print(f"max_valid = {checker.max_valid}")
+        return 0
 
 
 if __name__ == "__main__":
