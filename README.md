@@ -27,9 +27,11 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Sample Size Calculator** | Determine minimum sample sizes for proportion estimation, mean difference detection, and two-proportion comparisons; includes power analysis sweeps |
 | **Monte Carlo Simulator** | Empirically estimate probabilities for binomial, birthday, streak, and Poisson experiments with confidence intervals and analytical comparison |
 | **Bootstrap Confidence Intervals** | Compute non-parametric confidence intervals for statistics (mean, median, standard deviation) using bootstrap resampling; distribution-free alternative requiring no normality assumptions |
+| **Confidence Intervals (Parametric)** | Calculate confidence intervals using formula-based methods for proportions (Wilson, Clopper-Pearson, normal), means (t-interval), and count data (Poisson); works with summary statistics |
+| **Hypothesis Testing & p-values** | Perform statistical hypothesis tests: z-tests and binomial exact tests (proportions), t-tests (means), and chi-squared goodness-of-fit tests; includes alpha sensitivity analysis |
 | **Time Series Forecasting** | Forecast future values with prediction intervals using simple, double (Holt's), or Holt-Winters exponential smoothing; supports backtesting and multiple output formats |
 | **Collatz Conjecture** | Evaluate the Collatz conjecture (3n+1 problem) for positive integers up to n; track which numbers reach 1 and report the largest consecutive verified sequence |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `forecast`, `collatz`, and `simulate` commands |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `simulate`, `bootci`, `confint`, `pvalue`, `forecast`, and `collatz` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -686,6 +688,177 @@ Bootstrap samples: 10000
 95.0% Confidence Interval: [13.7000, 17.1167]
 ```
 
+**When to use `bootci` vs `confint`:**
+- Use **`bootci`** when you have raw data and want distribution-free intervals (no normality assumptions required)
+- Use **`confint`** when you have summary statistics (n, k, mean, std) or need specific parametric methods (Wilson, Clopper-Pearson, t-interval, Poisson)
+- See the `confint` section below for parametric alternatives
+
+---
+#### `confint` — Confidence Intervals (Parametric Methods)
+
+Calculates confidence intervals using formula-based parametric methods for proportions, means, and count data. Unlike bootstrap (which requires raw data), these methods work with summary statistics and use established statistical formulas. Includes support for sample size sweeps.
+
+```bash
+# Wilson score interval for proportion (47 successes out of 120 trials)
+confint --method wilson --n 120 --k 47
+
+# Clopper-Pearson exact interval (conservative)
+confint --method clopper-pearson --n 30 --k 22
+
+# Normal approximation for proportion (requires large n)
+confint --method normal --n 1000 --k 480
+
+# t-interval for mean (sample size 15, mean 23.4, std 4.1)
+confint --method t --n 15 --mean 23.4 --std 4.1
+
+# Poisson interval for count data (observed 23 events)
+confint --method poisson --count 23
+
+# 90% confidence level instead of default 95%
+confint --method wilson --n 100 --k 35 --alpha 0.10
+
+# Sweep sample sizes to see how interval width changes
+confint --method wilson --p 0.4 --sweep 50 500 --step 50
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--method` | Interval method: `wilson` (default), `clopper-pearson`, `normal`, `t`, or `poisson` |
+| | `--alpha` | Significance level (default: `0.05` for 95% CI) |
+| | `--n` | Sample size (for proportion or t-interval) |
+| | `--k` | Number of successes (for proportion interval) |
+| | `--p` | Proportion (alternative to --k; used with --sweep) |
+| | `--mean` | Sample mean (for t-interval) |
+| | `--std` | Sample standard deviation (for t-interval) |
+| | `--count` | Observed count (for Poisson interval) |
+| | `--sweep START END` | Sweep sample sizes from START to END |
+| | `--step` | Step size for sweep (default: `10`) |
+| `-P` | `--precision` | Decimal places for output (default: `4`) |
+
+**Methods explained:**
+
+| Method | Use case | Advantages |
+|--------|----------|------------|
+| **wilson** | Proportions (default) | More reliable than normal approximation for small n or extreme p; recommended for general use |
+| **clopper-pearson** | Proportions (exact) | Conservative exact intervals; guaranteed coverage; good for small samples |
+| **normal** | Proportions (large n) | Simple formula but only appropriate when n·p ≥ 5 and n·(1-p) ≥ 5 |
+| **t** | Population means | Standard approach for means when population std is unknown; uses t-distribution |
+| **poisson** | Count/rate data | Exact intervals for Poisson processes (events per time, defects per unit, etc.) |
+
+**Example output:**
+```text
+95.0% Confidence Interval for Proportion
+Method: wilson
+Sample: n = 120, k = 47, p̂ = 0.3917
+Interval: [0.3087, 0.4809]
+Width: 0.1722
+Margin: ±0.0861
+```
+
+**`bootci` vs `confint` comparison:**
+
+| Aspect | `bootci` | `confint` |
+|--------|----------|-----------|
+| **Input** | Raw data points | Summary statistics (n, k, mean, std) |
+| **Approach** | Non-parametric resampling | Parametric formulas |
+| **Assumptions** | Minimal (distribution-free) | Varies by method (normality for t, etc.) |
+| **Speed** | Slower (10,000+ resamples) | Fast (direct calculation) |
+| **Statistics** | Any (mean, median, stdev, custom) | Specific: proportions, means, counts |
+| **Best for** | Small samples, non-normal data, median | Standard inferential statistics, summary data |
+
+---
+#### `pvalue` — Hypothesis Testing & p-values
+
+Computes p-values for statistical hypothesis tests on proportions, means, and categorical data. Supports z-tests, binomial exact tests, chi-squared goodness-of-fit, and t-tests. Includes alpha sensitivity analysis with sweep mode to visualize how rejection decisions change at different significance levels.
+
+```bash
+# Z-test for proportion: 480 successes out of 1000 trials vs p₀ = 0.5
+pvalue --test z --n 1000 --k 480 --p0 0.5
+
+# One-sided z-test (testing if proportion is less than 0.5)
+pvalue --test z --n 1000 --k 480 --p0 0.5 --sided less
+
+# Binomial exact test (better for small samples)
+pvalue --test binom-exact --n 30 --k 22 --p0 0.60
+
+# One-sample t-test for mean
+pvalue --test t --n 30 --mean 105 --std 15 --mu0 100
+
+# Chi-squared goodness-of-fit test
+pvalue --test chi2 --observed "30,20,50" --expected "33.33,33.33,33.33"
+
+# Alpha sweep: see how decision changes from α=0.01 to α=0.10
+pvalue --test t --n 30 --mean 105 --std 15 --mu0 100 --sweep-alpha 0.01 0.10 --step 0.01
+
+# Custom significance level (α=0.01 instead of default 0.05)
+pvalue --test z --n 500 --k 310 --p0 0.5 --alpha 0.01
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--test` | Test type: `z`, `binom-exact`, `t`, or `chi2` (required) |
+| | `--alpha` | Significance level (default: `0.05`) |
+| | `--sided` | Two-sided, less, or greater: `two`, `less`, `greater` (default: `two`) |
+| | `--n` | Sample size (for z, binom-exact, or t) |
+| | `--k` | Number of successes (for z or binom-exact) |
+| | `--p0` | Null hypothesis proportion (for z or binom-exact) |
+| | `--mean` | Sample mean (for t-test) |
+| | `--std` | Sample standard deviation (for t-test) |
+| | `--mu0` | Null hypothesis mean (for t-test) |
+| | `--observed` | Comma-separated observed frequencies (for chi2) |
+| | `--expected` | Comma-separated expected frequencies (for chi2) |
+| | `--sweep-alpha START END` | Show rejection decisions from START to END |
+| | `--step` | Step size for alpha sweep (default: `0.01`) |
+| `-P` | `--precision` | Decimal places for output (default: `4`) |
+
+**Tests explained:**
+
+| Test | Use case | Null hypothesis |
+|------|----------|-----------------|
+| **z** | Single proportion, large n | Population proportion equals p₀ |
+| **binom-exact** | Single proportion, any n | Population proportion equals p₀ (exact, no approximation) |
+| **t** | Single mean, unknown σ | Population mean equals μ₀ |
+| **chi2** | Categorical data, goodness-of-fit | Observed frequencies match expected distribution |
+
+**Example output:**
+```text
+One-sample t-test (two-sided)
+Significance level: α = 0.05
+
+Sample: n = 30, mean = 105.0000, std = 15.0000
+Null hypothesis: H₀: μ = 100
+
+Test statistic: t = 1.8257
+p-value: 0.0783
+Effect size: 0.3333
+
+Decision: Fail to reject H₀ (p ≥ α)
+```
+
+**Alpha sweep output example:**
+```text
+One-sample t-test - Alpha Sweep
+Test statistic (t): 1.8257
+p-value: 0.0783
+
+   Alpha   Reject H0
+--------------------
+  0.0100          No
+  0.0200          No
+  0.0300          No
+  0.0400          No
+  0.0500          No
+  0.0600          No
+  0.0700         Yes
+  0.0800         Yes
+  0.0900         Yes
+  0.1000         Yes
+```
+
 ---
 #### `forecast` — Time Series Forecasting with Prediction Intervals
 
@@ -1272,6 +1445,111 @@ large_checker = CollatzChecker()
 large_checker.ensure_up_to(100_000, check_interval=10_000, verbose=False)
 print(f"Largest consecutive verified (up to 100k): {large_checker.max_valid}")
 print(f"Total numbers resolved: {len(large_checker.resolved)}")
+```
+
+#### Confidence Intervals (Parametric Methods)
+
+```python
+from src.utils.confidence_intervals import (
+    wilson_interval,
+    clopper_pearson_interval,
+    normal_proportion_interval,
+    t_interval,
+    poisson_interval,
+)
+
+# Wilson score interval for a proportion (recommended for general use)
+# 47 successes out of 120 trials at 95% confidence
+lower, upper = wilson_interval(n=120, k=47, alpha=0.05)
+print(f"Wilson 95% CI: [{lower:.4f}, {upper:.4f}]")
+
+# Clopper-Pearson exact interval (conservative)
+lower, upper = clopper_pearson_interval(n=30, k=22, alpha=0.05)
+print(f"Clopper-Pearson 95% CI: [{lower:.4f}, {upper:.4f}]")
+
+# Normal approximation for proportion (requires large n)
+lower, upper = normal_proportion_interval(n=1000, k=480, alpha=0.05)
+print(f"Normal approximation 95% CI: [{lower:.4f}, {upper:.4f}]")
+
+# t-interval for population mean (unknown variance)
+# Sample: n=15, mean=23.4, std=4.1
+lower, upper = t_interval(n=15, mean=23.4, std=4.1, alpha=0.05)
+print(f"t-interval 95% CI: [{lower:.4f}, {upper:.4f}]")
+
+# 90% confidence interval (α=0.10)
+lower, upper = t_interval(n=25, mean=100.5, std=12.3, alpha=0.10)
+print(f"t-interval 90% CI: [{lower:.4f}, {upper:.4f}]")
+
+# Poisson interval for count/rate data
+# Observed 23 events
+lower, upper = poisson_interval(k=23, alpha=0.05)
+print(f"Poisson 95% CI for λ: [{lower:.4f}, {upper:.4f}]")
+
+# Different confidence level
+lower, upper = poisson_interval(k=10, alpha=0.01)
+print(f"Poisson 99% CI for λ: [{lower:.4f}, {upper:.4f}]")
+```
+
+#### Hypothesis Testing & p-values
+
+```python
+from src.utils.probability_values import (
+    z_test_proportion,
+    binomial_exact_test,
+    t_test_mean,
+    chi2_goodness_of_fit,
+    cohen_d,
+)
+
+# Z-test for a single proportion
+# H₀: p = 0.5 vs H₁: p ≠ 0.5
+# Sample: 480 successes out of 1000 trials
+z_stat, p_value = z_test_proportion(n=1000, k=480, p0=0.5, sided="two")
+print(f"Z-test: z = {z_stat:.4f}, p-value = {p_value:.4f}")
+
+# One-sided z-test (testing if proportion is less than 0.5)
+z_stat, p_value = z_test_proportion(n=1000, k=450, p0=0.5, sided="less")
+print(f"One-sided Z-test: z = {z_stat:.4f}, p-value = {p_value:.4f}")
+
+# One-sided z-test (testing if proportion is greater than 0.5)
+z_stat, p_value = z_test_proportion(n=1000, k=550, p0=0.5, sided="greater")
+print(f"One-sided Z-test: z = {z_stat:.4f}, p-value = {p_value:.4f}")
+
+# Binomial exact test (better for small samples)
+# H₀: p = 0.60
+# Sample: 22 successes out of 30 trials
+test_stat, p_value = binomial_exact_test(n=30, k=22, p0=0.60, sided="two")
+print(f"Binomial exact test: k = {test_stat}, p-value = {p_value:.4f}")
+
+# One-sample t-test for mean
+# H₀: μ = 100 vs H₁: μ ≠ 100
+# Sample: n=30, mean=105, std=15
+t_stat, p_value = t_test_mean(mean=105, std=15, n=30, mu0=100, sided="two")
+print(f"t-test: t = {t_stat:.4f}, p-value = {p_value:.4f}")
+
+# One-sided t-test
+t_stat, p_value = t_test_mean(mean=105, std=15, n=30, mu0=100, sided="greater")
+print(f"One-sided t-test: t = {t_stat:.4f}, p-value = {p_value:.4f}")
+
+# Chi-squared goodness-of-fit test
+# H₀: observed frequencies match expected distribution
+observed = [30, 20, 50]
+expected = [33.33, 33.33, 33.33]
+chi2_stat, p_value = chi2_goodness_of_fit(observed, expected)
+print(f"Chi-squared test: χ² = {chi2_stat:.4f}, p-value = {p_value:.4f}")
+
+# Effect size (Cohen's d) for proportions
+p_hat = 0.48  # Sample proportion
+p0 = 0.50     # Null hypothesis proportion
+effect = cohen_d(p_hat, p0)
+print(f"Effect size (Cohen's d): {effect:.4f}")
+
+# Make a decision at α=0.05
+alpha = 0.05
+if p_value < alpha:
+    print(f"Reject H₀ (p = {p_value:.4f} < α = {alpha})")
+else:
+    print(f"Fail to reject H₀ (p = {p_value:.4f} ≥ α = {alpha})")
 ```
 
 ## Development
