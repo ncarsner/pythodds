@@ -10,8 +10,6 @@ requires-python = ">=3.13"
 license = {text = "MIT"}
 dependencies = [
     "numpy>=2.4.3",
-    "pandas>=3.0.1",
-    "scikit-learn>=1.8.0",
     "scipy>=1.17.1",
 ]
 
@@ -49,6 +47,7 @@ forecast = "src.utils.forecast_time_series:main"
 collatz = "src.utils.collatz_conjecture:main"
 confint = "src.utils.confidence_intervals:main"
 pvalue = "src.utils.probability_values:main"
+zscore = "src.utils.z_score:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -66,12 +65,14 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "--ignore=tests/_test_sales_tax_product.py --cov=src/utils --cov-report=term-missing --cov-report=xml"
+addopts = "--ignore=tests/_*.py --cov=src --cov-report=term-missing --cov-report=xml"
 
 [tool.coverage.run]
+source = ["src"]
 omit = [
     "src/__init__.py",
     "src/utils/__init__.py",
+    "tests/*",
     "tests/__init__.py",
     "_*.py",
 ]
