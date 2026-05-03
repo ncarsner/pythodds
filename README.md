@@ -16,6 +16,7 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Bayes' Theorem** | Compute posterior probabilities from priors, likelihoods, and either direct evidence or a false-positive rate |
 | **Birthday Problem** | Compute collision probabilities for uniform and non-uniform pools, find minimum group sizes, and generate probability tables |
 | **Normal Distribution** | Compute PDF, CDF, survival probabilities, interval probabilities, and the inverse CDF (percent-point function) for a Gaussian N(μ, σ²) distribution |
+| **Z-Scores** | Compute standardized z-scores for a single value with known mean/std dev, or standardize an inline dataset using population or sample standard deviation |
 | **Expected Value** | Compute E[X], Var(X), SD(X), Shannon entropy, and the moment generating function for discrete probability distributions; supports inline input or CSV/JSON files |
 | **Poisson Distribution** | Compute PMF, CDF, and survival probabilities, find minimum event counts for a target cumulative probability, and generate full probability tables |
 | **Prime Numbers** | Check primality, find the nth prime, count primes up to a limit (π function), list primes in a range, and compute prime factorizations |
@@ -31,7 +32,7 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Hypothesis Testing & p-values** | Perform statistical hypothesis tests: z-tests and binomial exact tests (proportions), t-tests (means), and chi-squared goodness-of-fit tests; includes alpha sensitivity analysis |
 | **Time Series Forecasting** | Forecast future values with prediction intervals using simple, double (Holt's), or Holt-Winters exponential smoothing; supports backtesting and multiple output formats |
 | **Collatz Conjecture** | Evaluate the Collatz conjecture (3n+1 problem) for positive integers up to n; track which numbers reach 1 and report the largest consecutive verified sequence |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `simulate`, `bootci`, `confint`, `pvalue`, `forecast`, and `collatz` commands |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `simulate`, `bootci`, `confint`, `pvalue`, `forecast`, and `collatz` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -245,6 +246,39 @@ normal --quantile 0.975 -m 0 -s 1
 | `-P` | `--precision` | Decimal places for printed values (default: `6`) |
 
 > `-x/--value`, `--between`, and `-q/--quantile` are mutually exclusive; one is required.
+
+---
+#### `zscore` — Z-Score Calculator
+
+Computes standardized scores using `z = (x - mean) / standard deviation`. Use it with a single value and known distribution parameters, or provide an inline dataset to compute mean, standard deviation, and z-scores for every value.
+
+```bash
+# Standardize one value with a known mean and standard deviation
+zscore --value 85 --mean 70 --std 10
+
+# Compute population z-scores for an inline dataset
+zscore --values 2,4,4,4,5,5,7,9
+
+# Use sample standard deviation for the inline dataset
+zscore --values 2,4,4,4,5,5,7,9 --sample
+
+# Custom precision
+zscore --value 85 --mean 70 --std 10 --precision 2
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-x` | `--value` | Single value to standardize |
+| `-v` | `--values` | Comma-separated values to standardize as a dataset |
+| `-m` | `--mean` | Mean to use with `--value` |
+| `-s` | `--std` | Standard deviation to use with `--value` |
+| | `--sample` | Use sample standard deviation for `--values` |
+| `-P` | `--precision` | Decimal places for printed values (default: `6`) |
+
+> `-x/--value` and `-v/--values` are mutually exclusive; one is required.<br>
+> `--mean` and `--std` are required when using `--value`.
 
 ---
 #### `expected` — Expected Value & Discrete Distribution Statistics
@@ -1056,6 +1090,27 @@ prob = normal_prob_between(-1.96, 1.96, mu=0.0, sigma=1.0)
 
 # Find x such that P(X ≤ x) = 0.975 (inverse CDF)
 x = normal_ppf(0.975, mu=0.0, sigma=1.0)
+```
+
+#### Z-Scores
+
+```python
+from src.utils.z_score import mean, std_dev, z_score, z_scores
+
+# Standardize one value with known distribution parameters
+z = z_score(85.0, mu=70.0, sigma=10.0)
+
+# Compute population z-scores for an inline dataset
+values = [2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]
+scores = z_scores(values)
+
+# Use sample standard deviation
+sample_scores = z_scores(values, sample=True)
+
+# Summary statistics are available directly
+mu = mean(values)
+sigma = std_dev(values)
+sample_sigma = std_dev(values, sample=True)
 ```
 
 #### Expected Value
