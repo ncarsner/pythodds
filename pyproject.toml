@@ -48,6 +48,8 @@ collatz = "src.utils.collatz_conjecture:main"
 confint = "src.utils.confidence_intervals:main"
 pvalue = "src.utils.probability_values:main"
 zscore = "src.utils.z_score:main"
+ttest = "src.utils.t_test:main"
+jevons = "src.utils.jevons_paradox:main"
 
 [build-system]
 requires = ["hatchling"]
