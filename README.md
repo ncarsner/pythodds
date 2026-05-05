@@ -32,7 +32,8 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Hypothesis Testing & p-values** | Perform statistical hypothesis tests: z-tests and binomial exact tests (proportions), t-tests (means), and chi-squared goodness-of-fit tests; includes alpha sensitivity analysis |
 | **Time Series Forecasting** | Forecast future values with prediction intervals using simple, double (Holt's), or Holt-Winters exponential smoothing; supports backtesting and multiple output formats |
 | **Collatz Conjecture** | Evaluate the Collatz conjecture (3n+1 problem) for positive integers up to n; track which numbers reach 1 and report the largest consecutive verified sequence |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `simulate`, `bootci`, `confint`, `pvalue`, `forecast`, and `collatz` commands |
+| **Jevons' Paradox** | Quantify the rebound effect and backfire condition for resource efficiency improvements; compute expected savings, rebound consumption, actual savings, and net consumption change given an efficiency gain and price elasticity of demand; support sweeps over efficiency or elasticity ranges |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `simulate`, `bootci`, `confint`, `pvalue`, `forecast`, `collatz`, and `jevons` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -1014,6 +1015,78 @@ max_valid = 10000
 This indicates that all integers from 1 to 10000 have been verified to eventually reach 1.
 
 ---
+#### `jevons` — Jevons' Paradox Rebound Effect Analysis
+
+Quantifies the direct rebound effect arising from resource efficiency improvements. When technology lowers the effective cost per unit of an energy service, demand rises — partially or fully offsetting the expected savings. In extreme cases (backfire), net consumption exceeds the original baseline despite efficiency gains.
+
+```bash
+# Standard analysis: 30% efficiency gain with elasticity 0.5
+jevons --efficiency 0.30 --elasticity 0.5
+
+# With absolute baseline and resource label
+jevons -e 0.30 -d 0.5 --baseline 1000 --resource coal
+
+# Sweep efficiency from 10% to 90% at fixed elasticity
+jevons --sweep-efficiency 0.1 0.9 --elasticity 0.7 --step 0.1
+
+# Sweep elasticity from 0 to 2.0 at fixed efficiency
+jevons --efficiency 0.30 --sweep-elasticity 0.0 2.0 --step 0.5
+
+# JSON output
+jevons --efficiency 0.30 --elasticity 0.5 --format json
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-e` | `--efficiency` | Efficiency improvement fraction (0 < η < 1), e.g., `0.30` for 30% |
+| `-d` | `--elasticity` | Absolute price elasticity of demand (ε ≥ 0), e.g., `0.5` |
+| `-b` | `--baseline` | Baseline resource consumption (default: `1.0`) |
+| `-r` | `--resource` | Resource label for display (default: `units`) |
+| | `--sweep-efficiency MIN MAX` | Sweep efficiency from MIN to MAX (requires `--elasticity`) |
+| | `--sweep-elasticity MIN MAX` | Sweep elasticity from MIN to MAX (requires `--efficiency`) |
+| | `--step` | Step size for sweep (default: `0.05`) |
+| `-f` | `--format` | Output format: `table` (default) or `json` |
+| `-P` | `--precision` | Decimal places for printed values (default: `4`) |
+
+> `--sweep-efficiency` and `--sweep-elasticity` are mutually exclusive.
+
+**Key formulas:**
+- **Expected savings** (no rebound): `baseline × η`
+- **Rebound consumption**: `baseline × ε × η × (1 − η)`
+- **Net consumption**: `baseline × (1 + ε × η) × (1 − η)`
+- **Rebound rate**: `ε × (1 − η)` as a fraction of expected savings
+- **Backfire condition**: rebound rate > 100% (net consumption exceeds baseline)
+
+**Rebound outcomes:**
+
+| Rebound rate | Outcome |
+|---|---|
+| 0% | Full conservation — all efficiency gains become savings |
+| 1–49% | Weak rebound — most efficiency gains translate to savings |
+| 50–99% | Strong rebound — efficiency gains are significantly offset |
+| 100% | Full rebound — efficiency gains are exactly cancelled |
+| > 100% | **BACKFIRE** — consumption increases despite efficiency improvement |
+
+**Example output:**
+```text
+Jevons' Paradox Analysis
+============================================
+Efficiency improvement:  30.0000%
+Price elasticity:        0.5000
+Baseline consumption:    1.0000 units
+
+Expected savings (no rebound):  0.3000 units (30.0000%)
+Rebound consumption:            0.1050 units
+Actual savings (after rebound): 0.1950 units (19.5000%)
+Net consumption:                0.8050 units (80.5000%)
+Rebound rate:                   35.0000% of expected savings
+
+Outcome: Strong rebound — efficiency gains are significantly offset
+```
+
+---
 ### 🐍 Python Library
 
 #### Binomial Distribution
@@ -1605,6 +1678,53 @@ if p_value < alpha:
     print(f"Reject H₀ (p = {p_value:.4f} < α = {alpha})")
 else:
     print(f"Fail to reject H₀ (p = {p_value:.4f} ≥ α = {alpha})")
+```
+
+#### Jevons' Paradox
+
+```python
+from src.utils.jevons_paradox import (
+    analyze,
+    expected_savings,
+    rebound_consumption,
+    rebound_rate,
+    net_consumption,
+    actual_savings,
+    is_backfire,
+    outcome_label,
+)
+
+# 30% efficiency improvement, price elasticity 0.5, baseline 1000 units
+eta = 0.30
+epsilon = 0.5
+baseline = 1000.0
+
+# Expected resource savings without any demand response
+exp_sav = expected_savings(baseline, eta)          # 300.0 units
+
+# Additional consumption caused by demand rebound
+reb_con = rebound_consumption(baseline, eta, epsilon)  # 105.0 units
+
+# Net consumption after efficiency gain and rebound
+net_con = net_consumption(baseline, eta, epsilon)  # 805.0 units
+
+# Actual savings after rebound
+act_sav = actual_savings(baseline, eta, epsilon)   # 195.0 units
+
+# Rebound rate as a fraction of expected savings (0.35 = 35%)
+rate = rebound_rate(eta, epsilon)
+
+# Check if backfire occurs (net consumption > baseline)
+if is_backfire(eta, epsilon):
+    print("Backfire: consumption increased despite efficiency gains")
+
+# Qualitative description of the outcome
+print(outcome_label(rate))  # "Strong rebound — efficiency gains are significantly offset"
+
+# Full analysis dict
+result = analyze(baseline, eta, epsilon)
+print(f"Rebound rate: {result['rebound_pct']:.1f}%")
+print(f"Net consumption: {result['net_consumption']:.1f} units")
 ```
 
 ## Development
