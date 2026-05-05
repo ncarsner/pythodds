@@ -30,10 +30,11 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Bootstrap Confidence Intervals** | Compute non-parametric confidence intervals for statistics (mean, median, standard deviation) using bootstrap resampling; distribution-free alternative requiring no normality assumptions |
 | **Confidence Intervals (Parametric)** | Calculate confidence intervals using formula-based methods for proportions (Wilson, Clopper-Pearson, normal), means (t-interval), and count data (Poisson); works with summary statistics |
 | **Hypothesis Testing & p-values** | Perform statistical hypothesis tests: z-tests and binomial exact tests (proportions), t-tests (means), and chi-squared goodness-of-fit tests; includes alpha sensitivity analysis |
+| **T-Test** | Perform one-sample, two-sample (Welch's), and paired t-tests; compute t-statistics, degrees of freedom, p-values, confidence intervals, and Cohen's d effect size; accepts raw data or summary statistics (mean, std, n); supports one-sided and two-sided alternatives |
 | **Time Series Forecasting** | Forecast future values with prediction intervals using simple, double (Holt's), or Holt-Winters exponential smoothing; supports backtesting and multiple output formats |
 | **Collatz Conjecture** | Evaluate the Collatz conjecture (3n+1 problem) for positive integers up to n; track which numbers reach 1 and report the largest consecutive verified sequence |
 | **Jevons' Paradox** | Quantify the rebound effect and backfire condition for resource efficiency improvements; compute expected savings, rebound consumption, actual savings, and net consumption change given an efficiency gain and price elasticity of demand; support sweeps over efficiency or elasticity ranges |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `simulate`, `bootci`, `confint`, `pvalue`, `forecast`, `collatz`, and `jevons` commands |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `simulate`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, and `jevons` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -895,6 +896,105 @@ p-value: 0.0783
 ```
 
 ---
+#### `ttest` — T-Test (One-Sample, Two-Sample, Paired)
+
+Performs one-sample, two-sample (Welch's), and paired t-tests with full statistical output: t-statistic, degrees of freedom, p-value, confidence interval for the mean (or mean difference), and Cohen's d effect size. Accepts either raw comma-separated values or pre-computed summary statistics (mean, std, n). Supports two-sided and one-sided alternatives.
+
+```bash
+# One-sample: test if a dataset's mean equals 3.0
+ttest one-sample --values 2.1,3.4,2.9,3.1,2.8 --mu0 3.0
+
+# One-sample from summary statistics (mean=105, std=12, n=25)
+ttest one-sample --mean 105 --std 12 --n 25 --mu0 100
+
+# Two-sample (Welch's): compare two independent groups
+ttest two-sample --values1 1.2,2.3,3.1,2.8 --values2 2.1,3.2,4.1,3.9
+
+# Two-sample from summary statistics
+ttest two-sample --mean1 12.4 --std1 2.1 --n1 30 --mean2 10.8 --std2 1.9 --n2 28
+
+# Paired: test pre/post measurements on the same subjects
+ttest paired --values1 85,90,78,92,88 --values2 90,95,82,95,91
+
+# One-sided test (greater)
+ttest one-sample --values 2.1,3.4,2.9 --mu0 2.5 --sided greater
+
+# Custom significance level and precision
+ttest two-sample --values1 10,12,14,11 --values2 8,9,11,10 --alpha 0.01 --precision 6
+```
+
+**Subcommands:**
+
+| Subcommand | Null hypothesis | Use case |
+|---|---|---|
+| `one-sample` | H₀: μ = μ₀ | Test if a sample mean differs from a known reference value |
+| `two-sample` | H₀: μ₁ = μ₂ | Compare means of two independent groups (unequal variances OK) |
+| `paired` | H₀: μ_d = 0 | Compare matched before/after or paired observations |
+
+**Options (shared across subcommands):**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-a` | `--alpha` | Significance level (default: `0.05`) |
+| `-S` | `--sided` | Alternative hypothesis: `two` (default), `less`, or `greater` |
+| `-P` | `--precision` | Decimal places for output (default: `4`) |
+
+**`one-sample` options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-v` | `--values` | Comma-separated raw sample values |
+| | `--mean` | Sample mean (use with `--std` and `--n`) |
+| | `--std` | Sample standard deviation |
+| | `--n` | Sample size |
+| | `--mu0` | Hypothesised population mean _(required)_ |
+
+> Provide either `--values` or all of `--mean`, `--std`, `--n`.
+
+**`two-sample` options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-v1` | `--values1` | Comma-separated values for group 1 |
+| `-v2` | `--values2` | Comma-separated values for group 2 |
+| | `--mean1`, `--std1`, `--n1` | Summary statistics for group 1 |
+| | `--mean2`, `--std2`, `--n2` | Summary statistics for group 2 |
+
+> Each group takes either raw values or summary stats; groups may mix the two forms.
+
+**`paired` options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-v1` | `--values1` | Comma-separated pre/group-1 values _(required)_ |
+| `-v2` | `--values2` | Comma-separated post/group-2 values _(required)_ |
+
+**Output includes:**
+- **t-statistic** and **degrees of freedom** (Welch-Satterthwaite for two-sample)
+- **p-value** adjusted for the chosen alternative hypothesis
+- **Confidence interval** for the mean (or mean difference)
+- **Cohen's d** effect size
+- **Reject / fail-to-reject decision** at the specified α
+
+**Example output:**
+```text
+One-sample t-test  (two-sided)
+H₀: μ = 3.0000
+
+  n:          5
+  mean:       2.8600
+  std dev:    0.4827
+
+  t-stat:     -0.6479
+  df:         4.0000
+  p-value:    0.5514
+  95% CI:    [2.2605, 3.4595]
+  Cohen's d:  -0.2900
+
+  Fail to reject H₀  (p ≥ α = 0.05)
+```
+
+---
 #### `forecast` — Time Series Forecasting with Prediction Intervals
 
 Fits exponential smoothing models to time series data and generates point forecasts with prediction intervals. Supports simple exponential smoothing (level only), double exponential smoothing (Holt's method: level + trend), and Holt-Winters exponential smoothing (level + trend + seasonal). Useful for sales forecasting, demand planning, and trend analysis.
@@ -1678,6 +1778,54 @@ if p_value < alpha:
     print(f"Reject H₀ (p = {p_value:.4f} < α = {alpha})")
 else:
     print(f"Fail to reject H₀ (p = {p_value:.4f} ≥ α = {alpha})")
+```
+
+#### T-Test
+
+```python
+from src.utils.t_test import (
+    one_sample_t_test,
+    two_sample_t_test,
+    paired_t_test,
+)
+
+# One-sample t-test from summary statistics
+# H₀: μ = 100 vs H₁: μ ≠ 100
+result = one_sample_t_test(mean=105, std=12, n=25, mu0=100, alpha=0.05, sided="two")
+print(f"t = {result.t_stat:.4f}, df = {result.df:.4f}, p = {result.p_value:.4f}")
+print(f"95% CI: [{result.ci_lower:.4f}, {result.ci_upper:.4f}]")
+print(f"Cohen's d: {result.cohens_d:.4f}")
+
+# One-sided test (greater)
+result_gt = one_sample_t_test(mean=105, std=12, n=25, mu0=100, alpha=0.05, sided="greater")
+
+# Two-sample Welch's t-test from summary statistics
+# H₀: μ₁ = μ₂ (unequal variances assumed)
+result2 = two_sample_t_test(
+    mean1=12.4, std1=2.1, n1=30,
+    mean2=10.8, std2=1.9, n2=28,
+    alpha=0.05, sided="two",
+)
+print(f"Welch df = {result2.df:.4f}, p = {result2.p_value:.4f}")
+print(f"95% CI (μ₁−μ₂): [{result2.ci_lower:.4f}, {result2.ci_upper:.4f}]")
+
+# Two-sample from raw values (compute summary stats first or pass directly)
+from src.utils.t_test import _mean, _std
+values1 = [1.2, 2.3, 3.1, 2.8]
+values2 = [2.1, 3.2, 4.1, 3.9]
+result2_raw = two_sample_t_test(
+    mean1=_mean(values1), std1=_std(values1), n1=len(values1),
+    mean2=_mean(values2), std2=_std(values2), n2=len(values2),
+)
+
+# Paired t-test on matched observations
+# H₀: μ_d = 0  (d = x₁ − x₂)
+pre  = [85, 90, 78, 92, 88]
+post = [90, 95, 82, 95, 91]
+result_p = paired_t_test(pre, post, alpha=0.05, sided="two")
+print(f"Mean difference: {result_p.mean_diff:.4f}")
+print(f"t = {result_p.t_stat:.4f}, p = {result_p.p_value:.4f}")
+print(f"Cohen's d: {result_p.cohens_d:.4f}")
 ```
 
 #### Jevons' Paradox
