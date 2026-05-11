@@ -26,7 +26,6 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Spearman Correlation** | Compute Spearman's ρ (rank correlation), ρ², t-statistic, p-value, and confidence intervals; test for monotonic relationships; robust to outliers and suitable for ordinal data; includes rank display for tie inspection |
 | **Linear Regression** | Perform ordinary least squares (OLS) regression with full statistical inference: coefficients, standard errors, R², F-statistic, t-tests, confidence intervals, and predictions with confidence/prediction intervals |
 | **Sample Size Calculator** | Determine minimum sample sizes for proportion estimation, mean difference detection, and two-proportion comparisons; includes power analysis sweeps |
-| **Monte Carlo Simulator** | Empirically estimate probabilities for binomial, birthday, streak, and Poisson experiments with confidence intervals and analytical comparison |
 | **Bootstrap Confidence Intervals** | Compute non-parametric confidence intervals for statistics (mean, median, standard deviation) using bootstrap resampling; distribution-free alternative requiring no normality assumptions |
 | **Confidence Intervals (Parametric)** | Calculate confidence intervals using formula-based methods for proportions (Wilson, Clopper-Pearson, normal), means (t-interval), and count data (Poisson); works with summary statistics |
 | **Hypothesis Testing & p-values** | Perform statistical hypothesis tests: z-tests and binomial exact tests (proportions), t-tests (means), and chi-squared goodness-of-fit tests; includes alpha sensitivity analysis |
@@ -34,7 +33,8 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Time Series Forecasting** | Forecast future values with prediction intervals using simple, double (Holt's), or Holt-Winters exponential smoothing; supports backtesting and multiple output formats |
 | **Collatz Conjecture** | Evaluate the Collatz conjecture (3n+1 problem) for positive integers up to n; track which numbers reach 1 and report the largest consecutive verified sequence |
 | **Jevons' Paradox** | Quantify the rebound effect and backfire condition for resource efficiency improvements; compute expected savings, rebound consumption, actual savings, and net consumption change given an efficiency gain and price elasticity of demand; support sweeps over efficiency or elasticity ranges |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `simulate`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, and `jevons` commands |
+| **Monte Carlo Simulator** | Empirically estimate probabilities for `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, `linboot` experiments with confidence intervals and analytical comparison |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, and `simulate` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -60,7 +60,35 @@ pip install -e .
 
 ## Command Line Usage
 
-#### `binom` — Binomial Distribution
+| Command | Description |
+|---------|-------------|
+| `binom` | Binomial PMF, CDF, and survival for Binomial(n, p) |
+| `bayes` | Posterior probability from prior, likelihood, and evidence or false-positive rate |
+| `birthday` | Collision probability for uniform and non-uniform pools |
+| `normal` | PDF, CDF, survival, interval probabilities, and inverse CDF for Gaussian N(μ, σ²) |
+| `zscore` | Standardized z-scores for a single value or an inline dataset |
+| `expected` | E[X], Var(X), SD(X), entropy, and MGF for discrete distributions |
+| `poisson` | PMF, CDF, survival, and minimum k for Poisson(λ) |
+| `prime` | Primality testing, nth prime, prime counting, ranges, and factorization |
+| `streak` | Consecutive run probability and expected longest streak |
+| `pythag` | Win percentage and season projection (Pythagorean or linear formula) |
+| `pearson` | Pearson r, r², t-statistic, p-value, and confidence intervals |
+| `spearman` | Spearman ρ, rank correlation, hypothesis testing, and rank display |
+| `linreg` | OLS regression with inference, R², F-statistic, and prediction intervals |
+| `sample` | Minimum sample sizes for proportions, means, and two-proportion comparisons |
+| `bootci` | Non-parametric confidence intervals via bootstrap resampling |
+| `confint` | Parametric CIs: Wilson, Clopper-Pearson, normal, t-interval, Poisson |
+| `pvalue` | z-test, binomial exact, one-sample t-test, and chi-squared goodness-of-fit |
+| `ttest` | One-sample, two-sample (Welch's), and paired t-tests with Cohen's d |
+| `forecast` | Exponential smoothing: simple, Holt's method, and Holt-Winters |
+| `collatz` | Collatz conjecture (3n+1) verification for integers 1 through n |
+| `jevons` | Rebound effect and backfire analysis for resource efficiency improvements |
+| `simulate` | Monte Carlo estimation with confidence intervals and analytical comparison |
+
+---
+
+<details>
+<summary><strong><code>binom</code></strong> — Binomial Distribution</summary>
 
 Computes exact, cumulative, and survival probabilities for a Binomial(n, p) distribution, and renders a color-coded stacked progress bar showing the share of mass below `k`, at `k`, and above `k`.
 
@@ -81,8 +109,13 @@ P(X <= 3): 0.382281 (38.228100%)
 P(X >= 3): 0.832710 (83.271000%)
 [stacked ANSI bar for <k | =k | >k]
 ```
+
+</details>
+
 ---
-#### `bayes` — Bayes' Theorem Posterior Probability
+
+<details>
+<summary><strong><code>bayes</code></strong> — Bayes' Theorem Posterior Probability</summary>
 
 Computes posterior probability $P(A\mid B)$ from a prior probability, likelihood, and either direct evidence $P(B)$ or a false-positive rate $P(B\mid \neg A)$.
 
@@ -106,8 +139,202 @@ bayes -p 0.2 -l 0.8 -e 0.5
 
 > `-e/--evidence` and `-f/--false-positive` are mutually exclusive; one is required.
 
+</details>
+
 ---
-#### `prime` — Prime Number Operations
+
+<details>
+<summary><strong><code>birthday</code></strong> — Birthday Problem Collision Probability</summary>
+
+Computes the probability that at least two items in a group share the same value when drawn from a pool of equally-likely possibilities. Defaults to a pool size of 365.25 (calendar days).
+
+```bash
+# P(duplicate birthday) in a group of 23 people
+birthday -n 23
+
+# Find the minimum group size to reach 50% collision probability
+birthday --target-prob 0.50
+
+# Print a probability table for group sizes 1–40
+birthday --range 1 40
+
+# Custom pool size (e.g. 7-digit phone numbers)
+birthday -p 10_000_000 -n 1180
+
+# Non-uniform pool via relative weights
+birthday --group-size 30 --weights 0.10,0.15,0.20,0.30,0.25
+
+# Output as JSON or CSV
+birthday --range 1 60 --format <json|csv>
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-p` | `--pool-size` | Pool size — number of equally-likely outcomes (default: `365.25`) |
+| `-n` | `--group-size` | Compute collision probability for exactly this group size |
+| `-t` | `--target-prob` | Find the minimum group size reaching this probability |
+| `-r` | `--range MIN MAX` | Print a probability table for group sizes MIN through MAX |
+| `-w` | `--weights` | Comma-separated relative frequencies for a non-uniform pool |
+| `-f` | `--format` | Output format: `table` (default), `json`, or `csv` |
+| `-P` | `--precision` | Decimal places for printed probabilities (default: `6`) |
+
+</details>
+
+---
+
+<details>
+<summary><strong><code>normal</code></strong> — Normal (Gaussian) Distribution</summary>
+
+Computes PDF, CDF, survival probabilities, interval probabilities, and the inverse CDF (percent-point function) for a N(μ, σ²) distribution. Uses only the Python standard library.
+
+```bash
+# PDF, P(X ≤ 1.96), and P(X ≥ 1.96) for the standard normal
+normal -x 1.96 -m 0 -s 1
+
+# Same calculation for a custom distribution
+normal -x 75 -m 70 -s 5
+
+# P(−1.96 ≤ X ≤ 1.96)
+normal --between -1.96 1.96 -m 0 -s 1
+
+# Find the value x such that P(X ≤ x) = 0.975 (inverse CDF)
+normal --quantile 0.975 -m 0 -s 1
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-x` | `--value` | Compute PDF, P(X ≤ x), and P(X ≥ x) for this value |
+| | `--between LOW HIGH` | Compute P(LOW ≤ X ≤ HIGH) |
+| `-q` | `--quantile` | Find x such that P(X ≤ x) = P (inverse CDF) |
+| `-m` | `--mean` | Distribution mean μ (default: `0`) |
+| `-s` | `--std` | Distribution standard deviation σ (default: `1`) |
+| `-P` | `--precision` | Decimal places for printed values (default: `6`) |
+
+> `-x/--value`, `--between`, and `-q/--quantile` are mutually exclusive; one is required.
+
+</details>
+
+---
+
+<details>
+<summary><strong><code>zscore</code></strong> — Z-Score Calculator</summary>
+
+Computes standardized scores using `z = (x - mean) / standard deviation`. Use it with a single value and known distribution parameters, or provide an inline dataset to compute mean, standard deviation, and z-scores for every value.
+
+```bash
+# Standardize one value with a known mean and standard deviation
+zscore --value 85 --mean 70 --std 10
+
+# Compute population z-scores for an inline dataset
+zscore --values 2,4,4,4,5,5,7,9
+
+# Use sample standard deviation for the inline dataset
+zscore --values 2,4,4,4,5,5,7,9 --sample
+
+# Custom precision
+zscore --value 85 --mean 70 --std 10 --precision 2
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-x` | `--value` | Single value to standardize |
+| `-v` | `--values` | Comma-separated values to standardize as a dataset |
+| `-m` | `--mean` | Mean to use with `--value` |
+| `-s` | `--std` | Standard deviation to use with `--value` |
+| | `--sample` | Use sample standard deviation for `--values` |
+| `-P` | `--precision` | Decimal places for printed values (default: `6`) |
+
+> `-x/--value` and `-v/--values` are mutually exclusive; one is required.<br>
+> `--mean` and `--std` are required when using `--value`.
+
+</details>
+
+---
+
+<details>
+<summary><strong><code>expected</code></strong> — Expected Value & Discrete Distribution Statistics</summary>
+
+Computes E[X], Var(X), SD(X), Shannon entropy, and optionally the moment generating function (MGF) for a discrete probability distribution supplied inline or via a CSV/JSON file.
+
+```bash
+# E[X] and statistics for a simple discrete distribution
+expected --outcomes 0,1,5,10 --probs 0.50,0.25,0.15,0.10
+
+# Non-uniform six-sided die
+expected --outcomes 1,2,3,4,5,6 --probs 0.1,0.2,0.3,0.2,0.1,0.1
+
+# Load distribution from a CSV or JSON file
+expected --file payouts.csv
+
+# Also compute the MGF at t=0.5
+expected --outcomes 0,1 --probs 0.3,0.7 --mgf 0.5
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-o` | `--outcomes` | Comma-separated outcome values |
+| `-f` | `--file` | CSV or JSON file with outcomes and probabilities |
+| `-p` | `--probs` | Comma-separated probabilities (required with `--outcomes`) |
+| | `--mgf T` | Also compute the moment generating function M_X(t) at t=T |
+| `-P` | `--precision` | Decimal places for printed values (default: `6`) |
+
+> `--outcomes` and `--file` are mutually exclusive; one is required<br>
+> `--probs` is required when using `--outcomes`
+
+</details>
+
+---
+
+<details>
+<summary><strong><code>poisson</code></strong> — Poisson Distribution</summary>
+
+Computes PMF, CDF, and survival probabilities for a Poisson(λ) distribution. Models rare, independent events occurring at a known average rate — server errors per hour, calls per minute, defects per batch, and so on.
+
+```bash
+# P(X=7), P(X≤7), and P(X≥7) for λ=3.0
+poisson -l 3.0 -k 7
+
+# Find the minimum k such that P(X ≤ k) >= 0.95
+poisson -l 3.0 -t 0.95
+
+# Print a probability table for k = 0 through 15
+poisson -l 3.0 -r 0 15
+
+# Also show P(X ≥ 5) and whether it meets a 1% threshold
+poisson -l 0.5 -k 2 --target 5 --min-prob 0.01
+
+# Output as JSON or CSV
+poisson -l 3.0 -r 0 20 -f json
+poisson -l 3.0 -r 0 20 -f csv
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-l` | `--rate` | Average event rate λ (required, must be > 0) |
+| `-k` | `--events` | Compute PMF and CDF for exactly this event count |
+| `-t` | `--target-prob` | Find the minimum k such that P(X ≤ k) ≥ PROB |
+| `-r` | `--range MIN MAX` | Print a probability table for event counts MIN through MAX |
+| | `--target` | With `-k`: also print P(X ≥ T) for this target count |
+| | `--min-prob` | With `--target`: report whether P(X ≥ T) meets this threshold |
+| `-f` | `--format` | Output format: `table` (default), `json`, or `csv` |
+| `-P` | `--precision` | Decimal places for printed probabilities (default: `6`) |
+
+</details>
+
+---
+
+<details>
+<summary><strong><code>prime</code></strong> — Prime Number Operations</summary>
 
 Provides tools for working with prime numbers: primality testing, finding the nth prime, counting primes up to a limit (prime counting function π), listing primes in a range, and computing prime factorizations.
 
@@ -180,178 +407,12 @@ Factor breakdown:
   5^1 = 5
 ```
 
----
-#### `birthday` — Birthday Problem Collision Probability
-
-Computes the probability that at least two items in a group share the same value when drawn from a pool of equally-likely possibilities. Defaults to a pool size of 365.25 (calendar days).
-
-```bash
-# P(duplicate birthday) in a group of 23 people
-birthday -n 23
-
-# Find the minimum group size to reach 50% collision probability
-birthday --target-prob 0.50
-
-# Print a probability table for group sizes 1–40
-birthday --range 1 40
-
-# Custom pool size (e.g. 7-digit phone numbers)
-birthday -p 10_000_000 -n 1180
-
-# Non-uniform pool via relative weights
-birthday --group-size 30 --weights 0.10,0.15,0.20,0.30,0.25
-
-# Output as JSON or CSV
-birthday --range 1 60 --format <json|csv>
-```
-
-**Options:**
-
-| Flag | Long form | Description |
-|------|-----------|-------------|
-| `-p` | `--pool-size` | Pool size — number of equally-likely outcomes (default: `365.25`) |
-| `-n` | `--group-size` | Compute collision probability for exactly this group size |
-| `-t` | `--target-prob` | Find the minimum group size reaching this probability |
-| `-r` | `--range MIN MAX` | Print a probability table for group sizes MIN through MAX |
-| `-w` | `--weights` | Comma-separated relative frequencies for a non-uniform pool |
-| `-f` | `--format` | Output format: `table` (default), `json`, or `csv` |
-| `-P` | `--precision` | Decimal places for printed probabilities (default: `6`) |
+</details>
 
 ---
-#### `normal` — Normal (Gaussian) Distribution
 
-Computes PDF, CDF, survival probabilities, interval probabilities, and the inverse CDF (percent-point function) for a N(μ, σ²) distribution. Uses only the Python standard library.
-
-```bash
-# PDF, P(X ≤ 1.96), and P(X ≥ 1.96) for the standard normal
-normal -x 1.96 -m 0 -s 1
-
-# Same calculation for a custom distribution
-normal -x 75 -m 70 -s 5
-
-# P(−1.96 ≤ X ≤ 1.96)
-normal --between -1.96 1.96 -m 0 -s 1
-
-# Find the value x such that P(X ≤ x) = 0.975 (inverse CDF)
-normal --quantile 0.975 -m 0 -s 1
-```
-
-**Options:**
-
-| Flag | Long form | Description |
-|------|-----------|-------------|
-| `-x` | `--value` | Compute PDF, P(X ≤ x), and P(X ≥ x) for this value |
-| | `--between LOW HIGH` | Compute P(LOW ≤ X ≤ HIGH) |
-| `-q` | `--quantile` | Find x such that P(X ≤ x) = P (inverse CDF) |
-| `-m` | `--mean` | Distribution mean μ (default: `0`) |
-| `-s` | `--std` | Distribution standard deviation σ (default: `1`) |
-| `-P` | `--precision` | Decimal places for printed values (default: `6`) |
-
-> `-x/--value`, `--between`, and `-q/--quantile` are mutually exclusive; one is required.
-
----
-#### `zscore` — Z-Score Calculator
-
-Computes standardized scores using `z = (x - mean) / standard deviation`. Use it with a single value and known distribution parameters, or provide an inline dataset to compute mean, standard deviation, and z-scores for every value.
-
-```bash
-# Standardize one value with a known mean and standard deviation
-zscore --value 85 --mean 70 --std 10
-
-# Compute population z-scores for an inline dataset
-zscore --values 2,4,4,4,5,5,7,9
-
-# Use sample standard deviation for the inline dataset
-zscore --values 2,4,4,4,5,5,7,9 --sample
-
-# Custom precision
-zscore --value 85 --mean 70 --std 10 --precision 2
-```
-
-**Options:**
-
-| Flag | Long form | Description |
-|------|-----------|-------------|
-| `-x` | `--value` | Single value to standardize |
-| `-v` | `--values` | Comma-separated values to standardize as a dataset |
-| `-m` | `--mean` | Mean to use with `--value` |
-| `-s` | `--std` | Standard deviation to use with `--value` |
-| | `--sample` | Use sample standard deviation for `--values` |
-| `-P` | `--precision` | Decimal places for printed values (default: `6`) |
-
-> `-x/--value` and `-v/--values` are mutually exclusive; one is required.<br>
-> `--mean` and `--std` are required when using `--value`.
-
----
-#### `expected` — Expected Value & Discrete Distribution Statistics
-
-Computes E[X], Var(X), SD(X), Shannon entropy, and optionally the moment generating function (MGF) for a discrete probability distribution supplied inline or via a CSV/JSON file.
-
-```bash
-# E[X] and statistics for a simple discrete distribution
-expected --outcomes 0,1,5,10 --probs 0.50,0.25,0.15,0.10
-
-# Non-uniform six-sided die
-expected --outcomes 1,2,3,4,5,6 --probs 0.1,0.2,0.3,0.2,0.1,0.1
-
-# Load distribution from a CSV or JSON file
-expected --file payouts.csv
-
-# Also compute the MGF at t=0.5
-expected --outcomes 0,1 --probs 0.3,0.7 --mgf 0.5
-```
-
-**Options:**
-
-| Flag | Long form | Description |
-|------|-----------|-------------|
-| `-o` | `--outcomes` | Comma-separated outcome values |
-| `-f` | `--file` | CSV or JSON file with outcomes and probabilities |
-| `-p` | `--probs` | Comma-separated probabilities (required with `--outcomes`) |
-| | `--mgf T` | Also compute the moment generating function M_X(t) at t=T |
-| `-P` | `--precision` | Decimal places for printed values (default: `6`) |
-
-> `--outcomes` and `--file` are mutually exclusive; one is required<br>
-> `--probs` is required when using `--outcomes`
-
----
-#### `poisson` — Poisson Distribution
-
-Computes PMF, CDF, and survival probabilities for a Poisson(λ) distribution. Models rare, independent events occurring at a known average rate — server errors per hour, calls per minute, defects per batch, and so on.
-
-```bash
-# P(X=7), P(X≤7), and P(X≥7) for λ=3.0
-poisson -l 3.0 -k 7
-
-# Find the minimum k such that P(X ≤ k) >= 0.95
-poisson -l 3.0 -t 0.95
-
-# Print a probability table for k = 0 through 15
-poisson -l 3.0 -r 0 15
-
-# Also show P(X ≥ 5) and whether it meets a 1% threshold
-poisson -l 0.5 -k 2 --target 5 --min-prob 0.01
-
-# Output as JSON or CSV
-poisson -l 3.0 -r 0 20 -f json
-poisson -l 3.0 -r 0 20 -f csv
-```
-
-**Options:**
-
-| Flag | Long form | Description |
-|------|-----------|-------------|
-| `-l` | `--rate` | Average event rate λ (required, must be > 0) |
-| `-k` | `--events` | Compute PMF and CDF for exactly this event count |
-| `-t` | `--target-prob` | Find the minimum k such that P(X ≤ k) ≥ PROB |
-| `-r` | `--range MIN MAX` | Print a probability table for event counts MIN through MAX |
-| | `--target` | With `-k`: also print P(X ≥ T) for this target count |
-| | `--min-prob` | With `--target`: report whether P(X ≥ T) meets this threshold |
-| `-f` | `--format` | Output format: `table` (default), `json`, or `csv` |
-| `-P` | `--precision` | Decimal places for printed probabilities (default: `6`) |
-
----
-#### `streak` — Streak / Consecutive Run Probability
+<details>
+<summary><strong><code>streak</code></strong> — Streak / Consecutive Run Probability</summary>
 
 Computes the exact probability of at least one run of k consecutive successes in n independent Bernoulli trials, and the expected length of the longest run. Uses dynamic programming for exact O(n·k) computation.
 
@@ -378,8 +439,12 @@ streak -n 50 -p 0.40 --longest
 
 > `-k/--streak-length` and `--longest` are mutually exclusive; one is required.
 
+</details>
+
 ---
-#### `pythag` — Pythagorean Record / Win Expectation
+
+<details>
+<summary><strong><code>pythag</code></strong> — Pythagorean Record / Win Expectation</summary>
 
 Calculates expected winning percentage for sports teams based on runs/points scored and allowed. Supports both the traditional Pythagorean formula (Bill James) and the newer linear formula from SABR research (Rothman, 2014). Can project final season records for teams in progress.
 
@@ -426,8 +491,12 @@ pythag --scored 550 --allowed 490 --current-wins 45 --games-played 82
   - NFL: `EXP(W%) = 0.001538(PS - PA) + 0.50`
   - NBA: `EXP(W%) = 0.000351(PS - PA) + 0.50`
 
+</details>
+
 ---
-#### `pearson` — Pearson Correlation Coefficient
+
+<details>
+<summary><strong><code>pearson</code></strong> — Pearson Correlation Coefficient</summary>
 
 Computes the Pearson correlation coefficient (r) to measure the linear relationship between two continuous variables. Values range from -1 (perfect negative correlation) to 1 (perfect positive correlation), with 0 indicating no linear relationship. Includes hypothesis testing, p-values, and confidence intervals using Fisher's Z-transformation.
 
@@ -472,8 +541,12 @@ pearson --x 1,2,3,4 --y 2,4,6,8 --precision 4
 - **Hypothesis test** (if `--alpha` provided): t-statistic, p-value, significance result
 - **Confidence interval** (if `--alpha` provided): CI for population correlation ρ using Fisher Z-transformation
 
+</details>
+
 ---
-#### `spearman` — Spearman Rank Correlation Coefficient
+
+<details>
+<summary><strong><code>spearman</code></strong> — Spearman Rank Correlation Coefficient</summary>
 
 Computes the Spearman rank correlation coefficient (ρ) to measure monotonic relationships between two variables. Unlike Pearson, Spearman evaluates correlation based on ranked data, making it robust to outliers and suitable for ordinal data or non-linear but monotonic relationships. Values range from -1 to 1, with the same interpretation as Pearson correlation.
 
@@ -527,53 +600,12 @@ spearman --x 1,2,2,3,4 --y 1,2,3,4,5 --show-ranks --precision 3
 - **Spearman**: Ordinal data, non-linear but monotonic relationships, presence of outliers, or when distribution assumptions are violated
 - **Pearson**: Continuous data with linear relationships and approximate normality
 
----
-#### `sample` — Sample Size Calculator
-
-Calculates the minimum sample size needed for statistical studies. Supports proportion estimation within a margin of error, mean difference detection with specified power, and two-proportion comparisons. Includes power analysis sweeps to show achieved power across a range of sample sizes.
-
-```bash
-# Minimum n to estimate a proportion within ±3% at 95% confidence
-sample --type proportion --prop 0.5 --margin 0.03
-
-# Minimum n to detect a mean shift of 5 units (σ=12) with 80% power
-sample --type mean --delta 5 --std 12 --power 0.80
-
-# Two-proportion comparison: detect difference between 40% and 50%
-sample --type comparison --p1 0.40 --p2 0.50 --alpha 0.05 --power 0.80
-
-# Power analysis sweep: show achieved power for n = 50 to 300
-sample --type mean --delta 5 --std 12 --sweep 50 300 --step 25
-
-# One-sided test with 90% power
-sample --type mean --delta 3 --std 8 --power 0.90 --sided one
-```
-
-**Options:**
-
-| Flag | Long form | Description |
-|------|-----------|-------------|
-| | `--type` | Calculation type: `proportion`, `mean`, or `comparison` _(required)_ |
-| | `--prop` | Expected proportion for proportion estimation (0 to 1) |
-| | `--margin` | Desired margin of error for proportion _(e.g., `0.03` for ±3%)_ |
-| | `--std`, `--sigma` | Population standard deviation for mean calculations |
-| | `--delta` | Minimum detectable effect size (mean difference) |
-| | `--p1` | Proportion in group 1 for comparison |
-| | `--p2` | Proportion in group 2 for comparison |
-| | `--alpha` | Significance level (default: `0.05`) |
-| | `--power` | Statistical power (1-β) for mean/comparison _(default: `0.80`)_ |
-| | `--sided` | Test type: `one` or `two` _(default: `two`)_ |
-| | `--sweep MIN MAX` | Show power across range of sample sizes |
-| | `--step` | Step size for sweep (default: `10`) |
-| `-P` | `--precision` | Decimal places for printed values (default: `4`) |
-
-**Calculation types:**
-- **Proportion**: Determines sample size to estimate a single proportion within a specified margin of error at a given confidence level
-- **Mean**: Determines sample size to detect a mean difference (effect size) with specified statistical power
-- **Comparison**: Determines sample size per group to detect a difference between two proportions with specified power
+</details>
 
 ---
-#### `linreg` — Linear Regression (OLS)
+
+<details>
+<summary><strong><code>linreg</code></strong> — Linear Regression (OLS)</summary>
 
 Performs simple linear regression using ordinary least squares (OLS) to fit a line `y = slope * x + intercept`. Provides comprehensive statistical inference including coefficient tests, model fit statistics, and predictions with confidence and prediction intervals.
 
@@ -627,55 +659,61 @@ linreg --x 1,2,3,4 --y 2.1,4.3,5.8,8.2 --precision 4
 - **t-tests**: Test whether each coefficient is significantly different from zero
 - **F-statistic**: Tests whether the overall model is significant (better than just predicting the mean)
 
+</details>
+
 ---
-#### `simulate` — Monte Carlo Probability Simulator
 
-Runs repeated random experiments to estimate probabilities empirically, with optional confidence intervals and analytical comparison against `binom`, `birthday`, `poisson`, and `streak`.
+<details>
+<summary><strong><code>sample</code></strong> — Sample Size Calculator</summary>
 
-**Implementation**: Uses numpy for efficient random number generation and scipy for statistical functions (Wilson confidence intervals).
+Calculates the minimum sample size needed for statistical studies. Supports proportion estimation within a margin of error, mean difference detection with specified power, and two-proportion comparisons. Includes power analysis sweeps to show achieved power across a range of sample sizes.
 
 ```bash
-# Estimate P(X >= 5) for Binomial(n=10, p=0.4) over 100,000 trials
-simulate --experiment binom --params n=10 k=5 p=0.4 --trials 100000
+# Minimum n to estimate a proportion within ±3% at 95% confidence
+sample --type proportion --prop 0.5 --margin 0.03
 
-# Birthday collision probability for a group of 23 with a 95% confidence interval
-simulate --experiment birthday --params pool=365 group=23 --confidence
+# Minimum n to detect a mean shift of 5 units (σ=12) with 80% power
+sample --type mean --delta 5 --std 12 --power 0.80
 
-# Streak probability: P(run of 5+ successes in 100 trials, p=0.5)
-simulate --experiment streak --params n=100 k=5 p=0.5 --trials 50000
+# Two-proportion comparison: detect difference between 40% and 50%
+sample --type comparison --p1 0.40 --p2 0.50 --alpha 0.05 --power 0.80
 
-# Poisson: P(X >= 7) for λ=3.0 with a fixed seed
-simulate --experiment poisson --params lam=3.0 k=7 --seed 42
+# Power analysis sweep: show achieved power for n = 50 to 300
+sample --type mean --delta 5 --std 12 --sweep 50 300 --step 25
 
-# Auto-size trial count to achieve a target standard error of 0.005
-simulate --experiment binom --params n=20 k=8 p=0.5 --scale 0.005
+# One-sided test with 90% power
+sample --type mean --delta 3 --std 8 --power 0.90 --sided one
 ```
 
 **Options:**
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
-| `-e` | `--experiment` | Experiment type: `binom`, `birthday`, `streak`, or `poisson` (required) |
-| `-p` | `--params` | Space-separated `KEY=VALUE` experiment parameters (see below) |
-| `-t` | `--trials` | Number of simulation trials (default: 10,000) |
-| | `--scale` | Target standard error; auto-computes `--trials` (overrides `-t`) |
-| `-s` | `--seed` | Random seed for reproducibility |
-| `-c` | `--confidence` | Print 95% Wilson confidence interval |
-| | `--dump` | Output per-trial results as CSV instead of summary |
-| `-f` | `--format` | Summary output format: `table` (default) or `json` |
-| `-P` | `--precision` | Decimal places for printed probabilities (default: `6`) |
+| | `--type` | Calculation type: `proportion`, `mean`, or `comparison` _(required)_ |
+| | `--prop` | Expected proportion for proportion estimation (0 to 1) |
+| | `--margin` | Desired margin of error for proportion _(e.g., `0.03` for ±3%)_ |
+| | `--std`, `--sigma` | Population standard deviation for mean calculations |
+| | `--delta` | Minimum detectable effect size (mean difference) |
+| | `--p1` | Proportion in group 1 for comparison |
+| | `--p2` | Proportion in group 2 for comparison |
+| | `--alpha` | Significance level (default: `0.05`) |
+| | `--power` | Statistical power (1-β) for mean/comparison _(default: `0.80`)_ |
+| | `--sided` | Test type: `one` or `two` _(default: `two`)_ |
+| | `--sweep MIN MAX` | Show power across range of sample sizes |
+| | `--step` | Step size for sweep (default: `10`) |
+| `-P` | `--precision` | Decimal places for printed values (default: `4`) |
 
-**Required params by experiment:**
+**Calculation types:**
+- **Proportion**: Determines sample size to estimate a single proportion within a specified margin of error at a given confidence level
+- **Mean**: Determines sample size to detect a mean difference (effect size) with specified statistical power
+- **Comparison**: Determines sample size per group to detect a difference between two proportions with specified power
 
-| Experiment | Required params |
-|------------|-----------------|
-| `binom` | `n=INT k=INT p=FLOAT` |
-| `birthday` | `pool=INT group=INT` |
-| `streak` | `n=INT k=INT p=FLOAT` |
-| `poisson` | `lam=FLOAT k=INT` |
+</details>
 
 ---
-#### `bootci` — Bootstrap Confidence Intervals
+
+<details>
+<summary><strong><code>bootci</code></strong> — Bootstrap Confidence Intervals</summary>
 
 Computes non-parametric confidence intervals for a statistic (mean, median, or standard deviation) using bootstrap resampling. This distribution-free method makes no assumptions about the underlying population distribution, making it ideal when normality assumptions are questionable or for small sample sizes.
 
@@ -729,8 +767,12 @@ Bootstrap samples: 10000
 - Use **`confint`** when you have summary statistics (n, k, mean, std) or need specific parametric methods (Wilson, Clopper-Pearson, t-interval, Poisson)
 - See the `confint` section below for parametric alternatives
 
+</details>
+
 ---
-#### `confint` — Confidence Intervals (Parametric Methods)
+
+<details>
+<summary><strong><code>confint</code></strong> — Confidence Intervals (Parametric Methods)</summary>
 
 Calculates confidence intervals using formula-based parametric methods for proportions, means, and count data. Unlike bootstrap (which requires raw data), these methods work with summary statistics and use established statistical formulas. Includes support for sample size sweeps.
 
@@ -804,8 +846,12 @@ Margin: ±0.0861
 | **Statistics** | Any (mean, median, stdev, custom) | Specific: proportions, means, counts |
 | **Best for** | Small samples, non-normal data, median | Standard inferential statistics, summary data |
 
+</details>
+
 ---
-#### `pvalue` — Hypothesis Testing & p-values
+
+<details>
+<summary><strong><code>pvalue</code></strong> — Hypothesis Testing & p-values</summary>
 
 Computes p-values for statistical hypothesis tests on proportions, means, and categorical data. Supports z-tests, binomial exact tests, chi-squared goodness-of-fit, and t-tests. Includes alpha sensitivity analysis with sweep mode to visualize how rejection decisions change at different significance levels.
 
@@ -895,8 +941,12 @@ p-value: 0.0783
   0.1000         Yes
 ```
 
+</details>
+
 ---
-#### `ttest` — T-Test (One-Sample, Two-Sample, Paired)
+
+<details>
+<summary><strong><code>ttest</code></strong> — T-Test (One-Sample, Two-Sample, Paired)</summary>
 
 Performs one-sample, two-sample (Welch's), and paired t-tests with full statistical output: t-statistic, degrees of freedom, p-value, confidence interval for the mean (or mean difference), and Cohen's d effect size. Accepts either raw comma-separated values or pre-computed summary statistics (mean, std, n). Supports two-sided and one-sided alternatives.
 
@@ -994,8 +1044,12 @@ H₀: μ = 3.0000
   Fail to reject H₀  (p ≥ α = 0.05)
 ```
 
+</details>
+
 ---
-#### `forecast` — Time Series Forecasting with Prediction Intervals
+
+<details>
+<summary><strong><code>forecast</code></strong> — Time Series Forecasting with Prediction Intervals</summary>
 
 Fits exponential smoothing models to time series data and generates point forecasts with prediction intervals. Supports simple exponential smoothing (level only), double exponential smoothing (Holt's method: level + trend), and Holt-Winters exponential smoothing (level + trend + seasonal). Useful for sales forecasting, demand planning, and trend analysis.
 
@@ -1069,14 +1123,17 @@ Period   Forecast   Lower (95%)   Upper (95%)
 5        200.00     185.13        214.87
 6        208.00     190.60        225.40
 ==============================================================
-
 Model Statistics:
   RMSE: 5.12
   MAE:  4.23
 ```
 
+</details>
+
 ---
-#### `collatz` — Collatz Conjecture (3n+1 Problem)
+
+<details>
+<summary><strong><code>collatz</code></strong> — Collatz Conjecture (3n+1 Problem)</summary>
 
 Evaluates the Collatz conjecture for positive integers up to n. For each starting value, follows the Collatz sequence (if even, divide by 2; if odd, multiply by 3 and add 1) to determine whether it eventually reaches 1. Reports the largest consecutive integer k such that all integers from 1 to k are verified to reach 1.
 
@@ -1114,8 +1171,12 @@ max_valid = 10000
 
 This indicates that all integers from 1 to 10000 have been verified to eventually reach 1.
 
+</details>
+
 ---
-#### `jevons` — Jevons' Paradox Rebound Effect Analysis
+
+<details>
+<summary><strong><code>jevons</code></strong> — Jevons' Paradox Rebound Effect Analysis</summary>
 
 Quantifies the direct rebound effect arising from resource efficiency improvements. When technology lowers the effective cost per unit of an energy service, demand rises — partially or fully offsetting the expected savings. In extreme cases (backfire), net consumption exceeds the original baseline despite efficiency gains.
 
@@ -1186,10 +1247,112 @@ Rebound rate:                   35.0000% of expected savings
 Outcome: Strong rebound — efficiency gains are significantly offset
 ```
 
+</details>
+
 ---
+
+<details>
+<summary><strong><code>simulate</code></strong> — Monte Carlo Probability Simulator</summary>
+
+Runs repeated random experiments to estimate probabilities empirically, with optional confidence intervals and analytical comparison against `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, and `linboot`.
+
+**Implementation**: Uses numpy for efficient random number generation and scipy for statistical functions (Wilson confidence intervals).
+
+```bash
+# Estimate P(X >= 5) for Binomial(n=10, p=0.4) over 100,000 trials
+simulate --experiment binomial --params n=10 k=5 p=0.4 --trials 100000
+
+# Birthday collision probability for a group of 23 with a 95% confidence interval
+simulate --experiment birthday --params pool=365 group=23 --confidence
+
+# Streak probability: P(run of 5+ successes in 100 trials, p=0.5)
+simulate --experiment streak --params n=100 k=5 p=0.5 --trials 50000
+
+# Poisson: P(X >= 7) for λ=3.0 with a fixed seed
+simulate --experiment poisson --params lam=3.0 k=7 --seed 42
+
+# Auto-size trial count to achieve a target standard error of 0.005
+simulate --experiment binomial --params n=20 k=8 p=0.5 --scale 0.005
+
+# Statistical power: empirical power for detecting a mean shift of 5 (σ=10, n=30)
+simulate --experiment power --params type=mean n=30 sigma=10 delta=5
+
+# Permutation test: one-sample sign-flip against mu0=3.0
+simulate --experiment permutation --params type=one values=2.1,3.4,2.9,3.1,2.8 mu0=3.0
+
+# Bayes: empirical P(A|B) via rejection sampling
+simulate --experiment bayes --params prior=0.01 likelihood=0.99 fp=0.05
+
+# Season simulation: P(team wins ≥ 90 games) with 58% win probability
+simulate --experiment season --params win_pct=0.58 games=162 wins_ge=90
+
+# Linear regression bootstrap: slope/intercept CIs via residual resampling
+simulate --experiment linboot --params x=1,2,3,4,5 y=2.1,3.9,6.2,7.8,10.1 predict=6
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-e` | `--experiment` | Experiment type: `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, or `linboot` (required) |
+| `-p` | `--params` | Space-separated `KEY=VALUE` experiment parameters (see below) |
+| `-t` | `--trials` | Number of simulation trials (default: 10,000) |
+| | `--scale` | Target standard error; auto-computes `--trials` (overrides `-t`) |
+| `-s` | `--seed` | Random seed for reproducibility |
+| `-c` | `--confidence` | Print 95% Wilson confidence interval |
+| | `--dump` | Output per-trial results as CSV instead of summary |
+| `-f` | `--format` | Summary output format: `table` (default) or `json` |
+| `-P` | `--precision` | Decimal places for printed probabilities (default: `6`) |
+
+**Required params by experiment:**
+
+| Experiment | Required params | Description |
+|------------|-----------------|-------------|
+| `binomial` | `n=INT k=INT p=FLOAT` | P(X ≥ k) for Binomial(n, p) |
+| `birthday` | `pool=INT group=INT` | P(at least one collision) |
+| `streak` | `n=INT k=INT p=FLOAT` | P(run of ≥ k successes in n trials) |
+| `poisson` | `lam=FLOAT k=INT` | P(X ≥ k) for Poisson(λ) |
+| `power` | `type=mean\|comparison` | Empirical statistical power |
+| `permutation` | `type=one\|two\|paired` | Distribution-free p-value via permutation test |
+| `bayes` | `prior=FLOAT likelihood=FLOAT fp=FLOAT` | Empirical P(A\|B) via rejection sampling |
+| `season` | `win_pct=FLOAT [games wins_ge]` | Season win distribution or P(wins ≥ k) |
+| `linboot` | `x=CSV y=CSV [predict alpha]` | Residual bootstrap for linear regression coefficients |
+
+</details>
+
+---
+
 ### 🐍 Python Library
 
-#### Binomial Distribution
+| Module | Import path | Key functions |
+|--------|-------------|---------------|
+| Binomial | `src.utils.binomial_distribution` | `binomial_pmf`, `binomial_cdf_le`, `binomial_cdf_ge` |
+| Bayes | `src.utils.bayes_theorem` | `bayes_posterior`, `evidence_from_false_positive` |
+| Birthday | `src.utils.birthday_problem` | `collision_prob_uniform`, `collision_prob_nonuniform`, `min_group_for_prob` |
+| Normal | `src.utils.normal_gaussian` | `normal_pdf`, `normal_cdf`, `normal_ppf`, `normal_prob_between` |
+| Z-Score | `src.utils.z_score` | `z_score`, `z_scores`, `mean`, `std_dev` |
+| Expected Value | `src.utils.expected_value` | `expected_value`, `variance`, `std_dev`, `entropy`, `mgf`, `load_file` |
+| Poisson | `src.utils.poisson_distribution` | `poisson_pmf`, `poisson_cdf_le`, `poisson_cdf_ge`, `min_k_for_prob` |
+| Primes | `src.utils.prime_numbers` | `is_prime`, `nth_prime`, `count_primes`, `primes_in_range`, `prime_factorization` |
+| Streak | `src.utils.streak_probability` | `prob_at_least_one_streak`, `expected_longest_streak` |
+| Pythagorean | `src.utils.pythagorean_record` | `pythagorean_expectation`, `linear_expectation`, `expected_wins` |
+| Pearson | `src.utils.pearson_correlation` | `pearson_r`, `correlation_t_statistic`, `correlation_p_value`, `correlation_confidence_interval` |
+| Spearman | `src.utils.spearman_correlation` | `spearman_rho`, `rank_data`, `correlation_t_statistic`, `correlation_p_value` |
+| Linear Reg. | `src.utils.linear_regression` | `linear_regression`, `predict`, `mean` |
+| Sample Size | `src.utils.sample_size` | `sample_size_proportion`, `sample_size_mean`, `sample_size_comparison` |
+| Bootstrap | `src.utils.bootstrap_confidence_intervals` | `bootstrap_resample`, `compute_confidence_interval`, `get_stat_function` |
+| Conf. Intervals | `src.utils.confidence_intervals` | `wilson_interval`, `clopper_pearson_interval`, `t_interval`, `poisson_interval` |
+| Hypothesis Test | `src.utils.probability_values` | `z_test_proportion`, `binomial_exact_test`, `t_test_mean`, `chi2_goodness_of_fit` |
+| T-Test | `src.utils.t_test` | `one_sample_t_test`, `two_sample_t_test`, `paired_t_test` |
+| Forecast | `src.utils.forecast_time_series` | `simple_exponential_smoothing`, `double_exponential_smoothing`, `holt_winters` |
+| Collatz | `src.utils.collatz_conjecture` | `CollatzChecker`, `collatz_next` |
+| Jevons | `src.utils.jevons_paradox` | `analyze`, `expected_savings`, `rebound_consumption`, `net_consumption`, `is_backfire` |
+| Monte Carlo | `src.utils.monte_carlo` | `simulate_binomial`, `simulate_birthday`, `simulate_streak`, `simulate_poisson`, `simulate_power`, `simulate_permutation`, `simulate_bayes`, `simulate_season`, `simulate_linboot` |
+
+---
+
+<details>
+<summary><strong>Binomial Distribution</strong></summary>
 
 ```python
 from src.utils.binomial_distribution import binomial_pmf, binomial_cdf_le, binomial_cdf_ge
@@ -1204,7 +1367,10 @@ cdf = binomial_cdf_le(10, 3, 0.4)
 survival = binomial_cdf_ge(10, 3, 0.4)
 ```
 
-#### Bayes' Theorem
+</details>
+
+<details>
+<summary><strong>Bayes' Theorem</strong></summary>
 
 ```python
 from src.utils.bayes_theorem import bayes_posterior, evidence_from_false_positive
@@ -1216,7 +1382,10 @@ evidence = evidence_from_false_positive(0.01, 0.99, 0.05)
 posterior = bayes_posterior(0.01, 0.99, evidence)
 ```
 
-#### Birthday Problem
+</details>
+
+<details>
+<summary><strong>Birthday Problem</strong></summary>
 
 ```python
 from src.utils.birthday_problem import (
@@ -1239,7 +1408,10 @@ prob_nu = collision_prob_nonuniform(30, [0.10, 0.15, 0.20, 0.30, 0.25])
 pairs = expected_duplicate_pairs(23, 365.25)
 ```
 
-#### Normal Distribution
+</details>
+
+<details>
+<summary><strong>Normal Distribution</strong></summary>
 
 ```python
 from src.utils.normal_gaussian import (
@@ -1265,7 +1437,10 @@ prob = normal_prob_between(-1.96, 1.96, mu=0.0, sigma=1.0)
 x = normal_ppf(0.975, mu=0.0, sigma=1.0)
 ```
 
-#### Z-Scores
+</details>
+
+<details>
+<summary><strong>Z-Scores</strong></summary>
 
 ```python
 from src.utils.z_score import mean, std_dev, z_score, z_scores
@@ -1286,7 +1461,10 @@ sigma = std_dev(values)
 sample_sigma = std_dev(values, sample=True)
 ```
 
-#### Expected Value
+</details>
+
+<details>
+<summary><strong>Expected Value</strong></summary>
 
 ```python
 from src.utils.expected_value import (
@@ -1318,7 +1496,10 @@ M = mgf(outcomes, probs, t=0.5)
 outcomes, probs = load_file("payouts.csv")
 ```
 
-#### Poisson Distribution
+</details>
+
+<details>
+<summary><strong>Poisson Distribution</strong></summary>
 
 ```python
 from src.utils.poisson_distribution import (
@@ -1341,7 +1522,10 @@ survival = poisson_cdf_ge(7, 3.0)
 k = min_k_for_prob(0.95, 3.0)
 ```
 
-#### Prime Numbers
+</details>
+
+<details>
+<summary><strong>Prime Numbers</strong></summary>
 
 ```python
 from src.utils.prime_numbers import (
@@ -1375,7 +1559,10 @@ factors = prime_factorization(360)  # {2: 3, 3: 2, 5: 1} → 2³ × 3² × 5
 formatted = format_factorization(factors)  # "2³ × 3² × 5"
 ```
 
-#### Streak Probability
+</details>
+
+<details>
+<summary><strong>Streak Probability</strong></summary>
 
 ```python
 from src.utils.streak_probability import (
@@ -1390,7 +1577,10 @@ p = prob_at_least_one_streak(100, 5, 0.5)
 e = expected_longest_streak(162, 0.300)
 ```
 
-#### Pythagorean Record
+</details>
+
+<details>
+<summary><strong>Pythagorean Record</strong></summary>
 
 ```python
 from src.utils.pythagorean_record import (
@@ -1415,7 +1605,10 @@ win_pct = linear_expectation(8500, 8200, sport="nba")
 wins = expected_wins(win_pct, games=162)
 ```
 
-#### Pearson Correlation
+</details>
+
+<details>
+<summary><strong>Pearson Correlation</strong></summary>
 
 ```python
 from src.utils.pearson_correlation import (
@@ -1444,7 +1637,10 @@ p_value = correlation_p_value(r, n=len(x), sided="two")
 ci_lower, ci_upper = correlation_confidence_interval(r, n=len(x), alpha=0.05)
 ```
 
-#### Spearman Correlation
+</details>
+
+<details>
+<summary><strong>Spearman Correlation</strong></summary>
 
 ```python
 from src.utils.spearman_correlation import (
@@ -1478,34 +1674,10 @@ p_value = correlation_p_value(rho, n=len(x), sided="two")
 ci_lower, ci_upper = correlation_confidence_interval(rho, n=len(x), alpha=0.01)
 ```
 
-#### Sample Size Calculator
+</details>
 
-```python
-from src.utils.sample_size import (
-    sample_size_proportion,
-    sample_size_mean,
-    sample_size_comparison,
-    achieved_power_mean,
-    achieved_power_comparison,
-)
-
-# Minimum sample size to estimate a proportion within ±3% at 95% confidence
-n = sample_size_proportion(p=0.5, margin=0.03, alpha=0.05)
-
-# Minimum sample size to detect a mean difference of 5 with σ=12 at 80% power
-n = sample_size_mean(sigma=12, delta=5, alpha=0.05, power=0.80, sided="two")
-
-# Sample sizes for two-proportion comparison (detect 0.40 vs 0.50 with 80% power)
-n1, n2 = sample_size_comparison(p1=0.40, p2=0.50, alpha=0.05, power=0.80, sided="two")
-
-# Achieved power for a given sample size
-power = achieved_power_mean(n=100, sigma=12, delta=5, alpha=0.05, sided="two")
-
-# Achieved power for two-proportion comparison
-power = achieved_power_comparison(n_per_group=150, p1=0.40, p2=0.50, alpha=0.05, sided="two")
-```
-
-#### Linear Regression
+<details>
+<summary><strong>Linear Regression</strong></summary>
 
 ```python
 from src.utils.linear_regression import (
@@ -1538,26 +1710,40 @@ print(f"95% Confidence interval: [{conf_lower}, {conf_upper}]")
 print(f"95% Prediction interval: [{pred_lower}, {pred_upper}]")
 ```
 
-#### Monte Carlo Simulator
+</details>
+
+<details>
+<summary><strong>Sample Size Calculator</strong></summary>
 
 ```python
-from src.utils.monte_carlo import (
-    simulate_binomial,
-    simulate_birthday,
-    simulate_streak,
-    simulate_poisson,
-    wilson_ci,
-    standard_error,
+from src.utils.sample_size import (
+    sample_size_proportion,
+    sample_size_mean,
+    sample_size_comparison,
+    achieved_power_mean,
+    achieved_power_comparison,
 )
 
-# Simulate P(X >= 5) for Binomial(10, 0.4) over 100,000 trials
-results = simulate_binomial(n=10, k=5, p=0.4, trials=100_000, seed=42)
-p_hat = sum(results) / len(results)
-se = standard_error(p_hat, len(results))
-ci = wilson_ci(p_hat, len(results))
+# Minimum sample size to estimate a proportion within ±3% at 95% confidence
+n = sample_size_proportion(p=0.5, margin=0.03, alpha=0.05)
+
+# Minimum sample size to detect a mean difference of 5 with σ=12 at 80% power
+n = sample_size_mean(sigma=12, delta=5, alpha=0.05, power=0.80, sided="two")
+
+# Sample sizes for two-proportion comparison (detect 0.40 vs 0.50 with 80% power)
+n1, n2 = sample_size_comparison(p1=0.40, p2=0.50, alpha=0.05, power=0.80, sided="two")
+
+# Achieved power for a given sample size
+power = achieved_power_mean(n=100, sigma=12, delta=5, alpha=0.05, sided="two")
+
+# Achieved power for two-proportion comparison
+power = achieved_power_comparison(n_per_group=150, p1=0.40, p2=0.50, alpha=0.05, sided="two")
 ```
 
-#### Bootstrap Confidence Intervals
+</details>
+
+<details>
+<summary><strong>Bootstrap Confidence Intervals</strong></summary>
 
 ```python
 from src.utils.bootstrap_confidence_intervals import (
@@ -1597,85 +1783,10 @@ median_ci = compute_confidence_interval(bootstrap_medians, 0.90)
 print(f"90% CI for median: [{median_ci[0]:.4f}, {median_ci[1]:.4f}]")
 ```
 
-#### Time Series Forecasting
+</details>
 
-```python
-from src.utils.forecast_time_series import (
-    simple_exponential_smoothing,
-    double_exponential_smoothing,
-    holt_winters,
-    forecast_simple,
-    forecast_double,
-    forecast_holt_winters,
-)
-
-# Time series data
-sales_data = [120, 135, 148, 130, 142, 155, 160, 165, 172, 180]
-
-# Simple exponential smoothing (level only)
-fitted_simple, level = simple_exponential_smoothing(sales_data, alpha=0.3)
-forecasts_simple = forecast_simple(level, periods=3)
-print(f"Simple ES forecasts: {forecasts_simple}")
-
-# Double exponential smoothing (Holt's method: level + trend)
-fitted_double, level, trend = double_exponential_smoothing(sales_data, alpha=0.3, beta=0.1)
-forecasts_double = forecast_double(level, trend, periods=6)
-print(f"Double ES forecasts: {forecasts_double}")
-
-# Holt-Winters (level + trend + seasonal)
-# Requires at least 2 * seasonal_period data points
-monthly_data = [100, 110, 95, 105, 120, 115, 130, 140, 125, 135, 150,
-                145, 105, 115, 100, 110, 125, 120, 135, 145, 130, 140, 155, 150]
-fitted_hw, level, trend, seasonal = holt_winters(
-    monthly_data,
-    alpha=0.3,
-    beta=0.1,
-    gamma=0.1,
-    seasonal_period=12,
-    seasonal_type='additive'
-)
-forecasts_hw = forecast_holt_winters(
-    level, trend, seasonal, periods=6,
-    seasonal_period=12, seasonal_type='additive'
-)
-print(f"Holt-Winters forecasts: {[f'{x:.2f}' for x in forecasts_hw]}")
-```
-
-#### Collatz Conjecture
-
-```python
-from src.utils.collatz_conjecture import CollatzChecker, collatz_next
-
-# Create a Collatz checker instance
-checker = CollatzChecker()
-
-# Test the Collatz sequence for a single number
-n = 27
-sequence = [n]
-while n != 1:
-    n = collatz_next(n)
-    sequence.append(n)
-print(f"Collatz sequence for 27: {sequence[:10]}...")  # First 10 steps
-
-# Check all integers from 1 to 10000
-checker.ensure_up_to(10_000, check_interval=1000, verbose=False)
-print(f"Largest consecutive verified integer: {checker.max_valid}")
-
-# Check if specific numbers are proven to reach 1
-print(f"Is 9999 proven? {checker.proven(9999)}")
-print(f"Is 10000 proven? {checker.proven(10000)}")
-
-# Access the steps histogram (steps required to reach 1)
-print(f"Number of integers requiring exactly 10 steps: {checker.steps_histogram.get(10, 0)}")
-
-# Verify a larger range
-large_checker = CollatzChecker()
-large_checker.ensure_up_to(100_000, check_interval=10_000, verbose=False)
-print(f"Largest consecutive verified (up to 100k): {large_checker.max_valid}")
-print(f"Total numbers resolved: {len(large_checker.resolved)}")
-```
-
-#### Confidence Intervals (Parametric Methods)
+<details>
+<summary><strong>Confidence Intervals (Parametric Methods)</strong></summary>
 
 ```python
 from src.utils.confidence_intervals import (
@@ -1718,7 +1829,10 @@ lower, upper = poisson_interval(k=10, alpha=0.01)
 print(f"Poisson 99% CI for λ: [{lower:.4f}, {upper:.4f}]")
 ```
 
-#### Hypothesis Testing & p-values
+</details>
+
+<details>
+<summary><strong>Hypothesis Testing & p-values</strong></summary>
 
 ```python
 from src.utils.probability_values import (
@@ -1780,7 +1894,10 @@ else:
     print(f"Fail to reject H₀ (p = {p_value:.4f} ≥ α = {alpha})")
 ```
 
-#### T-Test
+</details>
+
+<details>
+<summary><strong>T-Test</strong></summary>
 
 ```python
 from src.utils.t_test import (
@@ -1828,7 +1945,94 @@ print(f"t = {result_p.t_stat:.4f}, p = {result_p.p_value:.4f}")
 print(f"Cohen's d: {result_p.cohens_d:.4f}")
 ```
 
-#### Jevons' Paradox
+</details>
+
+<details>
+<summary><strong>Time Series Forecasting</strong></summary>
+
+```python
+from src.utils.forecast_time_series import (
+    simple_exponential_smoothing,
+    double_exponential_smoothing,
+    holt_winters,
+    forecast_simple,
+    forecast_double,
+    forecast_holt_winters,
+)
+
+# Time series data
+sales_data = [120, 135, 148, 130, 142, 155, 160, 165, 172, 180]
+
+# Simple exponential smoothing (level only)
+fitted_simple, level = simple_exponential_smoothing(sales_data, alpha=0.3)
+forecasts_simple = forecast_simple(level, periods=3)
+print(f"Simple ES forecasts: {forecasts_simple}")
+
+# Double exponential smoothing (Holt's method: level + trend)
+fitted_double, level, trend = double_exponential_smoothing(sales_data, alpha=0.3, beta=0.1)
+forecasts_double = forecast_double(level, trend, periods=6)
+print(f"Double ES forecasts: {forecasts_double}")
+
+# Holt-Winters (level + trend + seasonal)
+# Requires at least 2 * seasonal_period data points
+monthly_data = [100, 110, 95, 105, 120, 115, 130, 140, 125, 135, 150,
+                145, 105, 115, 100, 110, 125, 120, 135, 145, 130, 140, 155, 150]
+fitted_hw, level, trend, seasonal = holt_winters(
+    monthly_data,
+    alpha=0.3,
+    beta=0.1,
+    gamma=0.1,
+    seasonal_period=12,
+    seasonal_type='additive'
+)
+forecasts_hw = forecast_holt_winters(
+    level, trend, seasonal, periods=6,
+    seasonal_period=12, seasonal_type='additive'
+)
+print(f"Holt-Winters forecasts: {[f'{x:.2f}' for x in forecasts_hw]}")
+```
+
+</details>
+
+<details>
+<summary><strong>Collatz Conjecture</strong></summary>
+
+```python
+from src.utils.collatz_conjecture import CollatzChecker, collatz_next
+
+# Create a Collatz checker instance
+checker = CollatzChecker()
+
+# Test the Collatz sequence for a single number
+n = 27
+sequence = [n]
+while n != 1:
+    n = collatz_next(n)
+    sequence.append(n)
+print(f"Collatz sequence for 27: {sequence[:10]}...")  # First 10 steps
+
+# Check all integers from 1 to 10000
+checker.ensure_up_to(10_000, check_interval=1000, verbose=False)
+print(f"Largest consecutive verified integer: {checker.max_valid}")
+
+# Check if specific numbers are proven to reach 1
+print(f"Is 9999 proven? {checker.proven(9999)}")
+print(f"Is 10000 proven? {checker.proven(10000)}")
+
+# Access the steps histogram (steps required to reach 1)
+print(f"Number of integers requiring exactly 10 steps: {checker.steps_histogram.get(10, 0)}")
+
+# Verify a larger range
+large_checker = CollatzChecker()
+large_checker.ensure_up_to(100_000, check_interval=10_000, verbose=False)
+print(f"Largest consecutive verified (up to 100k): {large_checker.max_valid}")
+print(f"Total numbers resolved: {len(large_checker.resolved)}")
+```
+
+</details>
+
+<details>
+<summary><strong>Jevons' Paradox</strong></summary>
 
 ```python
 from src.utils.jevons_paradox import (
@@ -1874,6 +2078,30 @@ result = analyze(baseline, eta, epsilon)
 print(f"Rebound rate: {result['rebound_pct']:.1f}%")
 print(f"Net consumption: {result['net_consumption']:.1f} units")
 ```
+
+</details>
+
+<details>
+<summary><strong>Monte Carlo Simulator</strong></summary>
+
+```python
+from src.utils.monte_carlo import (
+    simulate_binomial,
+    simulate_birthday,
+    simulate_streak,
+    simulate_poisson,
+    wilson_ci,
+    standard_error,
+)
+
+# Simulate P(X >= 5) for Binomial(10, 0.4) over 100,000 trials
+results = simulate_binomial(n=10, k=5, p=0.4, trials=100_000, seed=42)
+p_hat = sum(results) / len(results)
+se = standard_error(p_hat, len(results))
+ci = wilson_ci(p_hat, len(results))
+```
+
+</details>
 
 ## Development
 
