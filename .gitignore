@@ -209,3 +209,4 @@ __marimo__/
 [.|_]*.md
 _*.py
 AGENTS/
+.claude/
