@@ -803,6 +803,211 @@ fibonacci --lucas 15
 
 ---
 
+## 31. `sigmoid` — Sigmoid Function and Curve
+
+### Architecture
+- **Core functions:** `sigmoid(x)`, `sigmoid_derivative(x)`, `inverse_logit(p)`
+- Pure Python via `math.exp` — no external dependencies; shares internals with `logreg`
+- CLI flags: `-x`/`--value`, `--derivative` (return slope at x), `--range MIN MAX STEP` (table of values), `--plot` (Unicode sparkline; matplotlib curve if installed), `--precision`
+- Output: sigmoid value at x, optional derivative, optional range table
+
+```bash
+# Sigmoid value at x = 2.0
+sigmoid -x 2.0
+
+# Derivative (slope) at x = 0
+sigmoid -x 0 --derivative
+
+# Table of sigmoid values from -5 to 5 in steps of 1
+sigmoid --range -5 5 1
+
+# Inverse logit: what x gives P = 0.75?
+sigmoid --inverse --prob 0.75
+```
+
+### Application
+The sigmoid function maps any real number to (0, 1), making it the foundational activation function in neural networks and the link function in logistic regression. Used for probability squashing, S-curve growth modeling, dose-response curves, and anywhere a smooth transition between 0 and 1 is needed.
+
+### Target User Base
+- ML students and data scientists: _understanding neural network activations from first principles_
+- Statisticians: _exploring the logistic link function before fitting a `logreg` model_
+- Engineers and researchers: _modeling S-curve adoption, saturation, or dose-response phenomena_
+- Direct companion to `logreg` — where `sigmoid` evaluates the function itself, `logreg` fits it to data
+
+---
+
+## 32. `euler` — Euler's Constant and Related Functions
+
+### Architecture
+- **Core functions:** `e_approx(n)` (limit definition `(1 + 1/n)^n`), `exp_series(x, n)` (Taylor expansion of e^x), `euler_identity()`, `natural_log(x, n)`, `euler_mascheroni()`
+- Pure Python via `math` — no external dependencies
+- CLI flags: `--approx N` (convergence to e via limit), `--exp X` (e^x via series), `--identity` (display Euler's identity), `--ln X` (natural log), `--mascheroni` (γ constant), `--precision INT`, `--format {table,json}`
+- Output: value, convergence table (for `--approx`), comparison to `math.e` / `math.log`
+
+```bash
+# Approximate e using the limit definition with n = 1,000,000
+euler --approx 1000000
+
+# e^2 via Taylor series to 10th order
+euler --exp 2 --order 10 --compare
+
+# Display Euler's identity: e^(iπ) + 1 = 0
+euler --identity --precision 15
+
+# Natural log of 10
+euler --ln 10
+```
+
+### Application
+Euler's number e ≈ 2.71828 is the base of natural logarithms and the foundation of continuous compounding, exponential growth/decay, complex analysis, and information theory. Appearing in probability (normal distribution, Poisson), finance (continuous interest), and physics (radioactive decay), it is one of the five most important constants in mathematics. This tool makes e and its properties tactile and interactive.
+
+### Target User Base
+- Students and educators: _verifying convergence of the limit definition, exploring Taylor series for e^x_
+- Financial analysts: _computing continuous compounding values (complement to `compound`'s `--continuous` mode)_
+- Scientists and engineers: _evaluating e^x and ln(x) with explicit series-order control for numerical methods_
+- A foundational "pure math" companion to `fibonacci` and `taylor` — serving users who want to explore mathematical constants interactively
+
+---
+
+## 33. `logreg` — Logistic Regression
+
+### Architecture
+- **Core functions:** `fit(X, y)` → coefficients, SE, z-stats, p-values, log-likelihood; `predict_proba(X, coeffs)` → probability; `predict_class(X, coeffs, threshold)` → binary label; `log_odds(p)` → logit
+- Gradient-descent or Newton-Raphson fitting via `math` — no required external dependencies; optional `numpy` for matrix operations on larger datasets
+- CLI flags: `--file CSV`, `--target COL`, `--features COL [...]` (default: all non-target), `--threshold F` (classification cutoff, default 0.5), `--alpha F` (significance level), `--predict-file CSV`, `--format {table,json,csv}`, `--max-iter INT`, `--precision INT`
+- Output: coefficient table (estimate, SE, z-stat, p-value, OR = exp(coeff)), model summary (log-likelihood, AIC, BIC, pseudo-R²), confusion matrix, accuracy/precision/recall/F1
+
+```bash
+# Fit logistic regression from CSV; default threshold 0.5
+logreg --file patient_data.csv --target disease
+
+# Specify features and lower classification threshold (favor recall)
+logreg --file churn.csv --target churned --features tenure spend logins --threshold 0.3
+
+# Score new observations
+logreg --file train.csv --target clicked --predict-file new_users.csv --format json
+```
+
+### Application
+Logistic regression is the workhorse binary classifier, directly modeling the probability of a binary outcome as a sigmoid function of linear predictors. It underpins medical diagnosis (disease yes/no), marketing (click/no-click), credit scoring (default/no-default), and any domain where the outcome is binary and interpretability matters. Coefficients as odds ratios make results directly communicable to non-technical stakeholders.
+
+### Target User Base
+- Data scientists and analysts: _baseline binary classifier before trying more complex models_
+- Medical and public health researchers: _odds ratio estimation and risk factor analysis_
+- Marketing and product analysts: _conversion and churn modeling_
+- The "classification" counterpart to `linreg` — users who reach "my outcome is binary" will reach for `logreg` just as `linreg` users reach for it when the outcome is continuous
+
+---
+
+## 34. `breakeven` — Break-Even Analysis
+
+### Architecture
+- **Core functions:** `breakeven_units(fixed, price, variable)`, `breakeven_revenue(fixed, margin)`, `margin_of_safety(actual_units, breakeven_units)`, `target_profit_units(fixed, price, variable, profit)`
+- Pure Python — no external dependencies; optional `matplotlib` for a revenue/cost curve chart
+- CLI flags: `--fixed F` (total fixed costs), `--price F` (selling price per unit), `--variable F` (variable cost per unit), `--target-profit F` (optional: units needed for a profit target), `--margin` (compute contribution margin and ratio), `--sweep MIN MAX STEP` (table across price or unit range), `--chart` (text bar chart or matplotlib curve if available), `--format {table,json,csv}`, `--precision`
+- Output: break-even units, break-even revenue, contribution margin, margin of safety; optional profit/loss table across unit range
+
+```bash
+# Basic break-even: fixed costs $50k, price $25, variable cost $10 per unit
+breakeven --fixed 50000 --price 25 --variable 10
+
+# How many units to hit $20,000 profit?
+breakeven --fixed 50000 --price 25 --variable 10 --target-profit 20000
+
+# Sweep: profit/loss table from 0 to 8,000 units in steps of 500
+breakeven --fixed 50000 --price 25 --variable 10 --sweep 0 8000 500
+
+# Chart the revenue vs total-cost curves (matplotlib or text fallback)
+breakeven --fixed 50000 --price 25 --variable 10 --chart
+```
+
+### Application
+Break-even analysis is the foundational tool for business viability assessment: at what volume does a product, project, or business become profitable? Used in startup planning, product launches, pricing decisions, event budgeting, and investment threshold analysis. The `--sweep` flag and optional chart make it especially actionable for scenario planning and presentations.
+
+### Target User Base
+- Entrepreneurs and small business owners: _validating whether a product can be profitable before launch_
+- Finance and business analysts: _building pricing models and scenario analyses_
+- Students: _learning managerial accounting and cost-volume-profit relationships_
+- A practical "real-world math" companion to `compound` and `expected` — the most immediately applicable tool for anyone with a revenue model
+
+---
+
+## 35. `grover` — Grover's Quantum Search Algorithm Simulator
+
+### Architecture
+- **Core functions:** `optimal_iterations(n)` → `floor(π/4 · √n)`; `success_probability(n, k, iterations)` → analytical amplitude calculation; `amplitude_evolution(n, k, t)` → probability at each step; `speedup_ratio(n)` → classical vs quantum step ratio
+- Pure Python — no external dependencies (quantum amplitudes computed analytically from trigonometry via `math`)
+- CLI flags: `-n`/`--items INT` (search space size), `-k`/`--targets INT` (number of marked items, default 1), `--iterations INT` (override optimal; default = optimal), `--compare` (side-by-side classical O(n) vs quantum O(√n) step counts), `--sweep` (table of success probability across iteration counts), `--format {table,json}`
+- Output: optimal iteration count, success probability at optimal iterations, amplitude evolution table, classical vs quantum step comparison
+
+```bash
+# Optimal Grover search over 1,024 items (1 target)
+grover -n 1024
+
+# Search with 3 marked targets in a space of 256
+grover -n 256 -k 3
+
+# Compare classical vs quantum steps across space sizes 2^4 through 2^20
+grover --compare --sweep 16 1048576
+
+# Show how success probability evolves over each iteration
+grover -n 512 --sweep
+```
+
+### Application
+Grover's algorithm provides a provable quadratic speedup over classical unstructured search, finding a marked item in N elements with O(√N) oracle queries versus O(N) classically. It is a cornerstone result in quantum computing and cryptanalysis (implications for symmetric key security). This tool provides an analytical simulator — computing exact probabilities from amplitude equations — making the algorithm accessible without a quantum hardware or full quantum circuit simulator.
+
+### Target User Base
+- CS and physics students: _visualizing quantum amplitude amplification and understanding the quadratic speedup_
+- Quantum computing researchers and educators: _demonstrating Grover's oracle complexity interactively_
+- Security engineers: _understanding quantum threats to symmetric cryptographic primitives_
+- The most conceptually distinctive tool in the suite — bridging classical probability and quantum information theory
+
+---
+
+## 36. `collatz` — Collatz Conjecture *(implemented)*
+
+> **Status:** Already implemented in `src/utils/collatz_conjecture.py`.
+
+### Application
+Applies the Collatz function iteratively: if n is even, divide by 2; if odd, multiply by 3 and add 1. The conjecture states every positive integer eventually reaches 1. The tool computes the full sequence, stopping time (number of steps to reach 1), and maximum value reached. A touchstone for recreational mathematics, algorithm complexity, and number theory education.
+
+### Target User Base
+- Students and educators: _exploring number theory and iterative processes_
+- Mathematicians and hobbyists: _investigating stopping times, hailstone sequences, and open conjectures_
+- Programmers: _using as a benchmark or teaching example for recursion and memoization_
+
+---
+
+## 37. `jevons` — Jevons Paradox *(implemented)*
+
+> **Status:** Already implemented in `src/utils/jevons_paradox.py`.
+
+### Application
+Models the Jevons Paradox: increases in resource efficiency often lead to increased total resource consumption due to an increase in demand. Quantifies rebound effects given efficiency gain and demand elasticity. Applicable to energy economics, environmental policy analysis, and technology adoption modeling.
+
+### Target User Base
+- Economists and policy analysts: _modeling rebound effects in energy or resource efficiency programs_
+- Researchers and students: _studying sustainability, environmental economics, or technological change_
+- Data analysts: _quantifying whether efficiency gains translate to real resource reductions or are offset by demand growth_
+
+---
+
+## 38. `pythagorean` — Pythagorean Win Expectation *(implemented)*
+
+> **Status:** Already implemented in `src/utils/pythagorean_record.py`.
+
+### Application
+Applies the Pythagorean expectation formula from sports analytics — originally developed for baseball by Bill James — to estimate a team's expected win percentage from runs scored and runs allowed: `W% = RS² / (RS² + RA²)`. Generalized to other sports with adjustable exponents. Used for identifying over- and under-performing teams and projecting season records.
+
+### Target User Base
+- Sports analysts and statisticians: _benchmarking actual vs expected team performance_
+- Fantasy sports participants: _identifying regression candidates based on luck-adjusted records_
+- Educators: _teaching applied statistics and modeling in a sports context_
+- A domain-specific companion to `streak` and `binom` for the sports analytics corner of the suite
+
+---
+
 ## Summary Table
 
 | Command | Distribution / Concept | Deps (optional*) | Zero-dep fallback? | Closest existing tool |
@@ -837,5 +1042,13 @@ fibonacci --lucas 15
 | `matrix`      | Matrix operations & linear algebra           | `numpy`*                  | ✅ nested lists    | `mlreg`               |
 | `prime`       | Prime number tools & factorization           | None                      | N/A                | N/A                   |
 | `fibonacci`   | Fibonacci sequence & golden ratio            | None                      | N/A                | N/A                   |
+| `sigmoid`     | Sigmoid function and S-curve                         | None                      | N/A                | `normal`                      |
+| `euler`       | Euler's constant and related functions               | None                      | N/A                | `fibonacci` / `taylor`        |
+| `logreg`      | Logistic regression (binary classifier)              | `numpy`*                  | ✅ gradient descent | `linreg`                     |
+| `breakeven`   | Break-even analysis and cost-volume-profit           | `matplotlib`*             | ✅ text table       | `compound` / `expected`      |
+| `grover`      | Grover's quantum search algorithm simulator          | None                      | N/A                | `prime` / `fibonacci`         |
+| `collatz`     | Collatz conjecture / hailstone sequences *(impl.)*  | None                      | N/A                | `fibonacci`                   |
+| `jevons`      | Jevons paradox / rebound effect modeling *(impl.)*  | None                      | N/A                | `expected`                    |
+| `pythagorean` | Pythagorean win expectation *(impl.)*                | None                      | N/A                | `streak` / `binom`            |
 
 \* _Optional dependency: functionality exists but reduced output capability without the package._
