@@ -28,9 +28,11 @@ For the full list of implemented tools and their CLI entry points, see `README.m
 | `pythag` | Pythagorean win expectation |
 | `sample` | Sample size calculator |
 | `simulate` | Monte Carlo probability simulator |
+| `sigmoid` | Sigmoid function σ(x), derivative, inverse logit, and Unicode sparkline |
 | `spearman` | Spearman rank correlation |
 | `streak` | Consecutive success/failure streak probability |
 | `ttest` | One- and two-sample t-tests |
+| `euler` | Euler's number via limit/series, e^x, ln(x), identity, and γ constant |
 | `zscore` | Z-score calculator |
 
 ---
@@ -450,73 +452,7 @@ fibonacci --approx 40
 
 ---
 
-## 14. `sigmoid` — Sigmoid Function and Curve
-
-### Architecture
-- **Core functions:** `sigmoid(x)`, `sigmoid_derivative(x)`, `inverse_logit(p)`
-- Pure Python via `math.exp` — no external dependencies; shares internals with `logreg`
-- CLI flags: `-x`/`--value`, `--derivative` (return slope at x), `--range MIN MAX STEP` (table of values), `--plot` (Unicode sparkline; matplotlib curve if installed), `--precision`
-- Output: sigmoid value at x, optional derivative, optional range table
-
-### Application
-The sigmoid function maps any real number to (0, 1), making it the foundational activation function in neural networks and the link function in logistic regression. Used for probability squashing, S-curve growth modeling, dose-response curves, and anywhere a smooth transition between 0 and 1 is needed.
-
-```bash
-# Sigmoid value at x = 2.0
-sigmoid -x 2.0
-
-# Derivative (slope) at x = 0
-sigmoid -x 0 --derivative
-
-# Table of sigmoid values from -5 to 5 in steps of 1
-sigmoid --range -5 5 1
-
-# Inverse logit: what x gives P = 0.75?
-sigmoid --inverse --prob 0.75
-```
-
-### Target User Base
-- ML students and data scientists: _understanding neural network activations from first principles_
-- Statisticians: _exploring the logistic link function before fitting a `logreg` model_
-- Engineers and researchers: _modeling S-curve adoption, saturation, or dose-response phenomena_
-- Direct companion to `logreg` — where `sigmoid` evaluates the function itself, `logreg` fits it to data
-
----
-
-## 15. `euler` — Euler's Constant and Related Functions
-
-### Architecture
-- **Core functions:** `e_approx(n)` (limit definition `(1 + 1/n)^n`), `exp_series(x, n)` (Taylor expansion of e^x), `euler_identity()`, `natural_log(x, n)`, `euler_mascheroni()`
-- Pure Python via `math` — no external dependencies
-- CLI flags: `--approx N` (convergence to e via limit), `--exp X` (e^x via series), `--identity` (display Euler's identity), `--ln X` (natural log), `--mascheroni` (γ constant), `--precision INT`, `--format {table,json}`
-- Output: value, convergence table (for `--approx`), comparison to `math.e` / `math.log`
-
-### Application
-Euler's number e ≈ 2.71828 is the base of natural logarithms and the foundation of continuous compounding, exponential growth/decay, complex analysis, and information theory. Appearing in probability (normal distribution, Poisson), finance (continuous interest), and physics (radioactive decay), it is one of the five most important mathematical constants.
-
-```bash
-# Approximate e using the limit definition with n = 1,000,000
-euler --approx 1000000
-
-# e^2 via Taylor series to 10th order
-euler --exp 2 --order 10 --compare
-
-# Display Euler's identity: e^(iπ) + 1 = 0
-euler --identity --precision 15
-
-# Natural log of 10
-euler --ln 10
-```
-
-### Target User Base
-- Students and educators: _verifying convergence of the limit definition, exploring Taylor series for e^x_
-- Financial analysts: _computing continuous compounding values (complement to `compound`'s `--continuous` mode)_
-- Scientists and engineers: _evaluating e^x and ln(x) with explicit series-order control for numerical methods_
-- A foundational "pure math" companion to `fibonacci` and `taylor` — serving users who want to explore mathematical constants interactively
-
----
-
-## 16. `logreg` — Logistic Regression
+## 14. `logreg` — Logistic Regression
 
 ### Architecture
 - **Core functions:** `fit(X, y)` → coefficients, SE, z-stats, p-values, log-likelihood; `predict_proba(X, coeffs)` → probability; `predict_class(X, coeffs, threshold)` → binary label; `log_odds(p)` → logit
@@ -546,7 +482,7 @@ logreg --file train.csv --target clicked --predict-file new_users.csv --format j
 
 ---
 
-## 17. `breakeven` — Break-Even Analysis
+## 15. `breakeven` — Break-Even Analysis
 
 ### Architecture
 - **Core functions:** `breakeven_units(fixed, price, variable)`, `breakeven_revenue(fixed, margin)`, `margin_of_safety(actual_units, breakeven_units)`, `target_profit_units(fixed, price, variable, profit)`
@@ -576,7 +512,7 @@ breakeven --fixed 50000 --price 25 --variable 10 --sweep 0 8000 500
 
 ---
 
-## 18. `grover` — Grover's Quantum Search Algorithm Simulator
+## 16. `grover` — Grover's Quantum Search Algorithm Simulator
 
 ### Architecture
 - **Core functions:** `optimal_iterations(n)` → `floor(π/4 · √n)`; `success_probability(n, k, iterations)` → analytical amplitude calculation; `amplitude_evolution(n, k, t)` → probability at each step; `speedup_ratio(n)` → classical vs quantum step ratio
@@ -606,7 +542,7 @@ grover --compare --sweep 16 1048576
 
 ---
 
-## 19. `anova` — One-Way Analysis of Variance
+## 17. `anova` — One-Way Analysis of Variance
 
 ### Architecture
 - **Core functions:** `anova_one_way(groups)` → F-stat, p-value, df_between, df_within, SS_between, SS_within, MS values; `tukey_hsd(groups)` → pairwise mean differences with adjusted p-values; `bonferroni(groups, alpha)` → corrected per-comparison α
@@ -636,7 +572,7 @@ Tests whether the means of three or more independent groups are equal — the na
 
 ---
 
-## 20. `geometric` — Geometric Distribution Calculator
+## 18. `geometric` — Geometric Distribution Calculator
 
 ### Architecture
 - **Core functions:** `geo_pmf(k, p)`, `geo_cdf(k, p)`, `geo_survival(k, p)`, `geo_mean(p)`, `geo_variance(p)`
@@ -666,7 +602,7 @@ Models "how many independent trials until the first success?" — the discrete-t
 
 ---
 
-## 21. `exponential` — Exponential Distribution Calculator
+## 19. `exponential` — Exponential Distribution Calculator
 
 ### Architecture
 - **Core functions:** `exp_pdf(x, lam)`, `exp_cdf(x, lam)`, `exp_survival(x, lam)`, `exp_hazard(x, lam)`, `exp_quantile(p, lam)`
@@ -696,7 +632,7 @@ The continuous analog of the geometric distribution; models waiting times betwee
 
 ---
 
-## 22. `describe` — Descriptive Statistics
+## 20. `describe` — Descriptive Statistics
 
 ### Architecture
 - **Core functions:** `describe(data)` → n, mean, median, mode, std, variance, min, max, q1, q3, iqr, skewness, kurtosis, range, cv (coefficient of variation)
@@ -726,7 +662,7 @@ Produces a one-shot summary of a dataset's location, spread, shape, and outlier 
 
 ---
 
-## 23. `entropy` — Information Entropy
+## 21. `entropy` — Information Entropy
 
 ### Architecture
 - **Core functions:** `shannon_entropy(probs, base)` → bits (base 2) or nats (base e); `kl_divergence(p, q)` → KL(P‖Q); `cross_entropy(p, q)`; `mutual_information(joint)`; `conditional_entropy(joint)`
@@ -756,7 +692,7 @@ Shannon entropy quantifies the uncertainty or information content of a probabili
 
 ---
 
-## 24. `effect` — Effect Size Calculator
+## 22. `effect` — Effect Size Calculator
 
 ### Architecture
 - **Core functions:** `cohens_d(mean1, mean2, std1, std2, n1, n2)` → d and pooled SE; `eta_squared(ss_between, ss_total)` → η²; `omega_squared(ss_between, ms_within, k, n)` → ω²; `odds_ratio(a, b, c, d)` → OR and 95% CI; `risk_ratio(a, b, c, d)` → RR; `r_from_t(t, df)` → Pearson r
@@ -786,7 +722,7 @@ p-values tell you whether an effect exists; effect sizes tell you how large it i
 
 ---
 
-## 25. `combinatorics` — Permutations, Combinations & Counting
+## 23. `combinatorics` — Permutations, Combinations & Counting
 
 ### Architecture
 - **Core functions:** `permutations(n, r)`, `combinations(n, r)` (via `math.comb`), `multinomial(n, *ks)`, `derangements(n)`, `catalan(n)`, `stirling2(n, k)` (Stirling numbers, second kind), `bell(n)` (Bell numbers)
@@ -822,7 +758,7 @@ Counting functions underpin probability calculations everywhere — the denomina
 
 ---
 
-## 26. `weibull` — Weibull Distribution Calculator
+## 24. `weibull` — Weibull Distribution Calculator
 
 ### Architecture
 - **Core functions:** `weibull_pdf(x, k, lam)`, `weibull_cdf(x, k, lam)`, `weibull_survival(x, k, lam)`, `weibull_hazard(x, k, lam)`, `weibull_quantile(p, k, lam)`, `weibull_mean(k, lam)` (via `math.lgamma`)
@@ -869,8 +805,6 @@ weibull -k 2.5 --lambda 1200 --table 0 2000 200
 | `compound`     | Compound interest & time value of money      | None                               | N/A                | `expected`                | #25 |
 | `matrix`       | Matrix operations & linear algebra           | `numpy`*                           | ✅ nested lists    | `mlreg`                   | #26 |
 | `fibonacci`    | Fibonacci sequence & golden ratio            | None                               | N/A                | N/A                       | #27 |
-| `sigmoid`      | Sigmoid function and S-curve                 | None                               | N/A                | `normal`                  | #8  |
-| `euler`        | Euler's constant and related functions       | None                               | N/A                | `fibonacci` / `taylor`    | #9  |
 | `logreg`       | Logistic regression (binary classifier)      | `numpy`*                           | ✅ gradient descent| `linreg`                  | #10 |
 | `breakeven`    | Break-even analysis and cost-volume-profit   | `matplotlib`*                      | ✅ text table      | `compound` / `expected`   | #14 |
 | `grover`       | Grover's quantum search algorithm simulator  | None                               | N/A                | `prime` / `fibonacci`     | #16 |
