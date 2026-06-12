@@ -33,9 +33,9 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Time Series Forecasting** | Forecast future values with prediction intervals using simple, double (Holt's), or Holt-Winters exponential smoothing; supports backtesting and multiple output formats |
 | **Collatz Conjecture** | Evaluate the Collatz conjecture (3n+1 problem) for positive integers up to n; track which numbers reach 1 and report the largest consecutive verified sequence |
 | **Jevons' Paradox** | Quantify the rebound effect and backfire condition for resource efficiency improvements; compute expected savings, rebound consumption, actual savings, and net consumption change given an efficiency gain and price elasticity of demand; support sweeps over efficiency or elasticity ranges |
-| **Monte Carlo Simulator** | Empirically estimate probabilities for `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, `linboot` experiments with confidence intervals and analytical comparison |
 | **Sigmoid Function** | Evaluate σ(x) = 1/(1+e^(−x)), its derivative, and the inverse logit; range tables and Unicode sparkline |
 | **Euler's Number** | Explore e via limit convergence, Taylor series for e^x and ln(x), Euler's identity, and the Euler-Mascheroni constant |
+| **Monte Carlo Simulator** | Empirically estimate probabilities for `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, `linboot` experiments with confidence intervals and analytical comparison |
 | **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, and `euler` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
@@ -85,9 +85,9 @@ pip install -e .
 | `forecast` | Exponential smoothing: simple, Holt's method, and Holt-Winters |
 | `collatz` | Collatz conjecture (3n+1) verification for integers 1 through n |
 | `jevons` | Rebound effect and backfire analysis for resource efficiency improvements |
-| `simulate` | Monte Carlo estimation with confidence intervals and analytical comparison |
 | `sigmoid` | Sigmoid σ(x), derivative σ'(x), inverse logit, range tables, and Unicode sparkline |
 | `euler` | Euler's number via limit/series, e^x Taylor series, ln(x) series, Euler's identity, and γ constant |
+| `simulate` | Monte Carlo estimation with confidence intervals and analytical comparison |
 
 ---
 
@@ -2082,30 +2082,8 @@ result = analyze(baseline, eta, epsilon)
 print(f"Rebound rate: {result['rebound_pct']:.1f}%")
 print(f"Net consumption: {result['net_consumption']:.1f} units")
 ```
-
 </details>
 
-<details>
-<summary><strong>Monte Carlo Simulator</strong></summary>
-
-```python
-from src.utils.monte_carlo import (
-    simulate_binomial,
-    simulate_birthday,
-    simulate_streak,
-    simulate_poisson,
-    wilson_ci,
-    standard_error,
-)
-
-# Simulate P(X >= 5) for Binomial(10, 0.4) over 100,000 trials
-results = simulate_binomial(n=10, k=5, p=0.4, trials=100_000, seed=42)
-p_hat = sum(results) / len(results)
-se = standard_error(p_hat, len(results))
-ci = wilson_ci(p_hat, len(results))
-```
-
-</details>
 
 <details>
 <summary><strong><code>sigmoid</code></strong> — Sigmoid Function and Logistic Curve</summary>
@@ -2150,7 +2128,6 @@ sigma = sigmoid(2.0)          # 0.8807970779778823
 dsigma = sigmoid_derivative(0.0)  # 0.25
 x = inverse_logit(0.75)       # 1.0986122886681098
 ```
-
 </details>
 
 <details>
@@ -2204,6 +2181,30 @@ real, imag, total = euler_identity() # (-1.0, ~0.0, ~0.0)
 ```
 
 </details>
+
+
+<details>
+<summary><strong>Monte Carlo Simulator</strong></summary>
+
+```python
+from src.utils.monte_carlo import (
+    simulate_binomial,
+    simulate_birthday,
+    simulate_streak,
+    simulate_poisson,
+    wilson_ci,
+    standard_error,
+)
+
+# Simulate P(X >= 5) for Binomial(10, 0.4) over 100,000 trials
+results = simulate_binomial(n=10, k=5, p=0.4, trials=100_000, seed=42)
+p_hat = sum(results) / len(results)
+se = standard_error(p_hat, len(results))
+ci = wilson_ci(p_hat, len(results))
+```
+
+</details>
+
 
 ## Development
 
