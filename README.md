@@ -34,7 +34,9 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Collatz Conjecture** | Evaluate the Collatz conjecture (3n+1 problem) for positive integers up to n; track which numbers reach 1 and report the largest consecutive verified sequence |
 | **Jevons' Paradox** | Quantify the rebound effect and backfire condition for resource efficiency improvements; compute expected savings, rebound consumption, actual savings, and net consumption change given an efficiency gain and price elasticity of demand; support sweeps over efficiency or elasticity ranges |
 | **Monte Carlo Simulator** | Empirically estimate probabilities for `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, `linboot` experiments with confidence intervals and analytical comparison |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, and `simulate` commands |
+| **Sigmoid Function** | Evaluate σ(x) = 1/(1+e^(−x)), its derivative, and the inverse logit; range tables and Unicode sparkline |
+| **Euler's Number** | Explore e via limit convergence, Taylor series for e^x and ln(x), Euler's identity, and the Euler-Mascheroni constant |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, and `euler` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -84,6 +86,8 @@ pip install -e .
 | `collatz` | Collatz conjecture (3n+1) verification for integers 1 through n |
 | `jevons` | Rebound effect and backfire analysis for resource efficiency improvements |
 | `simulate` | Monte Carlo estimation with confidence intervals and analytical comparison |
+| `sigmoid` | Sigmoid σ(x), derivative σ'(x), inverse logit, range tables, and Unicode sparkline |
+| `euler` | Euler's number via limit/series, e^x Taylor series, ln(x) series, Euler's identity, and γ constant |
 
 ---
 
@@ -2099,6 +2103,104 @@ results = simulate_binomial(n=10, k=5, p=0.4, trials=100_000, seed=42)
 p_hat = sum(results) / len(results)
 se = standard_error(p_hat, len(results))
 ci = wilson_ci(p_hat, len(results))
+```
+
+</details>
+
+<details>
+<summary><strong><code>sigmoid</code></strong> — Sigmoid Function and Logistic Curve</summary>
+
+Computes the sigmoid (logistic) function σ(x) = 1 / (1 + e^(−x)), its derivative σ'(x) = σ(x)(1 − σ(x)), and the inverse logit. Supports single-value evaluation, range tables with optional derivative column, and a Unicode sparkline visualisation of the S-curve.
+
+```bash
+# Sigmoid value at x = 2.0
+sigmoid -x 2.0
+
+# Sigmoid and its derivative at x = 0
+sigmoid -x 0 --derivative
+
+# Range table from -5 to 5 in steps of 1
+sigmoid --range -5 5 1
+
+# Range table with derivative column and sparkline
+sigmoid --range -4 4 0.5 --derivative --plot
+
+# Inverse logit: find x such that σ(x) = 0.75
+sigmoid --inverse --prob 0.75
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-x` | `--value` | Evaluate sigmoid at a single value |
+| | `--range MIN MAX STEP` | Print a table over [MIN, MAX] in steps of STEP |
+| | `--inverse` | Compute the inverse logit (logit function) |
+| `-p` | `--prob` | Probability in (0, 1) for `--inverse` mode |
+| `-d` | `--derivative` | Also show σ'(x) |
+| | `--plot` | Append a Unicode sparkline of the sigmoid curve |
+| `-P` | `--precision` | Decimal places (default: `6`) |
+
+### 🐍 Python Library
+
+```python
+from src.utils.sigmoid import sigmoid, sigmoid_derivative, inverse_logit
+
+sigma = sigmoid(2.0)          # 0.8807970779778823
+dsigma = sigmoid_derivative(0.0)  # 0.25
+x = inverse_logit(0.75)       # 1.0986122886681098
+```
+
+</details>
+
+<details>
+<summary><strong><code>euler</code></strong> — Euler's Number and Related Functions</summary>
+
+Explores Euler's number e ≈ 2.71828 through multiple lenses: the classic limit definition (1 + 1/n)^n, Taylor series for e^x and ln(x), Euler's identity e^(iπ) + 1 = 0, and the Euler-Mascheroni constant γ ≈ 0.5772. Supports table and JSON output.
+
+```bash
+# Convergence table for (1+1/n)^n up to n = 1,000,000
+euler --approx 1000000
+
+# e^2 via 10th-order Taylor series, compared to math.exp
+euler --exp 2 --order 10 --compare
+
+# Display Euler's identity at 15 decimal places
+euler --identity --precision 15
+
+# ln(10) via arctanh series with comparison
+euler --ln 10 --compare
+
+# Euler-Mascheroni constant γ
+euler --mascheroni
+
+# JSON output for downstream processing
+euler --exp 1 --compare --format json
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--approx N` | Show convergence of (1+1/N)^N to e at logarithmic steps |
+| | `--exp X` | Compute e^X via Taylor series |
+| | `--identity` | Display Euler's identity: e^(iπ) + 1 = 0 |
+| | `--ln X` | Approximate ln(X) via arctanh series |
+| | `--mascheroni` | Display the Euler-Mascheroni constant γ |
+| | `--order N` | Number of series terms for `--exp` / `--ln` (default: `20`) |
+| | `--compare` | Compare series result to `math.exp` / `math.log` reference |
+| `-P` | `--precision` | Decimal places (default: `10`) |
+| `-f` | `--format` | Output format: `table` (default) or `json` |
+
+### 🐍 Python Library
+
+```python
+from src.utils.euler import e_approx, exp_series, natural_log, euler_identity
+
+approx = e_approx(1_000_000)        # 2.718280469...
+ex = exp_series(1.0, 50)            # ≈ math.e to 15+ decimal places
+ln2 = natural_log(2.0, 100)         # ≈ 0.693147...
+real, imag, total = euler_identity() # (-1.0, ~0.0, ~0.0)
 ```
 
 </details>

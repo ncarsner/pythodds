@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.19.0] — 2026-06-12
+
+### Added
+- Sigmoid function tool (`sigmoid`) — σ(x), derivative, inverse logit, and Unicode sparkline
+- Euler's number tool (`euler`) — limit convergence, e^x Taylor series, ln(x) series, Euler's identity, and Euler-Mascheroni constant
+
+---
+
 ## [0.18.0] — 2026-05-11
 
 ### Added
