@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.20.0] — 2026-06-13
+
+### Added
+- Gini coefficient tool (`gini`) — inequality measurement from raw data, weighted samples, grouped shares, Lorenz curve, and multi-dataset comparison
+- Sunzi's Theorem tool (`crt`) — simultaneous congruence solver supporting coprime and non-coprime moduli
+
+---
+
 ## [0.19.0] — 2026-06-12
 
 ### Added
