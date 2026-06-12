@@ -36,7 +36,7 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Sigmoid Function** | Evaluate σ(x) = 1/(1+e^(−x)), its derivative, and the inverse logit; range tables and Unicode sparkline |
 | **Euler's Number** | Explore e via limit convergence, Taylor series for e^x and ln(x), Euler's identity, and the Euler-Mascheroni constant |
 | **Monte Carlo Simulator** | Empirically estimate probabilities for `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, `linboot` experiments with confidence intervals and analytical comparison |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, and `euler` commands |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, and `crt` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -87,6 +87,8 @@ pip install -e .
 | `jevons` | Rebound effect and backfire analysis for resource efficiency improvements |
 | `sigmoid` | Sigmoid σ(x), derivative σ'(x), inverse logit, range tables, and Unicode sparkline |
 | `euler` | Euler's number via limit/series, e^x Taylor series, ln(x) series, Euler's identity, and γ constant |
+| `gini` | Gini coefficient and Lorenz curve from raw data, weighted samples, or grouped shares |
+| `crt` | Sunzi's Theorem solver for systems of simultaneous congruences |
 | `simulate` | Monte Carlo estimation with confidence intervals and analytical comparison |
 
 ---
@@ -1351,6 +1353,8 @@ simulate --experiment linboot --params x=1,2,3,4,5 y=2.1,3.9,6.2,7.8,10.1 predic
 | Forecast | `src.utils.forecast_time_series` | `simple_exponential_smoothing`, `double_exponential_smoothing`, `holt_winters` |
 | Collatz | `src.utils.collatz_conjecture` | `CollatzChecker`, `collatz_next` |
 | Jevons | `src.utils.jevons_paradox` | `analyze`, `expected_savings`, `rebound_consumption`, `net_consumption`, `is_backfire` |
+| Gini | `src.utils.gini` | `gini_coefficient`, `lorenz_curve`, `relative_mad`, `gini_grouped` |
+| CRT | `src.utils.crt` | `extended_gcd`, `mod_inverse`, `crt` |
 | Monte Carlo | `src.utils.monte_carlo` | `simulate_binomial`, `simulate_birthday`, `simulate_streak`, `simulate_poisson`, `simulate_power`, `simulate_permutation`, `simulate_bayes`, `simulate_season`, `simulate_linboot` |
 
 ---
@@ -2205,6 +2209,56 @@ ci = wilson_ci(p_hat, len(results))
 
 </details>
 
+<details>
+<summary><strong><code>gini</code></strong> — Gini Coefficient and Lorenz Curve</summary>
+
+Computes the Gini coefficient and Lorenz curve for inequality measurement. Supports raw observations, optional positive weights for weighted samples, and pre-aggregated population/income share pairs (grouped mode). Groups are sorted internally by ascending per-capita income before constructing the Lorenz curve. Includes relative mean absolute difference (RMAD = 2 × Gini) and an optional n/(n−1) small-sample bias correction. Multi-dataset mode ranks all datasets by Gini from most equal to least equal.
+
+```bash
+# Single dataset — point estimate
+gini --data 1 2 3 4 5
+
+# Weighted samples
+gini --data 10 30 50 80 --weights 4 3 2 1
+
+# Lorenz curve coordinates
+gini --data 1 2 3 4 5 --lorenz --precision 4
+
+# With bias correction
+gini --data 1 2 3 4 5 --correct
+
+# Grouped (population share / income share pairs)
+gini --groups 0.2 0.05 0.3 0.15 0.5 0.80
+
+# Compare multiple datasets
+gini --data 1 2 3 --data 5 5 90 --data 30 35 35
+
+# JSON output
+gini --data 1 2 3 4 5 --format json
+```
+
+</details>
+
+<details>
+<summary><strong><code>crt</code></strong> — Sunzi's Theorem Solver</summary>
+
+Solves systems of simultaneous congruences using Sunzi's Theorem (general CRT). Handles both coprime and non-coprime moduli via pairwise merging (solution exists iff aᵢ ≡ aⱼ mod gcd(nᵢ, nⱼ) for all pairs). Remainders are normalized to [0, n) automatically. Returns the unique solution x in [0, N) and the combined modulus N = lcm(n₁, ..., nₖ). Supports listing all solutions up to a user-specified bound.
+
+```bash
+# Solve x≡2(mod 3), x≡3(mod 5), x≡2(mod 7) → 23 (mod 105)
+crt --solve 2 3 3 5 2 7
+
+# Non-coprime moduli (x≡0(mod 4), x≡2(mod 6))
+crt --solve 0 4 2 6
+
+# List all solutions up to 300
+crt --solve 2 3 3 5 2 7 --all 300
+
+# JSON output
+crt --solve 2 3 3 5 2 7 --format json
+```
+
+</details>
 
 ## Development
 
