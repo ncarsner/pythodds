@@ -16,8 +16,10 @@ For the full list of implemented tools and their CLI entry points, see `README.m
 | `bootci` | Bootstrap confidence intervals |
 | `collatz` | Collatz conjecture / hailstone sequences |
 | `confint` | Confidence interval calculator |
+| `crt` | Sunzi's Theorem (CRT) solver |
 | `expected` | Expected value and variance for discrete distributions |
 | `forecast` | Time series forecasting with prediction intervals |
+| `gini` | Gini coefficient and Lorenz curve |
 | `jevons` | Jevons paradox / rebound effect modeling |
 | `linreg` | Simple linear regression |
 | `normal` | Gaussian PDF, CDF, and quantile |
