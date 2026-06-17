@@ -123,13 +123,28 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         Parsed namespace.
     """
     parser = argparse.ArgumentParser(
-        description="Sunzi's Theorem solver.",
+        description=(
+            "Sunzi's Theorem (Chinese Remainder Theorem) solver.\n\n"
+            "Finds x satisfying a system of simultaneous congruences:\n"
+            "  x ≡ A₁ (mod N₁)\n"
+            "  x ≡ A₂ (mod N₂)\n"
+            "  ...\n\n"
+            "Returns the unique solution x in [0, lcm(N₁, N₂, ...)) and the combined\n"
+            "modulus. Handles both coprime and non-coprime moduli; reports an error\n"
+            "when no solution exists."
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  crt --solve 2 3 3 5 2 7          # x≡2(3), x≡3(5), x≡2(7) → 23 (mod 105)
-  crt --solve 0 4 3 6              # non-coprime moduli (gcd=2, compatible)
-  crt --solve 2 3 3 5 2 7 --all 300
+  crt --solve 2 3 3 5 2 7
+      # remainder=2 mod=3, remainder=3 mod=5, remainder=2 mod=7
+      # → x = 23 (mod 105)
+
+  crt --solve 0 4 2 6
+      # remainder=0 mod=4, remainder=2 mod=6  (non-coprime moduli)
+      # → x = 8 (mod 12)
+
+  crt --solve 2 3 3 5 2 7 --all 300   # list all solutions ≤ 300
   crt --solve 2 3 3 5 2 7 --format json
 """,
     )
@@ -137,8 +152,13 @@ Examples:
         "--solve",
         type=int,
         nargs="+",
-        metavar="VALUE",
-        help="flat list of remainder/modulus pairs: A1 N1 A2 N2 ...",
+        metavar="A N",
+        help=(
+            "alternating remainder/modulus pairs: A₁ N₁ A₂ N₂ ...\n"
+            "Each pair encodes one congruence x ≡ Aᵢ (mod Nᵢ): Aᵢ is the\n"
+            "remainder (residue) and Nᵢ is the modulus (divisor).\n"
+            "At least one pair is required."
+        ),
     )
     parser.add_argument(
         "--all",
