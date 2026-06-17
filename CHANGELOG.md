@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.19.1] — 2026-06-17
+
+### Changed
+- Improved `crt --help` output: expanded description shows the full congruence system; `--solve` metavar changed to `A N` and help text explicitly names the remainder (residue) and modulus (divisor) in each pair; epilog examples annotated with `remainder=` / `mod=` labels and expected output
+- Updated README `crt` section: `--solve` option row names each position; added blockquote clarifying pair order with minimal inline examples
+
+---
+
 ## [0.20.0] — 2026-06-13
 
 ### Added
