@@ -210,3 +210,4 @@ __marimo__/
 _*.py
 AGENTS/
 .claude/
+*-summary.md
