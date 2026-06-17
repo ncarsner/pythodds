@@ -1258,6 +1258,171 @@ Outcome: Strong rebound — efficiency gains are significantly offset
 ---
 
 <details>
+<summary><strong><code>sigmoid</code></strong> — Sigmoid Function</summary>
+
+Evaluates σ(x) = 1/(1+e^(−x)), its derivative σ'(x), and the inverse logit. Supports single-value evaluation, range tables, and a Unicode sparkline of the sigmoid curve.
+
+```bash
+# Sigmoid value at x = 2.0
+sigmoid -x 2.0
+
+# Sigmoid and its derivative at x = 0
+sigmoid -x 0 --derivative
+
+# Range table from -5 to 5 in steps of 1
+sigmoid --range -5 5 1
+
+# Range table with derivative column and sparkline
+sigmoid --range -4 4 0.5 --derivative --plot
+
+# Inverse logit: find x such that σ(x) = 0.75
+sigmoid --inverse --prob 0.75
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-x` | `--value` | Evaluate sigmoid at a single value |
+| | `--range MIN MAX STEP` | Print a table over [MIN, MAX] in steps of STEP |
+| | `--inverse` | Compute the inverse logit (logit function) |
+| `-p` | `--prob` | Probability in (0, 1) for `--inverse` mode |
+| `-d` | `--derivative` | Also show σ'(x) |
+| | `--plot` | Append a Unicode sparkline of the sigmoid curve |
+| `-P` | `--precision` | Decimal places (default: `6`) |
+
+> `-x/--value`, `--range`, and `--inverse` are mutually exclusive; one is required.
+
+</details>
+
+---
+
+<details>
+<summary><strong><code>euler</code></strong> — Euler's Number</summary>
+
+Explores Euler's number e ≈ 2.71828 through multiple lenses: the classic limit definition (1 + 1/n)^n, Taylor series for e^x and ln(x), Euler's identity e^(iπ) + 1 = 0, and the Euler-Mascheroni constant γ ≈ 0.5772. Supports table and JSON output.
+
+```bash
+# Convergence table for (1+1/n)^n up to n = 1,000,000
+euler --approx 1000000
+
+# e^2 via 10th-order Taylor series, compared to math.exp
+euler --exp 2 --order 10 --compare
+
+# Display Euler's identity at 15 decimal places
+euler --identity --precision 15
+
+# ln(10) via arctanh series with comparison
+euler --ln 10 --compare
+
+# Euler-Mascheroni constant γ
+euler --mascheroni
+
+# JSON output for downstream processing
+euler --exp 1 --compare --format json
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--approx N` | Show convergence of (1+1/N)^N to e at logarithmic steps |
+| | `--exp X` | Compute e^X via Taylor series |
+| | `--identity` | Display Euler's identity: e^(iπ) + 1 = 0 |
+| | `--ln X` | Approximate ln(X) via arctanh series |
+| | `--mascheroni` | Display the Euler-Mascheroni constant γ |
+| | `--order N` | Number of series terms for `--exp` / `--ln` (default: `20`) |
+| | `--compare` | Compare series result to `math.exp` / `math.log` reference |
+| `-P` | `--precision` | Decimal places (default: `10`) |
+| `-f` | `--format` | Output format: `table` (default) or `json` |
+
+> `--approx`, `--exp`, `--identity`, `--ln`, and `--mascheroni` are mutually exclusive; one is required.
+
+</details>
+
+---
+
+<details>
+<summary><strong><code>gini</code></strong> — Gini Coefficient and Lorenz Curve</summary>
+
+Computes the Gini coefficient and Lorenz curve for inequality measurement. Supports raw observations, optional positive weights for weighted samples, and pre-aggregated population/income share pairs (grouped mode). Groups are sorted internally by ascending per-capita income before constructing the Lorenz curve. Includes relative mean absolute difference (RMAD = 2 × Gini) and an optional n/(n−1) small-sample bias correction. Multi-dataset mode ranks all datasets by Gini from most equal to least equal.
+
+```bash
+# Single dataset — point estimate
+gini --data 1 2 3 4 5
+
+# Weighted samples
+gini --data 10 30 50 80 --weights 4 3 2 1
+
+# Lorenz curve coordinates
+gini --data 1 2 3 4 5 --lorenz --precision 4
+
+# With bias correction
+gini --data 1 2 3 4 5 --correct
+
+# Grouped (population share / income share pairs)
+gini --groups 0.2 0.05 0.3 0.15 0.5 0.80
+
+# Compare multiple datasets
+gini --data 1 2 3 --data 5 5 90 --data 30 35 35
+
+# JSON output
+gini --data 1 2 3 4 5 --format json
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--data` | Space-separated observation values; repeat flag for multiple datasets |
+| | `--groups` | Alternating population and income shares: `POP INC POP INC ...` |
+| | `--weights` | Space-separated positive weights parallel to `--data` (single dataset only) |
+| | `--lorenz` | Display Lorenz curve coordinates (single dataset only) |
+| | `--correct` | Apply n/(n−1) small-sample bias correction |
+| `-f` | `--format` | Output format: `table` (default) or `json` |
+| `-P` | `--precision` | Decimal places for printed values (default: `6`) |
+
+> `--data` and `--groups` are mutually exclusive; one is required.<br>
+> `--weights` and `--lorenz` require a single `--data` group.
+
+</details>
+
+---
+
+<details>
+<summary><strong><code>crt</code></strong> — Sunzi's Theorem Solver</summary>
+
+Solves systems of simultaneous congruences using Sunzi's Theorem (general CRT). Handles both coprime and non-coprime moduli via pairwise merging (solution exists iff aᵢ ≡ aⱼ mod gcd(nᵢ, nⱼ) for all pairs). Remainders are normalized to [0, n) automatically. Returns the unique solution x in [0, N) and the combined modulus N = lcm(n₁, ..., nₖ). Supports listing all solutions up to a user-specified bound.
+
+```bash
+# Solve x≡2(mod 3), x≡3(mod 5), x≡2(mod 7) → 23 (mod 105)
+crt --solve 2 3 3 5 2 7
+
+# Non-coprime moduli (x≡0(mod 4), x≡2(mod 6))
+crt --solve 0 4 2 6
+
+# List all solutions up to 300
+crt --solve 2 3 3 5 2 7 --all 300
+
+# JSON output
+crt --solve 2 3 3 5 2 7 --format json
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--solve A₁ N₁ [A₂ N₂ ...]` | Alternating remainder/modulus pairs. `Aᵢ` is the remainder (residue); `Nᵢ` is the modulus (divisor). Each pair encodes one congruence x ≡ Aᵢ (mod Nᵢ). Requires ≥ 1 pair. |
+| | `--all MAX` | List all solutions in [0, MAX] |
+| `-f` | `--format` | Output format: `table` (default) or `json` |
+
+> **Pair order:** Always remainder then modulus. `--solve 2 3` → x ≡ 2 (mod 3). `--solve 2 3 3 5` → x ≡ 2 (mod 3) **and** x ≡ 3 (mod 5).
+
+</details>
+
+---
+
+<details>
 <summary><strong><code>simulate</code></strong> — Monte Carlo Probability Simulator</summary>
 
 Runs repeated random experiments to estimate probabilities empirically, with optional confidence intervals and analytical comparison against `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, and `linboot`.
@@ -2090,93 +2255,32 @@ print(f"Net consumption: {result['net_consumption']:.1f} units")
 
 
 <details>
-<summary><strong><code>sigmoid</code></strong> — Sigmoid Function and Logistic Curve</summary>
-
-Computes the sigmoid (logistic) function σ(x) = 1 / (1 + e^(−x)), its derivative σ'(x) = σ(x)(1 − σ(x)), and the inverse logit. Supports single-value evaluation, range tables with optional derivative column, and a Unicode sparkline visualisation of the S-curve.
-
-```bash
-# Sigmoid value at x = 2.0
-sigmoid -x 2.0
-
-# Sigmoid and its derivative at x = 0
-sigmoid -x 0 --derivative
-
-# Range table from -5 to 5 in steps of 1
-sigmoid --range -5 5 1
-
-# Range table with derivative column and sparkline
-sigmoid --range -4 4 0.5 --derivative --plot
-
-# Inverse logit: find x such that σ(x) = 0.75
-sigmoid --inverse --prob 0.75
-```
-
-**Options:**
-
-| Flag | Long form | Description |
-|------|-----------|-------------|
-| `-x` | `--value` | Evaluate sigmoid at a single value |
-| | `--range MIN MAX STEP` | Print a table over [MIN, MAX] in steps of STEP |
-| | `--inverse` | Compute the inverse logit (logit function) |
-| `-p` | `--prob` | Probability in (0, 1) for `--inverse` mode |
-| `-d` | `--derivative` | Also show σ'(x) |
-| | `--plot` | Append a Unicode sparkline of the sigmoid curve |
-| `-P` | `--precision` | Decimal places (default: `6`) |
-
-### 🐍 Python Library
+<summary><strong>Sigmoid Function and Logistic Curve</strong></summary>
 
 ```python
-from src.utils.sigmoid import sigmoid, sigmoid_derivative, inverse_logit
+from src.utils.sigmoid import (
+    sigmoid,
+    sigmoid_derivative,
+    inverse_logit,
+)
 
 sigma = sigmoid(2.0)          # 0.8807970779778823
 dsigma = sigmoid_derivative(0.0)  # 0.25
 x = inverse_logit(0.75)       # 1.0986122886681098
 ```
+
 </details>
 
 <details>
-<summary><strong><code>euler</code></strong> — Euler's Number and Related Functions</summary>
-
-Explores Euler's number e ≈ 2.71828 through multiple lenses: the classic limit definition (1 + 1/n)^n, Taylor series for e^x and ln(x), Euler's identity e^(iπ) + 1 = 0, and the Euler-Mascheroni constant γ ≈ 0.5772. Supports table and JSON output.
-
-```bash
-# Convergence table for (1+1/n)^n up to n = 1,000,000
-euler --approx 1000000
-
-# e^2 via 10th-order Taylor series, compared to math.exp
-euler --exp 2 --order 10 --compare
-
-# Display Euler's identity at 15 decimal places
-euler --identity --precision 15
-
-# ln(10) via arctanh series with comparison
-euler --ln 10 --compare
-
-# Euler-Mascheroni constant γ
-euler --mascheroni
-
-# JSON output for downstream processing
-euler --exp 1 --compare --format json
-```
-
-**Options:**
-
-| Flag | Long form | Description |
-|------|-----------|-------------|
-| | `--approx N` | Show convergence of (1+1/N)^N to e at logarithmic steps |
-| | `--exp X` | Compute e^X via Taylor series |
-| | `--identity` | Display Euler's identity: e^(iπ) + 1 = 0 |
-| | `--ln X` | Approximate ln(X) via arctanh series |
-| | `--mascheroni` | Display the Euler-Mascheroni constant γ |
-| | `--order N` | Number of series terms for `--exp` / `--ln` (default: `20`) |
-| | `--compare` | Compare series result to `math.exp` / `math.log` reference |
-| `-P` | `--precision` | Decimal places (default: `10`) |
-| `-f` | `--format` | Output format: `table` (default) or `json` |
-
-### 🐍 Python Library
+<summary><strong>Euler's Number</strong></summary>
 
 ```python
-from src.utils.euler import e_approx, exp_series, natural_log, euler_identity
+from src.utils.euler import (
+    e_approx,
+    exp_series,
+    natural_log,
+    euler_identity,
+)
 
 approx = e_approx(1_000_000)        # 2.718280469...
 ex = exp_series(1.0, 50)            # ≈ math.e to 15+ decimal places
@@ -2186,6 +2290,70 @@ real, imag, total = euler_identity() # (-1.0, ~0.0, ~0.0)
 
 </details>
 
+
+<details>
+<summary><strong>Gini Coefficient and Lorenz Curve</strong></summary>
+
+```python
+from src.utils.gini import (
+    gini_coefficient,
+    lorenz_curve,
+    relative_mad,
+    gini_grouped,
+)
+
+data = [1.0, 2.0, 3.0, 4.0, 5.0]
+
+# Gini coefficient (0 = perfect equality, approaching 1 = maximum inequality)
+g = gini_coefficient(data)
+
+# With positive weights
+g_w = gini_coefficient([10.0, 30.0, 50.0, 80.0], weights=[4.0, 3.0, 2.0, 1.0])
+
+# With small-sample bias correction
+g_corr = gini_coefficient(data, corrected=True)
+
+# Relative mean absolute difference (= 2 × Gini)
+rmad = relative_mad(data)
+
+# Lorenz curve coordinates: list of (population_share, income_share) tuples
+points = lorenz_curve(data)
+
+# Gini from pre-aggregated (population_share, income_share) pairs
+groups = [(0.2, 0.05), (0.3, 0.15), (0.5, 0.80)]
+g_grouped = gini_grouped(groups)
+```
+
+</details>
+
+<details>
+<summary><strong>Sunzi's Theorem Solver (CRT)</strong></summary>
+
+```python
+from src.utils.crt import (
+    extended_gcd,
+    mod_inverse,
+    crt,
+)
+
+# Extended GCD: returns (g, s, t) such that a·s + b·t = g = gcd(a, b)
+g, s, t = extended_gcd(35, 15)  # (5, 1, -2)
+
+# Modular inverse: x such that a·x ≡ 1 (mod m)
+x = mod_inverse(3, 7)           # 5 (since 3×5 = 15 ≡ 1 (mod 7))
+
+# Solve x≡2(mod 3), x≡3(mod 5), x≡2(mod 7) → (23, 105)
+solution, modulus = crt([2, 3, 2], [3, 5, 7])
+
+# Non-coprime moduli (x≡0(mod 4), x≡2(mod 6))
+solution, modulus = crt([0, 2], [4, 6])
+
+# List all solutions up to a bound
+x0, N = crt([2, 3, 2], [3, 5, 7])
+all_solutions = list(range(x0, 300 + 1, N))
+```
+
+</details>
 
 <details>
 <summary><strong>Monte Carlo Simulator</strong></summary>
@@ -2205,57 +2373,6 @@ results = simulate_binomial(n=10, k=5, p=0.4, trials=100_000, seed=42)
 p_hat = sum(results) / len(results)
 se = standard_error(p_hat, len(results))
 ci = wilson_ci(p_hat, len(results))
-```
-
-</details>
-
-<details>
-<summary><strong><code>gini</code></strong> — Gini Coefficient and Lorenz Curve</summary>
-
-Computes the Gini coefficient and Lorenz curve for inequality measurement. Supports raw observations, optional positive weights for weighted samples, and pre-aggregated population/income share pairs (grouped mode). Groups are sorted internally by ascending per-capita income before constructing the Lorenz curve. Includes relative mean absolute difference (RMAD = 2 × Gini) and an optional n/(n−1) small-sample bias correction. Multi-dataset mode ranks all datasets by Gini from most equal to least equal.
-
-```bash
-# Single dataset — point estimate
-gini --data 1 2 3 4 5
-
-# Weighted samples
-gini --data 10 30 50 80 --weights 4 3 2 1
-
-# Lorenz curve coordinates
-gini --data 1 2 3 4 5 --lorenz --precision 4
-
-# With bias correction
-gini --data 1 2 3 4 5 --correct
-
-# Grouped (population share / income share pairs)
-gini --groups 0.2 0.05 0.3 0.15 0.5 0.80
-
-# Compare multiple datasets
-gini --data 1 2 3 --data 5 5 90 --data 30 35 35
-
-# JSON output
-gini --data 1 2 3 4 5 --format json
-```
-
-</details>
-
-<details>
-<summary><strong><code>crt</code></strong> — Sunzi's Theorem Solver</summary>
-
-Solves systems of simultaneous congruences using Sunzi's Theorem (general CRT). Handles both coprime and non-coprime moduli via pairwise merging (solution exists iff aᵢ ≡ aⱼ mod gcd(nᵢ, nⱼ) for all pairs). Remainders are normalized to [0, n) automatically. Returns the unique solution x in [0, N) and the combined modulus N = lcm(n₁, ..., nₖ). Supports listing all solutions up to a user-specified bound.
-
-```bash
-# Solve x≡2(mod 3), x≡3(mod 5), x≡2(mod 7) → 23 (mod 105)
-crt --solve 2 3 3 5 2 7
-
-# Non-coprime moduli (x≡0(mod 4), x≡2(mod 6))
-crt --solve 0 4 2 6
-
-# List all solutions up to 300
-crt --solve 2 3 3 5 2 7 --all 300
-
-# JSON output
-crt --solve 2 3 3 5 2 7 --format json
 ```
 
 </details>
