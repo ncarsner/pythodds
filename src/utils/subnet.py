@@ -114,8 +114,8 @@ def compute_subnet(ip_str: str, cidr: int | None = None) -> SubnetResult:
         first_ip=first_ip,
         last_ip=last_ip,
         subnet_mask=subnet_mask,
-        hosts=hosts,
         networks=networks,
+        hosts=hosts,
     )
 
 
@@ -168,13 +168,13 @@ def format_table(result: SubnetResult) -> str:
         "Subnet Information",
         "=" * 40,
         f"{'Input:':<{w}} {result.input_address}/{result.cidr}",
+        f"{'Subnet mask:':<{w}} {result.subnet_mask}\n",
         f"{'Network:':<{w}} {result.network_address}",
         f"{'Broadcast:':<{w}} {result.broadcast_address}",
         f"{'First IP:':<{w}} {result.first_ip}",
-        f"{'Last IP:':<{w}} {result.last_ip}",
-        f"{'Subnet mask:':<{w}} {result.subnet_mask}",
-        f"{'Hosts:':<{w}} {result.hosts:,}",
+        f"{'Last IP:':<{w}} {result.last_ip}\n",
         f"{'Networks:':<{w}} {result.networks:,}",
+        f"{'Hosts:':<{w}} {result.hosts:,}",
     ]
     return "\n".join(lines)
 
