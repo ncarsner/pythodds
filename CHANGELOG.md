@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.21.0] — 2026-06-30
+
+### Added
+- Subnet mask calculator (`subnet`) — network address, broadcast address, first/last usable IP, subnet mask, host count, and classful network count from an IPv4 address with optional CIDR notation
+
+---
+
 ## [0.19.1] — 2026-06-17
 
 ### Changed
