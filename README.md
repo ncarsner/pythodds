@@ -36,7 +36,8 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Sigmoid Function** | Evaluate σ(x) = 1/(1+e^(−x)), its derivative, and the inverse logit; range tables and Unicode sparkline |
 | **Euler's Number** | Explore e via limit convergence, Taylor series for e^x and ln(x), Euler's identity, and the Euler-Mascheroni constant |
 | **Monte Carlo Simulator** | Empirically estimate probabilities for `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, `linboot` experiments with confidence intervals and analytical comparison |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, and `crt` commands |
+| **Subnet Mask Calculator** | Compute network address, broadcast address, first/last usable IP, subnet mask, host count, and classful network count from an IPv4 address and CIDR prefix |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, and `subnet` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -89,6 +90,7 @@ pip install -e .
 | `euler` | Euler's number via limit/series, e^x Taylor series, ln(x) series, Euler's identity, and γ constant |
 | `gini` | Gini coefficient and Lorenz curve from raw data, weighted samples, or grouped shares |
 | `crt` | Sunzi's Theorem solver for systems of simultaneous congruences |
+| `subnet` | Network address, broadcast, first/last usable IP, subnet mask, host count, and classful network count from an IPv4 CIDR block |
 | `simulate` | Monte Carlo estimation with confidence intervals and analytical comparison |
 
 ---
@@ -1423,6 +1425,37 @@ crt --solve 2 3 3 5 2 7 --format json
 ---
 
 <details>
+<summary><strong><code>subnet</code></strong> — Subnet Mask Calculator</summary>
+
+Computes network address, broadcast address, first/last usable IP, subnet mask, usable host count, and classful network count from an IPv4 address with optional CIDR prefix. Handles `/32` host routes (single host, no network/broadcast distinction) and `/31` point-to-point links (RFC 3021, both addresses usable). Default prefix is `/32` when omitted. Classful network count uses `2^(prefix − classful_prefix)` for subnets; supernets return `1`.
+
+```bash
+# Address with embedded CIDR
+subnet 192.168.1.50/24
+
+# CIDR as separate flag (overrides any embedded prefix)
+subnet 10.0.0.1 --cidr 8
+
+# Supernet example
+subnet 172.16.5.100/20
+
+# JSON output
+subnet 192.168.1.50/24 --format json
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `ADDRESS` | IPv4 address with optional CIDR notation (e.g. `192.168.1.50/24`) |
+| `-c` | `--cidr PREFIX` | Prefix length 0–32; overrides any CIDR embedded in ADDRESS (default: 32) |
+| `-f` | `--format` | Output format: `table` (default) or `json` |
+
+</details>
+
+---
+
+<details>
 <summary><strong><code>simulate</code></strong> — Monte Carlo Probability Simulator</summary>
 
 Runs repeated random experiments to estimate probabilities empirically, with optional confidence intervals and analytical comparison against `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, and `linboot`.
@@ -1520,6 +1553,7 @@ simulate --experiment linboot --params x=1,2,3,4,5 y=2.1,3.9,6.2,7.8,10.1 predic
 | Jevons | `src.utils.jevons_paradox` | `analyze`, `expected_savings`, `rebound_consumption`, `net_consumption`, `is_backfire` |
 | Gini | `src.utils.gini` | `gini_coefficient`, `lorenz_curve`, `relative_mad`, `gini_grouped` |
 | CRT | `src.utils.crt` | `extended_gcd`, `mod_inverse`, `crt` |
+| Subnet | `src.utils.subnet` | `compute_subnet`, `_classful_prefix` |
 | Monte Carlo | `src.utils.monte_carlo` | `simulate_binomial`, `simulate_birthday`, `simulate_streak`, `simulate_poisson`, `simulate_power`, `simulate_permutation`, `simulate_bayes`, `simulate_season`, `simulate_linboot` |
 
 ---
@@ -2351,6 +2385,39 @@ solution, modulus = crt([0, 2], [4, 6])
 # List all solutions up to a bound
 x0, N = crt([2, 3, 2], [3, 5, 7])
 all_solutions = list(range(x0, 300 + 1, N))
+```
+
+</details>
+
+<details>
+<summary><strong>Subnet Mask Calculator</strong></summary>
+
+```python
+from src.utils.subnet import compute_subnet, _classful_prefix
+
+# Basic subnet calculation (CIDR embedded in address)
+result = compute_subnet("192.168.1.50/24")
+print(result.network_address)   # 192.168.1.0
+print(result.broadcast_address) # 192.168.1.255
+print(result.first_ip)          # 192.168.1.1
+print(result.last_ip)           # 192.168.1.254
+print(result.subnet_mask)       # 255.255.255.0
+print(result.hosts)             # 254
+print(result.networks)          # 1
+
+# CIDR passed separately (overrides any embedded prefix)
+result = compute_subnet("10.0.0.1", cidr=8)
+
+# /31 point-to-point link (RFC 3021): both addresses usable
+result = compute_subnet("192.168.1.0/31")
+# result.hosts == 2; first_ip == "192.168.1.0"; last_ip == "192.168.1.1"
+
+# /32 host route: single address
+result = compute_subnet("10.0.0.5/32")
+# result.hosts == 1; first_ip == last_ip == "10.0.0.5"
+
+# Classful prefix boundary
+prefix = _classful_prefix(result.network_address)  # 8 (Class A)
 ```
 
 </details>
