@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.21.0] — 2026-06-30
+## [0.20.0] — 2026-06-30
 
 ### Added
 - Subnet mask calculator (`subnet`) — network address, broadcast address, first/last usable IP, subnet mask, host count, and classful network count from an IPv4 address with optional CIDR notation
@@ -22,19 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.20.0] — 2026-06-13
-
-### Added
-- Gini coefficient tool (`gini`) — inequality measurement from raw data, weighted samples, grouped shares, Lorenz curve, and multi-dataset comparison
-- Sunzi's Theorem tool (`crt`) — simultaneous congruence solver supporting coprime and non-coprime moduli
-
----
-
 ## [0.19.0] — 2026-06-12
 
 ### Added
 - Sigmoid function tool (`sigmoid`) — σ(x), derivative, inverse logit, and Unicode sparkline
 - Euler's number tool (`euler`) — limit convergence, e^x Taylor series, ln(x) series, Euler's identity, and Euler-Mascheroni constant
+- Gini coefficient tool (`gini`) — inequality measurement from raw data, weighted samples, grouped shares, Lorenz curve, and multi-dataset comparison
+- Sunzi's Theorem tool (`crt`) — simultaneous congruence solver supporting coprime and non-coprime moduli
 
 ---
 
