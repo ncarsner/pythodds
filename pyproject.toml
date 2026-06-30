@@ -54,6 +54,7 @@ sigmoid = "src.utils.sigmoid:main"
 euler = "src.utils.euler:main"
 gini = "src.utils.gini:main"
 crt = "src.utils.crt:main"
+subnet = "src.utils.subnet:main"
 
 [build-system]
 requires = ["hatchling"]
