@@ -38,7 +38,8 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Monte Carlo Simulator** | Empirically estimate probabilities for `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, `linboot` experiments with confidence intervals and analytical comparison |
 | **Subnet Mask Calculator** | Compute network address, broadcast address, first/last usable IP, subnet mask, host count, and classful network count from an IPv4 address and CIDR prefix |
 | **Geometric Distribution** | Compute PMF, CDF, survival, mean, and variance for the number of trials until the first success; supports single-k reports and full probability tables |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, `subnet`, and `geometric` commands |
+| **Chi-Square Tests** | Goodness-of-fit and independence (contingency table) chi-square tests via the exact regularised incomplete gamma function; per-cell contributions for residual diagnostics |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, `subnet`, `geometric`, and `chisq` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -93,6 +94,7 @@ pip install -e .
 | `crt` | Sunzi's Theorem solver for systems of simultaneous congruences |
 | `subnet` | Network address, broadcast, first/last usable IP, subnet mask, host count, and classful network count from an IPv4 CIDR block |
 | `geometric` | PMF, CDF, survival, mean, and variance for the geometric distribution (trials until first success) |
+| `chisq` | Chi-square goodness-of-fit and independence tests with per-cell contributions |
 | `simulate` | Monte Carlo estimation with confidence intervals and analytical comparison |
 
 ---
@@ -1488,6 +1490,37 @@ geometric -p 0.25 --table 1 15
 ---
 
 <details>
+<summary><strong><code>chisq</code></strong> — Chi-Square Test Calculator</summary>
+
+Computes chi-square goodness-of-fit (do observed categorical frequencies match expected ones?) and independence (are two categorical variables associated, from a contingency table?) tests. The chi-square CDF is computed exactly via the regularised incomplete gamma function (series expansion / continued fraction) — pure Python, no external dependencies. Output includes per-cell χ² contributions for residual diagnostics.
+
+```bash
+# Goodness-of-fit: are die rolls uniformly distributed?
+chisq --test gof --observed 18,22,17,25,19,19 --expected 20,20,20,20,20,20
+
+# Independence: is product preference associated with age group? (2×3 table)
+chisq --test independence --table "40,30,20" --table "25,45,30"
+
+# With explicit significance level
+chisq --test gof --observed 52,48 --expected 50,50 --alpha 0.10
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--test {gof,independence}` | Test type (required) |
+| | `--observed O1,O2,...` | Comma-separated observed frequencies (gof mode) |
+| | `--expected E1,E2,...` | Comma-separated expected frequencies (gof mode) |
+| | `--table R1,R2,...` | One contingency table row; repeat once per row (independence mode) |
+| `-a` | `--alpha` | Significance level (default: 0.05) |
+| `-P` | `--precision` | Decimal places for output (default: 4) |
+
+</details>
+
+---
+
+<details>
 <summary><strong><code>simulate</code></strong> — Monte Carlo Probability Simulator</summary>
 
 Runs repeated random experiments to estimate probabilities empirically, with optional confidence intervals and analytical comparison against `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, and `linboot`.
@@ -1587,6 +1620,7 @@ simulate --experiment linboot --params x=1,2,3,4,5 y=2.1,3.9,6.2,7.8,10.1 predic
 | CRT | `src.utils.crt` | `extended_gcd`, `mod_inverse`, `crt` |
 | Subnet | `src.utils.subnet` | `compute_subnet`, `_classful_prefix` |
 | Geometric | `src.utils.geometric_distribution` | `geo_pmf`, `geo_cdf`, `geo_survival`, `geo_mean`, `geo_variance` |
+| Chi-Square | `src.utils.chi_squared` | `chisq_gof`, `chisq_independence`, `chi2_cdf`, `regularized_gamma_p` |
 | Monte Carlo | `src.utils.monte_carlo` | `simulate_binomial`, `simulate_birthday`, `simulate_streak`, `simulate_poisson`, `simulate_power`, `simulate_permutation`, `simulate_bayes`, `simulate_season`, `simulate_linboot` |
 
 ---
@@ -2478,6 +2512,29 @@ geo_survival(10, 0.2) # 0.10737
 
 geo_mean(0.2)         # 5.0
 geo_variance(0.2)     # 20.0
+```
+
+</details>
+
+<details>
+<summary><strong>Chi-Square Test Calculator</strong></summary>
+
+```python
+from src.utils.chi_squared import chisq_gof, chisq_independence
+
+# Goodness-of-fit
+result = chisq_gof(
+    observed=[18, 22, 17, 25, 19, 19],
+    expected=[20, 20, 20, 20, 20, 20],
+)
+print(result.statistic)  # 2.2
+print(result.df)         # 5
+print(result.p_value)    # 0.8208...
+
+# Independence (contingency table)
+result = chisq_independence([[40, 30, 20], [25, 45, 30]])
+print(result.statistic)  # 7.9573...
+print(result.p_value)    # 0.0187...
 ```
 
 </details>
