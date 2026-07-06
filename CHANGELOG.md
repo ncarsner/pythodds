@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.21.0] — 2026-07-05
+
+### Added
+- Geometric distribution tool (`geometric`) — PMF, CDF, survival, mean, and variance for the number of trials until the first success
+- Chi-square test calculator (`chisq`) — goodness-of-fit and independence (contingency table) tests with per-cell contributions; exact CDF via a regularised incomplete gamma function
+- One-way ANOVA tool (`anova`) — F-test via a regularised incomplete beta function, with Tukey HSD and Bonferroni-corrected pairwise post-hoc comparisons; Tukey HSD uses the studentized range distribution computed via nested numerical integration
+
+---
+
 ## [0.20.0] — 2026-06-30
 
 ### Added
