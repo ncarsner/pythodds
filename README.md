@@ -39,7 +39,8 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Subnet Mask Calculator** | Compute network address, broadcast address, first/last usable IP, subnet mask, host count, and classful network count from an IPv4 address and CIDR prefix |
 | **Geometric Distribution** | Compute PMF, CDF, survival, mean, and variance for the number of trials until the first success; supports single-k reports and full probability tables |
 | **Chi-Square Tests** | Goodness-of-fit and independence (contingency table) chi-square tests via the exact regularised incomplete gamma function; per-cell contributions for residual diagnostics |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, `subnet`, `geometric`, and `chisq` commands |
+| **One-Way ANOVA** | Test whether the means of three or more independent groups are equal; F-statistic via the regularised incomplete beta function, with Tukey HSD or Bonferroni-corrected pairwise post-hoc comparisons |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, `subnet`, `geometric`, `chisq`, and `anova` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -95,6 +96,7 @@ pip install -e .
 | `subnet` | Network address, broadcast, first/last usable IP, subnet mask, host count, and classful network count from an IPv4 CIDR block |
 | `geometric` | PMF, CDF, survival, mean, and variance for the geometric distribution (trials until first success) |
 | `chisq` | Chi-square goodness-of-fit and independence tests with per-cell contributions |
+| `anova` | One-way ANOVA F-test with optional Tukey HSD or Bonferroni-corrected pairwise post-hoc comparisons |
 | `simulate` | Monte Carlo estimation with confidence intervals and analytical comparison |
 
 ---
@@ -1521,6 +1523,42 @@ chisq --test gof --observed 52,48 --expected 50,50 --alpha 0.10
 ---
 
 <details>
+<summary><strong><code>anova</code></strong> — One-Way Analysis of Variance</summary>
+
+Tests whether the means of three or more independent groups are equal — the natural generalization of the two-sample t-test to multiple groups. The F-distribution CDF (and the pairwise t-tests used by the Bonferroni post-hoc) are computed via the regularised incomplete beta function. Tukey HSD uses the studentized range distribution, computed via nested numerical integration (Simpson's rule over the normal and scaled chi densities) — pure Python, no external dependencies. Accepts inline comma-separated groups or a CSV file with group/value columns.
+
+```bash
+# One-way ANOVA across three treatment groups
+anova --data "12.1,11.8,12.5,11.9" "9.8,10.3,10.1,9.7" "15.2,14.9,15.5,16.0"
+
+# With Tukey HSD post-hoc comparisons
+anova --data "12.1,11.8,12.5" "9.8,10.3,10.1" "15.2,14.9,15.5" --posthoc tukey
+
+# With Bonferroni-corrected post-hoc comparisons
+anova --data "12.1,11.8,12.5" "9.8,10.3,10.1" "15.2,14.9,15.5" --posthoc bonferroni
+
+# From CSV with group and value columns
+anova --file experiment.csv --group-col treatment --value-col response --alpha 0.01
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--data GROUP [GROUP ...]` | One comma-separated list of values per group (2 or more groups) |
+| | `--file CSV` | Path to a CSV file (use with `--group-col` and `--value-col`) |
+| | `--group-col COL` | CSV column name holding the group label |
+| | `--value-col COL` | CSV column name holding the numeric observation |
+| `-a` | `--alpha` | Significance level (default: 0.05) |
+| | `--posthoc {tukey,bonferroni,none}` | Post-hoc pairwise comparison method (default: none) |
+| | `--format {table,json}` | Output format (default: table) |
+| `-P` | `--precision` | Decimal places for table output (default: 4) |
+
+</details>
+
+---
+
+<details>
 <summary><strong><code>simulate</code></strong> — Monte Carlo Probability Simulator</summary>
 
 Runs repeated random experiments to estimate probabilities empirically, with optional confidence intervals and analytical comparison against `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, and `linboot`.
@@ -1621,6 +1659,7 @@ simulate --experiment linboot --params x=1,2,3,4,5 y=2.1,3.9,6.2,7.8,10.1 predic
 | Subnet | `src.utils.subnet` | `compute_subnet`, `_classful_prefix` |
 | Geometric | `src.utils.geometric_distribution` | `geo_pmf`, `geo_cdf`, `geo_survival`, `geo_mean`, `geo_variance` |
 | Chi-Square | `src.utils.chi_squared` | `chisq_gof`, `chisq_independence`, `chi2_cdf`, `regularized_gamma_p` |
+| ANOVA | `src.utils.anova` | `anova_one_way`, `tukey_hsd`, `bonferroni`, `f_cdf`, `studentized_range_cdf` |
 | Monte Carlo | `src.utils.monte_carlo` | `simulate_binomial`, `simulate_birthday`, `simulate_streak`, `simulate_poisson`, `simulate_power`, `simulate_permutation`, `simulate_bayes`, `simulate_season`, `simulate_linboot` |
 
 ---
@@ -2535,6 +2574,35 @@ print(result.p_value)    # 0.8208...
 result = chisq_independence([[40, 30, 20], [25, 45, 30]])
 print(result.statistic)  # 7.9573...
 print(result.p_value)    # 0.0187...
+```
+
+</details>
+
+<details>
+<summary><strong>One-Way ANOVA</strong></summary>
+
+```python
+from src.utils.anova import anova_one_way, bonferroni, tukey_hsd
+
+groups = [
+    [12.1, 11.8, 12.5, 11.9],
+    [9.8, 10.3, 10.1, 9.7],
+    [15.2, 14.9, 15.5, 16.0],
+]
+
+result = anova_one_way(groups)
+print(result.f_stat)   # 229.2574...
+print(result.p_value)  # 1.9055e-08...
+
+# Tukey HSD pairwise comparisons
+tukey_result = tukey_hsd(groups, result)
+print(tukey_result.q_crit)
+for c in tukey_result.comparisons:
+    print(c.i, c.j, c.mean_diff, c.p_value, c.significant)
+
+# Bonferroni-corrected pairwise comparisons
+for c in bonferroni(groups, result):
+    print(c.i, c.j, c.mean_diff, c.p_adj, c.significant)
 ```
 
 </details>
