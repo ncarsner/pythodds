@@ -37,7 +37,8 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Euler's Number** | Explore e via limit convergence, Taylor series for e^x and ln(x), Euler's identity, and the Euler-Mascheroni constant |
 | **Monte Carlo Simulator** | Empirically estimate probabilities for `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, `linboot` experiments with confidence intervals and analytical comparison |
 | **Subnet Mask Calculator** | Compute network address, broadcast address, first/last usable IP, subnet mask, host count, and classful network count from an IPv4 address and CIDR prefix |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, and `subnet` commands |
+| **Geometric Distribution** | Compute PMF, CDF, survival, mean, and variance for the number of trials until the first success; supports single-k reports and full probability tables |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, `subnet`, and `geometric` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -91,6 +92,7 @@ pip install -e .
 | `gini` | Gini coefficient and Lorenz curve from raw data, weighted samples, or grouped shares |
 | `crt` | Sunzi's Theorem solver for systems of simultaneous congruences |
 | `subnet` | Network address, broadcast, first/last usable IP, subnet mask, host count, and classful network count from an IPv4 CIDR block |
+| `geometric` | PMF, CDF, survival, mean, and variance for the geometric distribution (trials until first success) |
 | `simulate` | Monte Carlo estimation with confidence intervals and analytical comparison |
 
 ---
@@ -1456,6 +1458,36 @@ subnet 192.168.1.50/24 --format json
 ---
 
 <details>
+<summary><strong><code>geometric</code></strong> — Geometric Distribution</summary>
+
+Computes PMF, CDF, survival, mean, and variance for the geometric distribution — the number of independent Bernoulli trials until the first success (support k = 1, 2, 3, ...). Pure Python, no external dependencies.
+
+```bash
+# P(first success on exactly the 5th trial, p=0.3)
+geometric -k 5 -p 0.3
+
+# P(needing more than 10 calls to close a sale with 20% close rate)
+geometric -k 10 -p 0.2 --survival
+
+# Range table: probability distribution for k = 1 to 15
+geometric -p 0.25 --table 1 15
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-k` | | Trial number of the first success (required unless `--table` is used) |
+| `-p` | | Success probability per trial, in (0, 1] |
+| | `--survival` | Report P(X > k) instead of the cumulative P(X <= k) |
+| | `--table MIN MAX` | Print PMF/CDF/survival for k = MIN..MAX instead of a single report |
+| `-P` | `--precision` | Decimal places for output (default: 4) |
+
+</details>
+
+---
+
+<details>
 <summary><strong><code>simulate</code></strong> — Monte Carlo Probability Simulator</summary>
 
 Runs repeated random experiments to estimate probabilities empirically, with optional confidence intervals and analytical comparison against `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, and `linboot`.
@@ -1554,6 +1586,7 @@ simulate --experiment linboot --params x=1,2,3,4,5 y=2.1,3.9,6.2,7.8,10.1 predic
 | Gini | `src.utils.gini` | `gini_coefficient`, `lorenz_curve`, `relative_mad`, `gini_grouped` |
 | CRT | `src.utils.crt` | `extended_gcd`, `mod_inverse`, `crt` |
 | Subnet | `src.utils.subnet` | `compute_subnet`, `_classful_prefix` |
+| Geometric | `src.utils.geometric_distribution` | `geo_pmf`, `geo_cdf`, `geo_survival`, `geo_mean`, `geo_variance` |
 | Monte Carlo | `src.utils.monte_carlo` | `simulate_binomial`, `simulate_birthday`, `simulate_streak`, `simulate_poisson`, `simulate_power`, `simulate_permutation`, `simulate_bayes`, `simulate_season`, `simulate_linboot` |
 
 ---
@@ -2418,6 +2451,33 @@ result = compute_subnet("10.0.0.5/32")
 
 # Classful prefix boundary
 prefix = _classful_prefix(result.network_address)  # 8 (Class A)
+```
+
+</details>
+
+<details>
+<summary><strong>Geometric Distribution</strong></summary>
+
+```python
+from src.utils.geometric_distribution import (
+    geo_cdf,
+    geo_mean,
+    geo_pmf,
+    geo_survival,
+    geo_variance,
+)
+
+# P(first success on exactly the 5th trial, p=0.3)
+geo_pmf(5, 0.3)       # 0.07203
+
+# P(first success within the first 5 trials)
+geo_cdf(5, 0.3)       # 0.83193
+
+# P(needing more than 10 trials, p=0.2)
+geo_survival(10, 0.2) # 0.10737
+
+geo_mean(0.2)         # 5.0
+geo_variance(0.2)     # 20.0
 ```
 
 </details>
