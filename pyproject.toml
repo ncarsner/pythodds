@@ -55,6 +55,9 @@ euler = "src.utils.euler:main"
 gini = "src.utils.gini:main"
 crt = "src.utils.crt:main"
 subnet = "src.utils.subnet:main"
+geometric = "src.utils.geometric_distribution:main"
+chisq = "src.utils.chi_squared:main"
+anova = "src.utils.anova:main"
 
 [build-system]
 requires = ["hatchling"]
