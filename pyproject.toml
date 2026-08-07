@@ -58,6 +58,7 @@ subnet = "src.utils.subnet:main"
 geometric = "src.utils.geometric_distribution:main"
 chisq = "src.utils.chi_squared:main"
 anova = "src.utils.anova:main"
+life = "src.utils.life_in_weeks:main"
 
 [build-system]
 requires = ["hatchling"]
