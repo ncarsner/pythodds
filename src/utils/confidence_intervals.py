@@ -542,7 +542,7 @@ def main() -> int:
         print(f"Sample: n = {args.n}, k = {args.k}, p̂ = {p_hat:.{args.precision}f}")
         print(f"Interval: [{lower:.{args.precision}f}, {upper:.{args.precision}f}]")
         print(f"Width: {width:.{args.precision}f}")
-        print(f"Margin: ±{width/2:.{args.precision}f}")
+        print(f"Margin: ±{width / 2:.{args.precision}f}")
 
     elif args.method == "t":
         # t-interval for mean
@@ -556,7 +556,7 @@ def main() -> int:
         )
         print(f"Interval: [{lower:.{args.precision}f}, {upper:.{args.precision}f}]")
         print(f"Width: {width:.{args.precision}f}")
-        print(f"Margin: ±{width/2:.{args.precision}f}")
+        print(f"Margin: ±{width / 2:.{args.precision}f}")
 
     elif args.method == "poisson":
         # Poisson interval

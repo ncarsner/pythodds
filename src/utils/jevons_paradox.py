@@ -272,15 +272,13 @@ def format_analysis(
         f"Price elasticity:        {_fmt(epsilon, p)}",
         f"Baseline consumption:    {_fmt(baseline, p)} {lbl}",
         "",
-        f"Expected savings (no rebound):  {_fmt(exp_sav, p)} {lbl} "
-        f"({_pct(eta, p)})",
+        f"Expected savings (no rebound):  {_fmt(exp_sav, p)} {lbl} ({_pct(eta, p)})",
         f"Rebound consumption:            {_fmt(reb_con, p)} {lbl}",
         f"Actual savings (after rebound): {_fmt(act_sav, p)} {lbl} "
         f"({_pct(act_sav / baseline, p)})",
         f"Net consumption:                {_fmt(net_con, p)} {lbl} "
         f"({_pct(net_con / baseline, p)})",
-        f"Rebound rate:                   "
-        f"{_fmt(rate * 100.0, p)}% of expected savings",
+        f"Rebound rate:                   {_fmt(rate * 100.0, p)}% of expected savings",
         "",
         f"Outcome: {outcome_label(rate)}",
     ]

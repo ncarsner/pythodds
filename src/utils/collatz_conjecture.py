@@ -274,7 +274,7 @@ def main():
                 )
 
         # Print summary statistics
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Summary for range [{start}, {end}]:")
         print(f"  Numbers tested: {len(results)}")
         print(f"  Average steps: {sum(r[1] for r in results) / len(results):.2f}")
