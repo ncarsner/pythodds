@@ -125,22 +125,26 @@ def test_geo_variance_invalid_p_raises():
 
 def test_validate_p_out_of_range():
     args = argparse.Namespace(k=1, p=0.0, table=None, precision=4)
-    assert "-p" in validate(args)
+    result = validate(args)
+    assert result is not None and "-p" in result
 
 
 def test_validate_precision_negative():
     args = argparse.Namespace(k=1, p=0.5, table=None, precision=-1)
-    assert "--precision" in validate(args)
+    result = validate(args)
+    assert result is not None and "--precision" in result
 
 
 def test_validate_table_min_below_one():
     args = argparse.Namespace(k=None, p=0.5, table=[0, 5], precision=4)
-    assert "MIN" in validate(args)
+    result = validate(args)
+    assert result is not None and "MIN" in result
 
 
 def test_validate_table_max_below_min():
     args = argparse.Namespace(k=None, p=0.5, table=[5, 2], precision=4)
-    assert "MAX" in validate(args)
+    result = validate(args)
+    assert result is not None and "MAX" in result
 
 
 def test_validate_table_valid():
@@ -150,12 +154,14 @@ def test_validate_table_valid():
 
 def test_validate_k_missing_without_table():
     args = argparse.Namespace(k=None, p=0.5, table=None, precision=4)
-    assert "-k is required" in validate(args)
+    result = validate(args)
+    assert result is not None and "-k is required" in result
 
 
 def test_validate_k_below_one():
     args = argparse.Namespace(k=0, p=0.5, table=None, precision=4)
-    assert "-k must be" in validate(args)
+    result = validate(args)
+    assert result is not None and "-k must be" in result
 
 
 def test_validate_valid_single():
