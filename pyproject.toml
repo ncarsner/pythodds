@@ -73,6 +73,19 @@ dev = [
     "pytest-cov>=7.0.0",
 ]
 
+[tool.ruff.lint]
+# Pinned explicitly so a ruff upgrade cannot silently change what is enforced.
+# The repo previously carried no ruff config and inherited ruff's defaults;
+# ruff 0.16.0 then widened those defaults and surfaced 173 new findings.
+#
+# This is ruff's pre-0.16 default set (E4/E7/E9/F) plus import sorting, which
+# the pre-commit hook previously passed as --extend-select=I.
+#
+# line-length is intentionally left at the default 88, which is what the
+# formatter has always used here. The hook's old --line-length=120 applied
+# only to `ruff check` and was inert: E501 lives in E5, which is not selected.
+select = ["E4", "E7", "E9", "F", "I"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
