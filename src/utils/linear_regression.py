@@ -35,6 +35,11 @@ Usage examples:
   linreg --x 10,20,30 --y 15,28,41 --alpha 0.05 --predict 40
 """
 
+# Floor for the Lentz continued-fraction denominators in incomplete_beta. Module
+# level so tests can monkeypatch it to exercise the guards, which real inputs do
+# not reach.
+_TINY = 1e-30
+
 
 class RegressionResult:
     """Container for linear regression results."""
@@ -222,9 +227,7 @@ def t_cdf(t: float, df: int) -> float:
     return p
 
 
-def incomplete_beta(
-    a: float, b: float, x: float, _test_force_tiny: bool = False
-) -> float:
+def incomplete_beta(a: float, b: float, x: float) -> float:
     """Regularized incomplete beta function I_x(a,b).
 
     Uses continued fraction approximation.
@@ -233,7 +236,6 @@ def incomplete_beta(
         a: First beta distribution parameter
         b: Second beta distribution parameter
         x: Value at which to evaluate (between 0 and 1)
-        _test_force_tiny: Internal testing flag to force tiny value checks (for coverage)
     """
     if x < 0.0 or x > 1.0:
         return 0.0 if x < 0.0 else 1.0
@@ -245,7 +247,7 @@ def incomplete_beta(
 
     # Use symmetry relation if x > (a+1)/(a+b+2)
     if x > (a + 1.0) / (a + b + 2.0):
-        return 1.0 - incomplete_beta(b, a, 1.0 - x, _test_force_tiny)
+        return 1.0 - incomplete_beta(b, a, 1.0 - x)
 
     # Compute log of beta function B(a,b) = Γ(a)Γ(b)/Γ(a+b)
     log_beta = math.lgamma(a) + math.lgamma(b) - math.lgamma(a + b)
@@ -254,7 +256,6 @@ def incomplete_beta(
     front = math.exp(a * math.log(x) + b * math.log(1.0 - x) - log_beta) / a
 
     # Continued fraction using Lentz's algorithm
-    tiny = 1e-30
     max_iter = 200
 
     # Initialize
@@ -274,19 +275,13 @@ def incomplete_beta(
         )
 
         d = 1.0 + numerator * d
-        # Force tiny value for testing coverage (line 273)
-        if _test_force_tiny and m == 1:
-            d = tiny / 2.0
-        if abs(d) < tiny:
-            d = tiny
+        if abs(d) < _TINY:
+            d = _TINY
         d = 1.0 / d
 
         c = 1.0 + numerator / c
-        # Force tiny value for testing coverage (line 278)
-        if _test_force_tiny and m == 1:
-            c = tiny / 2.0
-        if abs(c) < tiny:
-            c = tiny
+        if abs(c) < _TINY:
+            c = _TINY
 
         f *= c * d
 
@@ -299,19 +294,13 @@ def incomplete_beta(
         )
 
         d = 1.0 + numerator * d
-        # Force tiny value for testing coverage (line 289)
-        if _test_force_tiny and m == 1:
-            d = tiny / 2.0
-        if abs(d) < tiny:
-            d = tiny
+        if abs(d) < _TINY:
+            d = _TINY
         d = 1.0 / d
 
         c = 1.0 + numerator / c
-        # Force tiny value for testing coverage (line 294)
-        if _test_force_tiny and m == 1:
-            c = tiny / 2.0
-        if abs(c) < tiny:
-            c = tiny
+        if abs(c) < _TINY:
+            c = _TINY
 
         delta = c * d
         f *= delta
