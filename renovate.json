@@ -1,0 +1,20 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "minimumReleaseAge": "72 hours",
+  "internalChecksFilter": "strict",
+  "pre-commit": {
+    "enabled": true
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"]
+  },
+  "packageRules": [
+    {
+      "description": "Ruff upgrades change formatter output and rule defaults, so they need a human to read the diff rather than an automerge.",
+      "matchPackageNames": ["astral-sh/ruff-pre-commit", "ruff"],
+      "automerge": false
+    }
+  ]
+}
