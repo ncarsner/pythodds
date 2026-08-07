@@ -223,21 +223,23 @@ def _ns(**kwargs):
 
 
 def test_validate_alpha_out_of_range():
-    assert "--alpha" in validate(_ns(alpha=0.0))
+    result = validate(_ns(alpha=0.0))
+    assert result is not None and "--alpha" in result
 
 
 def test_validate_precision_negative():
-    assert "--precision" in validate(_ns(precision=-1))
+    result = validate(_ns(precision=-1))
+    assert result is not None and "--precision" in result
 
 
 def test_validate_gof_missing_observed():
-    assert "requires both" in validate(_ns(test="gof", expected="1,2"))
+    result = validate(_ns(test="gof", expected="1,2"))
+    assert result is not None and "requires both" in result
 
 
 def test_validate_gof_with_table_errors():
-    assert "--table" in validate(
-        _ns(test="gof", observed="1,2", expected="1,2", table=["1,2"])
-    )
+    result = validate(_ns(test="gof", observed="1,2", expected="1,2", table=["1,2"]))
+    assert result is not None and "--table" in result
 
 
 def test_validate_gof_valid():
@@ -245,17 +247,18 @@ def test_validate_gof_valid():
 
 
 def test_validate_independence_missing_table():
-    assert "at least two" in validate(_ns(test="independence", table=None))
+    result = validate(_ns(test="independence", table=None))
+    assert result is not None and "at least two" in result
 
 
 def test_validate_independence_single_row():
-    assert "at least two" in validate(_ns(test="independence", table=["1,2"]))
+    result = validate(_ns(test="independence", table=["1,2"]))
+    assert result is not None and "at least two" in result
 
 
 def test_validate_independence_with_observed_errors():
-    assert "not used" in validate(
-        _ns(test="independence", table=["1,2", "3,4"], observed="1,2")
-    )
+    result = validate(_ns(test="independence", table=["1,2", "3,4"], observed="1,2"))
+    assert result is not None and "not used" in result
 
 
 def test_validate_independence_valid():
