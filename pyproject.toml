@@ -79,6 +79,7 @@ pythonpath = ["src"]
 addopts = "--ignore=tests/_*.py --cov=src --cov-report=term-missing --cov-report=xml"
 
 [tool.coverage.run]
+core = "sysmon"
 source = ["src"]
 omit = [
     "src/__init__.py",
