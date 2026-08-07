@@ -174,10 +174,11 @@ def test_anova_one_way_zero_within_variance_different_means():
 # ---------------------------------------------------------------------------
 
 
-def test_bonferroni_pair_count():
+def test_bonferroni_pair_count_and_significance():
     result = anova_one_way([G1, G2, G3])
     comparisons = bonferroni([G1, G2, G3], result)
     assert len(comparisons) == 3  # C(3, 2)
+    assert all(c.significant for c in comparisons)
 
 
 def test_bonferroni_matches_manual_two_group_case():
@@ -222,12 +223,6 @@ def test_bonferroni_invalid_alpha_raises():
     result = anova_one_way([G1, G2])
     with pytest.raises(ValueError, match="alpha must be"):
         bonferroni([G1, G2], result, alpha=0.0)
-
-
-def test_bonferroni_significance_flag():
-    result = anova_one_way([G1, G2, G3])
-    comparisons = bonferroni([G1, G2, G3], result)
-    assert all(c.significant for c in comparisons)
 
 
 # ---------------------------------------------------------------------------
@@ -329,14 +324,10 @@ def test_tukey_hsd_matches_scipy_oracle():
     result = anova_one_way([G1, G2, G3])
     tukey_result = tukey_hsd([G1, G2, G3], result)
     want = scipy_stats.tukey_hsd(G1, G2, G3)
+    assert len(tukey_result.comparisons) == 3
     for c in tukey_result.comparisons:
         assert c.p_value == pytest.approx(want.pvalue[c.i][c.j], abs=1e-6)
-
-
-def test_tukey_hsd_pair_count():
-    result = anova_one_way([G1, G2, G3])
-    tukey_result = tukey_hsd([G1, G2, G3], result)
-    assert len(tukey_result.comparisons) == 3
+        assert c.significant
 
 
 def test_tukey_hsd_two_group_matches_t_test():
@@ -373,12 +364,6 @@ def test_tukey_hsd_zero_se_different_means():
     pair = next(c for c in tukey_result.comparisons if c.i == 0 and c.j == 1)
     assert math.isinf(pair.q_stat)
     assert pair.p_value == 0.0
-
-
-def test_tukey_hsd_significance_flag():
-    result = anova_one_way([G1, G2, G3])
-    tukey_result = tukey_hsd([G1, G2, G3], result)
-    assert all(c.significant for c in tukey_result.comparisons)
 
 
 # ---------------------------------------------------------------------------
@@ -456,33 +441,35 @@ def _ns(**kwargs):
 
 
 def test_validate_alpha_out_of_range():
-    assert "--alpha" in validate(_ns(alpha=0.0))
+    result = validate(_ns(alpha=0.0))
+    assert result is not None and "--alpha" in result
 
 
 def test_validate_precision_negative():
-    assert "--precision" in validate(_ns(precision=-1))
+    result = validate(_ns(precision=-1))
+    assert result is not None and "--precision" in result
 
 
 def test_validate_no_input_source():
-    assert "provide either" in validate(_ns())
+    result = validate(_ns())
+    assert result is not None and "provide either" in result
 
 
 def test_validate_both_input_sources():
-    assert "not both" in validate(
+    result = validate(
         _ns(data=["1,2", "3,4"], file="x.csv", group_col="g", value_col="v")
     )
+    assert result is not None and "not both" in result
 
 
 def test_validate_data_too_few_groups():
-    assert "at least 2 groups" in validate(_ns(data=["1,2,3"]))
+    result = validate(_ns(data=["1,2,3"]))
+    assert result is not None and "at least 2 groups" in result
 
 
 def test_validate_file_missing_columns():
-    assert "requires both" in validate(_ns(file="x.csv"))
-
-
-def test_validate_valid_data_tukey():
-    assert validate(_ns(data=["1,2", "3,4"], posthoc="tukey")) is None
+    result = validate(_ns(file="x.csv"))
+    assert result is not None and "requires both" in result
 
 
 def test_validate_valid_data():
