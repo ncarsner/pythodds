@@ -4,6 +4,7 @@ import math
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import pytest
 
 from src.utils.monte_carlo import (
     _is_extreme,
@@ -12,8 +13,8 @@ from src.utils.monte_carlo import (
     _t_stat_welch,
     analytical_value,
     main,
+    run_experiment,
     simulate_bayes,
-    # simulate_linboot,
     standard_error,
     trials_for_scale,
     validate,
@@ -1093,3 +1094,9 @@ def test_main_linboot_no_resamples(capsys, monkeypatch):
     )
     assert rc == 2
     assert "no successful bootstrap resamples" in capsys.readouterr().err
+
+
+def test_run_experiment_unknown_name_raises():
+    """--experiment is gated by argparse choices, but the function is public."""
+    with pytest.raises(ValueError, match="Unknown experiment"):
+        run_experiment("bogus", {}, trials=5, seed=0)
