@@ -40,7 +40,7 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Geometric Distribution** | Compute PMF, CDF, survival, mean, and variance for the number of trials until the first success; supports single-k reports and full probability tables |
 | **Chi-Square Tests** | Goodness-of-fit and independence (contingency table) chi-square tests via the exact regularised incomplete gamma function; per-cell contributions for residual diagnostics |
 | **One-Way ANOVA** | Test whether the means of three or more independent groups are equal; F-statistic via the regularised incomplete beta function, with Tukey HSD or Bonferroni-corrected pairwise post-hoc comparisons |
-| **Life in Weeks** | Render a human life as an ANSI grid of weeks, months, or years, color-coded elapsed vs remaining from a birthdate; includes a "Life of a Typical American" reference grid shaded by life phase with milestone markers |
+| **Life in Weeks** | Render a human life as an ANSI grid of weeks, months, or years, color-coded elapsed vs remaining from a birthdate; discrete shape glyphs with quarter and decade grouping keep individual cells countable, and a "Life of a Typical American" reference grid shades each life phase with milestone markers |
 | **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, `subnet`, `geometric`, `chisq`, `anova`, and `life` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
@@ -1565,7 +1565,9 @@ anova --file experiment.csv --group-col treatment --value-col response --alpha 0
 
 Renders a human life as a grid of time units — one cell per week, month, or year of a nominal 90-year lifespan — color-coded to distinguish elapsed units from remaining ones. Inspired by Wait But Why's [Your Life in Weeks](https://waitbutwhy.com/2014/05/life-weeks.html).
 
-`--reference` renders "The Life of a Typical American": the same grid shaded by life phase (childhood/school, higher education, working years, retirement, beyond life expectancy) with milestone markers. Phase boundaries and milestone ages are approximate US averages from public sources (US Census Bureau median age at first marriage; CDC/NCHS mean age at first birth and life expectancy; Gallup average actual retirement age) — see the module docstring for figures and years.
+Cells are discrete shape glyphs (`■` lived, `□` remaining) rather than solid blocks, separated into groups of 13 weeks (or 3 months, 5 years) with a blank line between decades, so individual units stay countable instead of merging into a bar. `--group` overrides the group size; `--group 1` puts a space between every cell and `--group 0` renders an unbroken row.
+
+`--reference` renders "The Life of a Typical American": the same grid with a distinct shape per life phase — `●` childhood/school, `▲` higher education, `■` working years, `◆` retirement, `○` beyond life expectancy — and `★` milestone markers. Phase boundaries and milestone ages are approximate US averages from public sources (US Census Bureau median age at first marriage; CDC/NCHS mean age at first birth and life expectancy; Gallup average actual retirement age) — see the module docstring for figures and years.
 
 `--as-of` measures elapsed time to a date other than today, which makes output reproducible and supports what-if projections. Color is suppressed automatically when output is not a terminal, when `NO_COLOR` is set, or with `--no-color`; the block glyphs alone remain readable.
 
@@ -1582,6 +1584,9 @@ life 1985-03-14 --mode years --lifespan 100
 # Typical-American reference grid (no birthdate needed)
 life --reference
 
+# Tighter cell grouping (one space between every cell)
+life 1985-03-14 --group 1
+
 # Reproducible / projected output
 life 1985-03-14 --as-of 2030-01-01 --format json
 ```
@@ -1594,6 +1599,7 @@ life 1985-03-14 --as-of 2030-01-01 --format json
 | `-m` | `--mode {weeks,months,years}` | Grid granularity, one cell per unit (default: weeks) |
 | `-l` | `--lifespan YEARS` | Nominal lifespan spanned by the grid, 1–150 (default: 90) |
 | | `--as-of DATE` | ISO date to measure elapsed time to (default: today) |
+| `-g` | `--group CELLS` | Cells per visual group, `0` to disable (default: 13 weeks, 3 months, 5 years) |
 | `-r` | `--reference` | Render the typical-American reference grid instead of a personal one |
 | | `--no-color` | Disable ANSI color; glyphs alone distinguish the cells |
 | `-f` | `--format {table,json}` | Output format (default: table) |
@@ -2680,7 +2686,7 @@ rows = grid_rows(grid.total_units, grid.elapsed_units, grid.cols)
 print(len(rows))  # 90
 
 # Typical-American reference grid: phase glyphs with milestone overlays
-print(reference_rows("years", 90)[2])  # ▃▃▅▅▅▅▅◆▅◆
+print(reference_rows("years", 90)[2])  # ▲▲■■■■■★■★
 
 # Milestone ages converted to unit indices
 print(milestone_units("weeks")[0])  # ('mean age at first birth (NCHS 2023)', 1430)

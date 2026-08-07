@@ -5,6 +5,10 @@ Inspired by Wait But Why's "Your Life in Weeks" (2014), this renders an ANSI
 grid where each cell is one week, month, or year of a nominal 90-year lifespan,
 color-coded to distinguish elapsed units from remaining ones.
 
+Cells use discrete shape glyphs rather than solid blocks, and are separated
+into groups (quarters for weeks and months) with a blank line between decades,
+so individual units stay countable instead of merging into a bar.
+
 The --reference view renders "The Life of a Typical American": the same grid
 shaded by life phase, with milestone markers. Phase boundaries and milestone
 ages are approximate US averages drawn from public sources:
@@ -20,6 +24,7 @@ Usage examples:
   life 1985-03-14 --mode months
   life 1985-03-14 --mode years --lifespan 100
   life --reference
+  life 1985-03-14 --group 4
   life 1985-03-14 --as-of 2030-01-01 --format json
 """
 
@@ -39,9 +44,16 @@ from typing import IO, Any, Mapping, NamedTuple
 _UNITS_PER_YEAR = {"weeks": 52, "months": 12, "years": 1}
 _COLS = {"weeks": 52, "months": 12, "years": 10}
 
-_ELAPSED = "█"
-_REMAINING = "░"
-_MILESTONE = "◆"
+# Cells per visual group, so a run of identical glyphs still reads as discrete
+# units: quarters for weeks and months, half-decades for years.
+_GROUP_DEFAULTS = {"weeks": 13, "months": 3, "years": 5}
+
+# Grids taller than this get a blank line between decades.
+_DECADE_BREAK_MIN = 20
+
+_ELAPSED = "■"
+_REMAINING = "□"
+_MILESTONE = "★"
 
 _RESET = "\033[0m"
 _COLORS = {
@@ -74,11 +86,11 @@ class Phase(NamedTuple):
 
 
 _PHASES: tuple[Phase, ...] = (
-    Phase("Childhood and K-12 school", 0.0, 18.0, "cyan", "▁"),
-    Phase("Higher education / early adulthood", 18.0, 22.0, "blue", "▃"),
-    Phase("Working years", 22.0, 62.0, "yellow", "▅"),
-    Phase("Retirement", 62.0, 78.4, "green", "▇"),
-    Phase("Beyond US life expectancy", 78.4, float("inf"), "dim", "░"),
+    Phase("Childhood and K-12 school", 0.0, 18.0, "cyan", "●"),
+    Phase("Higher education / early adulthood", 18.0, 22.0, "blue", "▲"),
+    Phase("Working years", 22.0, 62.0, "yellow", "■"),
+    Phase("Retirement", 62.0, 78.4, "green", "◆"),
+    Phase("Beyond US life expectancy", 78.4, float("inf"), "dim", "○"),
 )
 
 _MILESTONES: tuple[tuple[float, str], ...] = (
@@ -250,6 +262,7 @@ Examples:
   life 1985-03-14 --mode months
   life 1985-03-14 --mode years --lifespan 100
   life --reference
+  life 1985-03-14 --group 4
   life 1985-03-14 --as-of 2030-01-01 --format json
 """,
     )
@@ -286,6 +299,13 @@ Examples:
         help="render the typical-American reference grid instead of a personal one",
     )
     parser.add_argument(
+        "--group",
+        "-g",
+        type=int,
+        metavar="CELLS",
+        help="cells per visual group, 0 to disable (default: 13 weeks, 3 months, 5 years)",
+    )
+    parser.add_argument(
         "--no-color",
         action="store_true",
         help="disable ANSI color; glyphs alone distinguish the cells",
@@ -311,6 +331,8 @@ def validate(args: argparse.Namespace) -> str | None:
         return "BIRTHDATE is required unless --reference is used"
     if not 1 <= args.lifespan <= 150:
         return f"lifespan must be between 1 and 150, got {args.lifespan}"
+    if args.group is not None and args.group < 0:
+        return f"group must be 0 or greater, got {args.group}"
     return None
 
 
@@ -353,14 +375,15 @@ def _paint(text: str, color: str, use_color: bool) -> str:
     return f"{_COLORS[color]}{text}{_RESET}"
 
 
-_GLYPH_COLORS = {phase.glyph: phase.color for phase in _PHASES} | {
-    _ELAPSED: "cyan",
-    _REMAINING: "dim",
-    _MILESTONE: "magenta",
+# The personal and reference grids share the ■ glyph with different meanings,
+# so each carries its own glyph-to-color map rather than one merged lookup.
+_LIFE_COLORS = {_ELAPSED: "cyan", _REMAINING: "dim"}
+_PHASE_COLORS = {phase.glyph: phase.color for phase in _PHASES} | {
+    _MILESTONE: "magenta"
 }
 
 
-def _paint_row(row: str, use_color: bool) -> str:
+def _paint_row(row: str, colors: Mapping[str, str], use_color: bool) -> str:
     """Color a glyph row by grouping runs of identical glyphs."""
     if not use_color:
         return row
@@ -370,9 +393,23 @@ def _paint_row(row: str, use_color: bool) -> str:
     for i in range(1, len(row) + 1):
         if i == len(row) or row[i] != row[run_start]:
             glyph = row[run_start]
-            painted.append(_paint(row[run_start:i], _GLYPH_COLORS[glyph], True))
+            painted.append(_paint(row[run_start:i], colors[glyph], True))
             run_start = i
     return "".join(painted)
+
+
+def _render_row(
+    row: str, colors: Mapping[str, str], use_color: bool, group: int
+) -> str:
+    """Color a glyph row, separating every `group` cells with a space.
+
+    Grouping keeps runs of identical glyphs from merging into a solid bar, so
+    individual cells stay countable. A group of 0 or less disables separators.
+    """
+    if group <= 0:
+        return _paint_row(row, colors, use_color)
+    segments = [row[i : i + group] for i in range(0, len(row), group)]
+    return " ".join(_paint_row(segment, colors, use_color) for segment in segments)
 
 
 def _row_label(mode: str, row_index: int) -> str:
@@ -381,11 +418,29 @@ def _row_label(mode: str, row_index: int) -> str:
     return f"{age:>3} │ "
 
 
-def _render_grid(rows: list[str], mode: str, use_color: bool) -> list[str]:
-    """Return labelled, optionally colored grid lines."""
-    return [
-        _row_label(mode, i) + _paint_row(row, use_color) for i, row in enumerate(rows)
-    ]
+def _render_grid(
+    rows: list[str],
+    mode: str,
+    colors: Mapping[str, str],
+    use_color: bool,
+    group: int,
+) -> list[str]:
+    """Return labelled, optionally colored grid lines.
+
+    Grids taller than _DECADE_BREAK_MIN rows are split by a blank line every
+    decade, so a 90-row grid reads as nine blocks rather than one wall.
+    """
+    lines: list[str] = []
+    for i, row in enumerate(rows):
+        if i and i % 10 == 0 and len(rows) > _DECADE_BREAK_MIN:
+            lines.append("")
+        lines.append(_row_label(mode, i) + _render_row(row, colors, use_color, group))
+    return lines
+
+
+def resolve_group(mode: str, group: int | None) -> int:
+    """Return the cell-group size for a mode, falling back to its default."""
+    return _GROUP_DEFAULTS[mode] if group is None else group
 
 
 def _pct(part: int, whole: int) -> float:
@@ -393,7 +448,9 @@ def _pct(part: int, whole: int) -> float:
     return part / whole * 100.0
 
 
-def format_grid(grid: LifeGrid, use_color: bool = False) -> str:
+def format_grid(
+    grid: LifeGrid, use_color: bool = False, group: int | None = None
+) -> str:
     """Return the rendered personal life grid with legend and summary."""
     unit = grid.mode
     lines = [
@@ -408,7 +465,9 @@ def format_grid(grid: LifeGrid, use_color: bool = False) -> str:
         _render_grid(
             grid_rows(grid.total_units, grid.elapsed_units, grid.cols),
             grid.mode,
+            _LIFE_COLORS,
             use_color,
+            resolve_group(grid.mode, group),
         )
     )
     lines.extend(
@@ -424,7 +483,10 @@ def format_grid(grid: LifeGrid, use_color: bool = False) -> str:
 
 
 def format_reference(
-    mode: str = "weeks", lifespan: int = 90, use_color: bool = False
+    mode: str = "weeks",
+    lifespan: int = 90,
+    use_color: bool = False,
+    group: int | None = None,
 ) -> str:
     """Return the rendered typical-American reference grid with legend."""
     total = lifespan * _UNITS_PER_YEAR[mode]
@@ -436,7 +498,15 @@ def format_reference(
         "for sources (Census, NCHS, Gallup).",
         "",
     ]
-    lines.extend(_render_grid(reference_rows(mode, lifespan), mode, use_color))
+    lines.extend(
+        _render_grid(
+            reference_rows(mode, lifespan),
+            mode,
+            _PHASE_COLORS,
+            use_color,
+            resolve_group(mode, group),
+        )
+    )
     lines.append("")
 
     for phase in _PHASES:
@@ -523,7 +593,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.format == "json":
             print(format_reference_json(args.mode, args.lifespan))
         else:
-            print(format_reference(args.mode, args.lifespan, use_color))
+            print(format_reference(args.mode, args.lifespan, use_color, args.group))
         return 0
 
     try:
@@ -537,7 +607,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.format == "json":
         print(format_json(grid))
     else:
-        print(format_grid(grid, use_color))
+        print(format_grid(grid, use_color, args.group))
 
     return 0
 

@@ -8,13 +8,16 @@ import pytest
 
 from src.utils.life_in_weeks import (
     _ELAPSED,
+    _LIFE_COLORS,
     _MILESTONE,
+    _PHASE_COLORS,
     _PHASES,
     _REMAINING,
     _paint,
     _paint_row,
     _parse_date,
     _phase_for_age,
+    _render_row,
     _row_label,
     _use_color,
     compute_grid,
@@ -26,6 +29,7 @@ from src.utils.life_in_weeks import (
     main,
     milestone_units,
     reference_rows,
+    resolve_group,
     units_elapsed,
     validate,
 )
@@ -208,6 +212,7 @@ def _ns(**overrides) -> argparse.Namespace:
         "mode": "weeks",
         "lifespan": 90,
         "as_of": "2026-08-07",
+        "group": None,
         "reference": False,
         "no_color": False,
         "format": "table",
@@ -290,9 +295,46 @@ def test_paint_is_a_noop_without_color():
 
 def test_paint_row_groups_runs_of_identical_glyphs():
     row = _ELAPSED * 2 + _REMAINING * 2
-    painted = _paint_row(row, True)
+    painted = _paint_row(row, _LIFE_COLORS, True)
     assert painted.count("\033[0m") == 2
-    assert _paint_row(row, False) == row
+    assert _paint_row(row, _LIFE_COLORS, False) == row
+
+
+def test_render_row_separates_cells_into_groups():
+    row = _ELAPSED * 6
+    assert _render_row(row, _LIFE_COLORS, False, 2) == "■■ ■■ ■■"
+    assert _render_row(row, _LIFE_COLORS, False, 1) == "■ ■ ■ ■ ■ ■"
+
+
+def test_render_row_group_of_zero_disables_separators():
+    row = _ELAPSED * 6
+    assert _render_row(row, _LIFE_COLORS, False, 0) == row
+    assert _render_row(row, _LIFE_COLORS, False, -1) == row
+
+
+def test_render_row_final_group_may_be_short():
+    assert _render_row(_ELAPSED * 5, _LIFE_COLORS, False, 2) == "■■ ■■ ■"
+
+
+def test_render_row_colors_each_group_independently():
+    painted = _render_row(_ELAPSED * 4, _LIFE_COLORS, True, 2)
+    assert painted.count("\033[0m") == 2
+    assert " " in painted
+
+
+def test_resolve_group_falls_back_to_mode_default():
+    assert resolve_group("weeks", None) == 13
+    assert resolve_group("months", None) == 3
+    assert resolve_group("years", None) == 5
+    assert resolve_group("weeks", 4) == 4
+    assert resolve_group("weeks", 0) == 0
+
+
+def test_life_and_phase_colors_disambiguate_the_shared_square_glyph():
+    # ■ means "lived" in the personal grid and "working years" in the
+    # reference grid; the two maps must not collide.
+    assert _LIFE_COLORS[_ELAPSED] == "cyan"
+    assert _PHASE_COLORS[_ELAPSED] == "yellow"
 
 
 def test_row_label_uses_decades_for_years_mode():
@@ -319,6 +361,39 @@ def test_format_grid_row_count_matches_grid():
     grid = compute_grid(date(1985, 3, 14), date(2026, 8, 7))
     body = [line for line in format_grid(grid).splitlines() if "│" in line]
     assert len(body) == 90
+
+
+def test_format_grid_groups_weeks_into_quarters_by_default():
+    grid = compute_grid(date(1985, 3, 14), date(2026, 8, 7))
+    row = next(line for line in format_grid(grid).splitlines() if "│" in line)
+    cells = row.split("│ ")[1]
+    # 52 weeks in four groups of 13, separated by three spaces.
+    assert [len(group) for group in cells.split(" ")] == [13, 13, 13, 13]
+    # Grid plus label stays inside an 80-column terminal.
+    assert len(row) == 61
+
+
+def test_format_grid_breaks_tall_grids_every_decade():
+    grid = compute_grid(date(1985, 3, 14), date(2026, 8, 7))
+    lines = format_grid(grid).splitlines()
+    # Grid body sits between the 6-line header and the 5-line legend/summary.
+    body = lines[6:-5]
+    # 90 rows in nine decade blocks separated by eight blank lines.
+    assert sum(1 for line in body if not line) == 8
+    assert body[10] == ""
+
+
+def test_format_grid_short_grids_are_not_broken():
+    grid = compute_grid(date(1985, 3, 14), date(2026, 8, 7), "years")
+    rows = [line for line in format_grid(grid).splitlines() if "│" in line]
+    assert len(rows) == 9
+    assert "\n\n" not in "\n".join(rows)
+
+
+def test_format_grid_group_zero_renders_an_unbroken_row():
+    grid = compute_grid(date(1985, 3, 14), date(2026, 8, 7))
+    row = next(line for line in format_grid(grid, group=0).splitlines() if "│" in line)
+    assert " " not in row.split("│ ")[1]
 
 
 def test_format_reference_lists_every_phase_and_milestone():
@@ -396,6 +471,21 @@ def test_main_defaults_as_of_to_today(capsys):
     assert rc == 0
     data = json.loads(capsys.readouterr().out)
     assert data["as_of"] == date.today().isoformat()
+
+
+def test_main_group_flag_changes_cell_separation(capsys):
+    rc = main(
+        ["1985-03-14", "--mode", "years", "--as-of", "2026-08-07", "--group", "2"]
+    )
+    assert rc == 0
+    row = next(line for line in capsys.readouterr().out.splitlines() if "│" in line)
+    assert row.split("│ ")[1] == "■■ ■■ ■■ ■■ ■■"
+
+
+def test_main_negative_group_returns_2(capsys):
+    rc = main(["1985-03-14", "--group", "-2"])
+    assert rc == 2
+    assert "group must be 0 or greater" in capsys.readouterr().err
 
 
 def test_main_no_color_flag_suppresses_ansi(capsys):
