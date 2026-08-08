@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.22.0] — 2026-08-07
+
+### Added
+- Life in weeks tool (`life`) — renders a human life as an ANSI grid of weeks, months, or years against a nominal 90-year lifespan, color-coded elapsed vs remaining (#46, #48)
+  - Cells are discrete shape glyphs (`■` lived, `□` remaining) grouped into quarters with a blank line between decades, so individual units stay countable instead of merging into a solid bar
+  - `--reference` renders "The Life of a Typical American": the same grid shaded by life phase, each phase with its own silhouette (`● ▲ ■ ◆ ○`) and `★` milestone markers, from cited US averages (Census, CDC/NCHS, Gallup)
+  - `--as-of` accepts an explicit date so output is deterministic and what-if dates can be projected; `--group` overrides the per-mode group size; `--lifespan`, `--mode`, `--no-color`, and `--format json` round out the interface
+  - Honors the `NO_COLOR` environment variable and disables color automatically when stdout is not a TTY
+
+### Changed
+- Test suite runtime cut from 8.81s to 2.75s across 1288 tests by switching the coverage backend to `sys.monitoring` (`core = "sysmon"`), since `--cov` runs on every invocation via `addopts` (#50)
+- ruff pre-commit hook updated `v0.6.4` → `v0.16.1`, and `id: ruff` → `id: ruff-check` (the bare id is a deprecated alias as of 0.16)
+- Lint rule set now pinned explicitly as `select = ["E4", "E7", "E9", "F", "I"]` in `pyproject.toml`, so a ruff upgrade cannot silently widen what is enforced
+- Dependency updates gated behind a 72-hour cooling-off period via a new `renovate.json` (`minimumReleaseAge`, `internalChecksFilter: "strict"`) as a supply-chain safeguard
+- `_use_color` in `life_in_weeks` now types its `stream` parameter as `object`, matching the `getattr`-with-fallback TTY check that accepts any value
+
+### Removed
+- Test-only `_test_force_tiny` parameter from `incomplete_beta` in `linear_regression`; the continued-fraction floor is now the module constant `_TINY`, reachable from tests by monkeypatch without a flag in the production signature
+- Unreachable numpy fallback branches and the always-true `HAS_NUMPY` constant from `monte_carlo`, along with the `pragma: no cover` directives that had been holding the dead code at 100% coverage
+
+### Fixed
+- `test_incomplete_beta_lentz_floor_guards_hit` asserted only that the result was finite, which held whether or not the four Lentz guards existed — the test passed with all four deleted. It now pins the clamped value, so any change to a guard fails it
+- Replaced a `try/except: pass` test in `linear_regression` that could not fail with one asserting finite, in-range results for subnormal parameters
+- Type-narrowing errors at 41 `validate()` assertion sites across six test files, where `str | None` was passed directly to the `in` operator
+
+---
+
 ## [0.21.0] — 2026-07-05
 
 ### Added
