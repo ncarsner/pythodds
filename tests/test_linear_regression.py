@@ -333,12 +333,23 @@ def test_incomplete_beta_lentz_floor_guards_hit(monkeypatch):
     """Force the near-zero denominator guards in the continued fraction.
 
     Real inputs never drive a Lentz denominator below 1e-30, so raise the floor
-    until every denominator trips it. The guards exist to keep the subsequent
-    1.0 / d from dividing by zero, so a finite result is the property to check.
+    until every denominator trips it.
+
+    Asserting only that the result is finite would be worthless here: it holds
+    whether or not the guards exist, so the test would still pass with all four
+    deleted. Pin the clamped value instead. With every denominator forced to
+    _TINY, `c * d` is exactly 1.0, the convergence check breaks on the first
+    iteration, and the result collapses to the front factor alone -- which for
+    (2, 3, 0.5) goes through the symmetry relation to 1 - 0.125. Deleting or
+    inverting any guard changes that number.
     """
+    unclamped = incomplete_beta(2.0, 3.0, 0.5)
     monkeypatch.setattr(linreg_module, "_TINY", 1e5)
-    result = incomplete_beta(2.0, 3.0, 0.5)
-    assert math.isfinite(result)
+    clamped = incomplete_beta(2.0, 3.0, 0.5)
+
+    assert math.isfinite(clamped)
+    assert clamped == pytest.approx(0.875)
+    assert clamped != unclamped
 
 
 def test_incomplete_beta_survives_subnormal_parameters():
