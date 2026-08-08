@@ -263,7 +263,8 @@ def test_validate_no_mode():
         precision=6,
         format="table",
     )
-    assert "required" in validate(args)
+    result = validate(args)
+    assert result is not None and "required" in result
 
 
 def test_validate_negative_precision():
@@ -276,7 +277,8 @@ def test_validate_negative_precision():
         precision=-1,
         format="table",
     )
-    assert "--precision" in validate(args)
+    result = validate(args)
+    assert result is not None and "--precision" in result
 
 
 def test_validate_data_and_groups_exclusive():
@@ -289,7 +291,8 @@ def test_validate_data_and_groups_exclusive():
         precision=6,
         format="table",
     )
-    assert "mutually exclusive" in validate(args)
+    result = validate(args)
+    assert result is not None and "mutually exclusive" in result
 
 
 def test_validate_groups_odd_count():
@@ -302,7 +305,8 @@ def test_validate_groups_odd_count():
         precision=6,
         format="table",
     )
-    assert "--groups" in validate(args)
+    result = validate(args)
+    assert result is not None and "--groups" in result
 
 
 def test_validate_groups_single_value():
@@ -315,7 +319,8 @@ def test_validate_groups_single_value():
         precision=6,
         format="table",
     )
-    assert "--groups" in validate(args)
+    result = validate(args)
+    assert result is not None and "--groups" in result
 
 
 def test_validate_weights_multi_dataset():
@@ -328,7 +333,8 @@ def test_validate_weights_multi_dataset():
         precision=6,
         format="table",
     )
-    assert "--weights" in validate(args)
+    result = validate(args)
+    assert result is not None and "--weights" in result
 
 
 def test_validate_weights_wrong_length():
@@ -341,7 +347,8 @@ def test_validate_weights_wrong_length():
         precision=6,
         format="table",
     )
-    assert "--weights" in validate(args)
+    result = validate(args)
+    assert result is not None and "--weights" in result
 
 
 def test_validate_weights_nonpositive():
@@ -354,7 +361,8 @@ def test_validate_weights_nonpositive():
         precision=6,
         format="table",
     )
-    assert "--weights" in validate(args)
+    result = validate(args)
+    assert result is not None and "--weights" in result
 
 
 def test_validate_lorenz_multi_dataset():
@@ -367,7 +375,8 @@ def test_validate_lorenz_multi_dataset():
         precision=6,
         format="table",
     )
-    assert "--lorenz" in validate(args)
+    result = validate(args)
+    assert result is not None and "--lorenz" in result
 
 
 def test_validate_valid_single_data():

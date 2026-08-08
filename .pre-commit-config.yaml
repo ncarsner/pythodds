@@ -1,4 +1,14 @@
 # content of .pre-commit-config.yaml
+#
+# Supply-chain policy: never pin a `rev` younger than 72 hours. A compromised
+# publish is usually caught and yanked well inside that window, so the delay is
+# cheap insurance. Check the tag date before bumping:
+#
+#     gh api repos/<owner>/<repo>/tags --jq '.[0:5][] | .name'
+#     gh api repos/<owner>/<repo>/commits/<sha> --jq '.commit.committer.date'
+#
+# `pre-commit autoupdate` does not honour this — it takes the newest tag
+# unconditionally. Verify the date after running it.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -8,9 +18,13 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
 
+  # Rule selection lives in pyproject.toml [tool.ruff.lint] rather than in
+  # hook args, so `uvx ruff@0.16.1` locally and this hook enforce the same set.
+  # That also pins the rule set against ruff's own defaults changing: 0.16.0
+  # widened them, which would otherwise have surfaced 173 new findings here.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.4
+    rev: v0.16.1 # tagged 2026-07-30; 0.16.2 was <72h old at pin time
     hooks:
-      - id: ruff
-        args: [--fix, --extend-select=I, --line-length=120]
+      - id: ruff-check # `ruff` is a deprecated alias as of 0.16
+        args: [--fix]
       - id: ruff-format

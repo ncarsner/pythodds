@@ -43,8 +43,6 @@ Usage examples:
   simulate --experiment linboot --params x=1,2,3,4,5 y=2.1,3.9,6.2,7.8,10.1 predict=6
 """
 
-HAS_NUMPY = True
-
 # ---------------------------------------------------------------------------
 # Analytical comparison imports — degrade gracefully if unavailable
 # ---------------------------------------------------------------------------
@@ -184,35 +182,20 @@ def simulate_binomial(
     n: int, k: int, p: float, trials: int, seed: Optional[int]
 ) -> list[int]:
     """Per-trial outcomes (1/0) for P(X ≥ k) where X ~ Binomial(n, p)."""
-    if HAS_NUMPY:
-        rng = np.random.default_rng(seed)
-        counts = rng.binomial(n, p, size=trials)
-        return (counts >= k).astype(int).tolist()
-    else:  # pragma: no cover
-        rng = random.Random(seed)
-        return [
-            1 if sum(1 for _ in range(n) if rng.random() < p) >= k else 0
-            for _ in range(trials)
-        ]
+    rng = np.random.default_rng(seed)
+    counts = rng.binomial(n, p, size=trials)
+    return (counts >= k).astype(int).tolist()
 
 
 def simulate_birthday(
     pool: int, group: int, trials: int, seed: Optional[int]
 ) -> list[int]:
     """Per-trial collision indicators for the birthday problem."""
-    if HAS_NUMPY:
-        rng = np.random.default_rng(seed)
-        samples = rng.integers(0, pool, size=(trials, group))
-        sorted_s = np.sort(samples, axis=1)
-        collisions = np.any(np.diff(sorted_s, axis=1) == 0, axis=1)
-        return collisions.astype(int).tolist()
-    else:  # pragma: no cover
-        rng = random.Random(seed)
-        results = []
-        for _ in range(trials):
-            draws = [rng.randrange(pool) for _ in range(group)]
-            results.append(1 if len(set(draws)) < group else 0)
-        return results
+    rng = np.random.default_rng(seed)
+    samples = rng.integers(0, pool, size=(trials, group))
+    sorted_s = np.sort(samples, axis=1)
+    collisions = np.any(np.diff(sorted_s, axis=1) == 0, axis=1)
+    return collisions.astype(int).tolist()
 
 
 def simulate_streak(
@@ -238,24 +221,9 @@ def simulate_streak(
 
 def simulate_poisson(lam: float, k: int, trials: int, seed: Optional[int]) -> list[int]:
     """Per-trial outcomes (1/0) for P(X ≥ k) where X ~ Poisson(λ)."""
-    if HAS_NUMPY:
-        rng = np.random.default_rng(seed)
-        counts = rng.poisson(lam, size=trials)
-        return (counts >= k).astype(int).tolist()
-    else:  # pragma: no cover
-        rng = random.Random(seed)
-        L = math.exp(-lam)
-        results = []
-        for _ in range(trials):
-            count = 0
-            prod = 1.0
-            while True:
-                prod *= rng.random()
-                if prod < L:
-                    break
-                count += 1
-            results.append(1 if count >= k else 0)
-        return results
+    rng = np.random.default_rng(seed)
+    counts = rng.poisson(lam, size=trials)
+    return (counts >= k).astype(int).tolist()
 
 
 # ---------------------------------------------------------------------------
@@ -431,22 +399,11 @@ def simulate_season(
     games = int(params.get("games", "162"))
     wins_ge = params.get("wins_ge")
 
-    if HAS_NUMPY:
-        rng = np.random.default_rng(seed)
-        win_counts = rng.binomial(games, win_pct, size=trials)
-        if wins_ge is not None:
-            return (win_counts >= int(wins_ge)).astype(int).tolist()
-        return win_counts.tolist()
-    else:  # pragma: no cover
-        rng = random.Random(seed)
-        win_counts = [
-            sum(1 for _ in range(games) if rng.random() < win_pct)
-            for _ in range(trials)
-        ]
-        if wins_ge is not None:
-            k = int(wins_ge)
-            return [1 if w >= k else 0 for w in win_counts]
-        return win_counts
+    rng = np.random.default_rng(seed)
+    win_counts = rng.binomial(games, win_pct, size=trials)
+    if wins_ge is not None:
+        return (win_counts >= int(wins_ge)).astype(int).tolist()
+    return win_counts.tolist()
 
 
 def simulate_linboot(
@@ -463,7 +420,7 @@ def simulate_linboot(
     Returns:
         (slopes, intercepts, predictions) — lists of length ≤ trials.
     """
-    if _linear_regression is None:  # pragma: no cover
+    if _linear_regression is None:
         raise RuntimeError("linear_regression module not available")
 
     x = [float(v) for v in params["x"].split(",")]
@@ -536,7 +493,7 @@ def run_experiment(
         return simulate_bayes(params, trials, seed)
     if experiment == "season":
         return simulate_season(params, trials, seed)
-    raise ValueError(f"Unknown experiment: {experiment!r}")  # pragma: no cover
+    raise ValueError(f"Unknown experiment: {experiment!r}")
 
 
 def analytical_value(experiment: str, params: dict[str, str]) -> Optional[float]:

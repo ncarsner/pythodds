@@ -75,9 +75,9 @@ def test_precomputed_steps_reused():
         20: 0,
     }
     for k, expected_steps in expected.items():
-        assert (
-            checker.steps_for[k] == expected_steps
-        ), f"steps_for[{k}]: expected {expected_steps}, got {checker.steps_for[k]}"
+        assert checker.steps_for[k] == expected_steps, (
+            f"steps_for[{k}]: expected {expected_steps}, got {checker.steps_for[k]}"
+        )
 
 
 def test_verbose_output(capsys):

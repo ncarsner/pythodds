@@ -165,33 +165,39 @@ def test_crt_result_in_range():
 
 def test_validate_no_solve():
     args = argparse.Namespace(solve=None, all=None, format="table")
-    assert "--solve" in validate(args)
+    result = validate(args)
+    assert result is not None and "--solve" in result
 
 
 def test_validate_single_value():
     args = argparse.Namespace(solve=[3], all=None, format="table")
-    assert "pair" in validate(args)
+    result = validate(args)
+    assert result is not None and "pair" in result
 
 
 def test_validate_odd_values():
     args = argparse.Namespace(solve=[2, 3, 4], all=None, format="table")
-    assert "even" in validate(args)
+    result = validate(args)
+    assert result is not None and "even" in result
 
 
 def test_validate_modulus_zero():
     # Moduli are at odd indices; index 1 is the first modulus
     args = argparse.Namespace(solve=[2, 0, 3, 5], all=None, format="table")
-    assert ">= 1" in validate(args)
+    result = validate(args)
+    assert result is not None and ">= 1" in result
 
 
 def test_validate_modulus_negative():
     args = argparse.Namespace(solve=[2, 3, 1, -5], all=None, format="table")
-    assert ">= 1" in validate(args)
+    result = validate(args)
+    assert result is not None and ">= 1" in result
 
 
 def test_validate_all_negative():
     args = argparse.Namespace(solve=[2, 3, 3, 5], all=-1, format="table")
-    assert "--all" in validate(args)
+    result = validate(args)
+    assert result is not None and "--all" in result
 
 
 def test_validate_valid():

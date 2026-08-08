@@ -485,7 +485,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("-" * 56)
         for i in range(n):
             print(
-                f"{i+1:>6} {x_values[i]:>10.3f} {rank_x[i]:>10.1f} {y_values[i]:>10.3f} {rank_y[i]:>10.1f}"
+                f"{i + 1:>6} {x_values[i]:>10.3f} {rank_x[i]:>10.1f} {y_values[i]:>10.3f} {rank_y[i]:>10.1f}"
             )
         print()
 
