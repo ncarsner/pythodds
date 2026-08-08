@@ -35,7 +35,7 @@ import json
 import os
 import sys
 from datetime import date
-from typing import IO, Any, Mapping, NamedTuple
+from typing import Any, Mapping, NamedTuple
 
 # ---------------------------------------------------------------------------
 # Core functions
@@ -347,12 +347,16 @@ def _parse_date(raw: str) -> date:
 def _use_color(
     args: argparse.Namespace,
     env: Mapping[str, str] | None = None,
-    stream: IO[str] | None = None,
+    stream: object | None = None,
 ) -> bool:
     """Return whether ANSI color should be emitted.
 
     Color is suppressed by --no-color, by a non-empty NO_COLOR environment
     variable, or when the output stream is not a terminal.
+
+    ``stream`` is typed as ``object`` rather than ``IO[str]`` on purpose: the
+    tty check goes through ``getattr`` with a fallback, so anything at all is
+    accepted, including objects with no ``isatty`` at all.
     """
     if args.no_color:
         return False

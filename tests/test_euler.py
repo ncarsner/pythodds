@@ -211,7 +211,8 @@ def test_validate_no_mode():
         precision=10,
         format="table",
     )
-    assert "required" in validate(args)
+    result = validate(args)
+    assert result is not None and "required" in result
 
 
 def test_validate_negative_precision():
@@ -226,7 +227,8 @@ def test_validate_negative_precision():
         precision=-1,
         format="table",
     )
-    assert "--precision" in validate(args)
+    result = validate(args)
+    assert result is not None and "--precision" in result
 
 
 def test_validate_approx_zero():
@@ -241,7 +243,8 @@ def test_validate_approx_zero():
         precision=10,
         format="table",
     )
-    assert "--approx" in validate(args)
+    result = validate(args)
+    assert result is not None and "--approx" in result
 
 
 def test_validate_exp_bad_order():
@@ -256,7 +259,8 @@ def test_validate_exp_bad_order():
         precision=10,
         format="table",
     )
-    assert "--order" in validate(args)
+    result = validate(args)
+    assert result is not None and "--order" in result
 
 
 def test_validate_ln_nonpositive():
@@ -271,7 +275,8 @@ def test_validate_ln_nonpositive():
         precision=10,
         format="table",
     )
-    assert "--ln" in validate(args)
+    result = validate(args)
+    assert result is not None and "--ln" in result
 
 
 def test_validate_ln_negative():
@@ -286,7 +291,8 @@ def test_validate_ln_negative():
         precision=10,
         format="table",
     )
-    assert "--ln" in validate(args)
+    result = validate(args)
+    assert result is not None and "--ln" in result
 
 
 def test_validate_ln_bad_order():
@@ -301,7 +307,8 @@ def test_validate_ln_bad_order():
         precision=10,
         format="table",
     )
-    assert "--order" in validate(args)
+    result = validate(args)
+    assert result is not None and "--order" in result
 
 
 def test_validate_identity_valid():

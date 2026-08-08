@@ -6,6 +6,7 @@ import tempfile
 
 import pytest
 
+import src.utils.linear_regression as linreg_module
 from src.utils.linear_regression import (
     f_cdf,
     incomplete_beta,
@@ -328,66 +329,40 @@ def test_interpret_r_squared_weak():
     assert interpret_r_squared(0.95) == "excellent fit"
 
 
-def test_incomplete_beta_continued_fraction_safety_checks():
-    """
-    Test the continued fraction safety checks in incomplete_beta that contain safety checks
-    that prevent d or c from becoming exactly zero (which would cause division by zero).
-    These checks are triggered when |1.0 + numerator*d| < tiny or |1.0 + numerator/c| < tiny.
+def test_incomplete_beta_lentz_floor_guards_hit(monkeypatch):
+    """Force the near-zero denominator guards in the continued fraction.
 
-    This requires extreme parameter combinations where the continued fraction
-    produces terms that nearly cancel. We test with the most extreme valid
-    parameters to exercise the numerical edge cases of the algorithm.
+    Real inputs never drive a Lentz denominator below 1e-30, so raise the floor
+    until every denominator trips it.
+
+    Asserting only that the result is finite would be worthless here: it holds
+    whether or not the guards exist, so the test would still pass with all four
+    deleted. Pin the clamped value instead. With every denominator forced to
+    _TINY, `c * d` is exactly 1.0, the convergence check breaks on the first
+    iteration, and the result collapses to the front factor alone -- which for
+    (2, 3, 0.5) goes through the symmetry relation to 1 - 0.125. Deleting or
+    inverting any guard changes that number.
     """
-    # Test with parameters at the absolute limits
-    # When a and b are both extremely small (near machine epsilon)
-    # the continued fraction can produce extremely small intermediate values
+    unclamped = incomplete_beta(2.0, 3.0, 0.5)
+    monkeypatch.setattr(linreg_module, "_TINY", 1e5)
+    clamped = incomplete_beta(2.0, 3.0, 0.5)
+
+    assert math.isfinite(clamped)
+    assert clamped == pytest.approx(0.875)
+    assert clamped != unclamped
+
+
+def test_incomplete_beta_survives_subnormal_parameters():
+    """Extreme a/b values must still yield a finite probability, not nan or a raise."""
     test_cases = [
-        # (a, b, x) - designed to stress different parts of the continued fraction
-        (1e-100, 1e-100, 0.5),  # Both tiny, x in middle
-        (1e-150, 1e-150, 0.1),  # Even more extreme
-        (1e-200, 1e-200, 0.9),  # Near upper limit of x
-        (1e-250, 1e-250, 0.3),  # Stress odd step
-        (1e-300, 1e-300, 0.7),  # Near machine precision limits
+        (1e-100, 1e-100, 0.5),
+        (1e-150, 1e-150, 0.1),
+        (1e-200, 1e-200, 0.9),
+        (1e-250, 1e-250, 0.3),
+        (1e-300, 1e-300, 0.7),
     ]
 
     for a, b, x in test_cases:
-        # These parameters may trigger underflow, but the function should
-        # handle it gracefully without returning nan or raising exceptions
-        try:
-            result = incomplete_beta(a, b, x)
-            # Result must be in valid range or be a boundary value
-            assert math.isfinite(result), f"non-finite result for ({a}, {b}, {x})"
-            assert 0 <= result <= 1, f"out of range result for ({a}, {b}, {x})"
-        except (OverflowError, ZeroDivisionError, ValueError):
-            # If we hit numerical limits, that's also acceptable
-            # The safety checks exist to prevent these
-            pass
-
-
-def test_incomplete_beta_force_safety_checks_for_coverage():
-    """
-    These lines contain defensive safety checks that prevent d or c from becoming
-    zero in the continued fraction algorithm. Under normal operation with valid
-    parameters, these lines are never reached due to the numerical stability of
-    the Lentz algorithm. This test uses a special testing flag to force execution
-    of these lines to achieve 100% test coverage.
-    """
-    # Call with the testing flag enabled to force tiny value checks
-    result = incomplete_beta(2.0, 3.0, 0.5, _test_force_tiny=True)
-
-    # Despite forcing tiny values, the algorithm should still produce a valid result
-    assert math.isfinite(result)
-    assert 0 <= result <= 1
-
-    # Test multiple parameter combinations with the flag
-    test_cases = [
-        (1.0, 1.0, 0.5),
-        (2.0, 2.0, 0.3),
-        (5.0, 3.0, 0.7),
-        (0.5, 0.5, 0.5),
-    ]
-
-    for a, b, x in test_cases:
-        result = incomplete_beta(a, b, x, _test_force_tiny=True)
-        assert math.isfinite(result)
-        assert 0 <= result <= 1
+        result = incomplete_beta(a, b, x)
+        assert math.isfinite(result), f"non-finite result for ({a}, {b}, {x})"
+        assert 0 <= result <= 1, f"out of range result for ({a}, {b}, {x})"
