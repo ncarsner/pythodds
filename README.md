@@ -31,7 +31,7 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Hypothesis Testing & p-values** | Perform statistical hypothesis tests: z-tests and binomial exact tests (proportions), t-tests (means), and chi-squared goodness-of-fit tests; includes alpha sensitivity analysis |
 | **T-Test** | Perform one-sample, two-sample (Welch's), and paired t-tests; compute t-statistics, degrees of freedom, p-values, confidence intervals, and Cohen's d effect size; accepts raw data or summary statistics (mean, std, n); supports one-sided and two-sided alternatives |
 | **Time Series Forecasting** | Forecast future values with prediction intervals using simple, double (Holt's), or Holt-Winters exponential smoothing; supports backtesting and multiple output formats |
-| **Collatz Conjecture** | Evaluate the Collatz conjecture (3n+1 problem) for positive integers up to n; track which numbers reach 1 and report the largest consecutive verified sequence |
+| **Collatz Conjecture** | Evaluate the Collatz conjecture _(3n+1 problem)_ for positive integers up to n; track which numbers reach 1 and report the largest consecutive verified sequence |
 | **Jevons' Paradox** | Quantify the rebound effect and backfire condition for resource efficiency improvements; compute expected savings, rebound consumption, actual savings, and net consumption change given an efficiency gain and price elasticity of demand; support sweeps over efficiency or elasticity ranges |
 | **Sigmoid Function** | Evaluate σ(x) = 1/(1+e^(−x)), its derivative, and the inverse logit; range tables and Unicode sparkline |
 | **Euler's Number** | Explore e via limit convergence, Taylor series for e^x and ln(x), Euler's identity, and the Euler-Mascheroni constant |
@@ -1656,11 +1656,14 @@ breakeven --fixed 50000 --price 25 --variable 10 --sweep 0 8000 500 --chart
 <details>
 <summary><strong><code>entropy</code></strong> — Information Entropy</summary>
 
-Computes the core information-theoretic measures: Shannon entropy, KL divergence, cross-entropy, mutual information, and conditional entropy. Pure Python via `math.log`, reported in bits (base 2), nats (base e), or hartleys (base 10). Input vectors are normalized to sum to 1, so raw counts work as well as probabilities. The entropy report also names the maximum entropy for that number of outcomes and the resulting efficiency; the divergence report includes the reverse KL, since D(P‖Q) is not symmetric.
+Computes the core information-theoretic measures: Shannon entropy, Kullback-Leibler (KL) divergence, cross-entropy, mutual information, and conditional entropy. Pure Python via `math.log`, reported in bits (base 2), nats (base e), or hartleys (base 10). Input vectors are normalized to sum to 1, so raw counts work as well as probabilities. The entropy report also names the maximum entropy for that number of outcomes and the resulting efficiency; the divergence report includes the reverse KL, since D(P‖Q) is not symmetric.
 
 ```bash
 # Shannon entropy of a fair six-sided die (2.585 bits)
 entropy --probs 0.167,0.167,0.167,0.167,0.167,0.167
+
+# Shannon entropy of an odd-favored die
+entropy --probs 1,4,2,5,2,3
 
 # Raw counts work too — normalized internally
 entropy --probs "42 17 8 3"
