@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [0.23.0] — 2026-08-18
 
 ### Added
 - Break-even analysis tool (`breakeven`) — cost-volume-profit analysis reporting break-even units and revenue, contribution margin and margin ratio, target-profit volume, and margin of safety (#14)
