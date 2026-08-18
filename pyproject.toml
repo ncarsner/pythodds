@@ -59,6 +59,10 @@ geometric = "src.utils.geometric_distribution:main"
 chisq = "src.utils.chi_squared:main"
 anova = "src.utils.anova:main"
 life = "src.utils.life_in_weeks:main"
+breakeven = "src.utils.break_even:main"
+entropy = "src.utils.information_entropy:main"
+weibull = "src.utils.weibull_distribution:main"
+discount = "src.utils.discount_rate:main"
 
 [build-system]
 requires = ["hatchling"]

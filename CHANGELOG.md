@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+- Break-even analysis tool (`breakeven`) — cost-volume-profit analysis reporting break-even units and revenue, contribution margin and margin ratio, target-profit volume, and margin of safety (#14)
+  - `--sweep MIN MAX STEP` appends a profit/loss table across a unit range; `--chart` renders that column as a text bar chart with losses left of the break-even axis and profits right of it, so the crossing is visible without a plotting dependency
+  - `--format` supports `table`, `json`, and `csv`
+- Information entropy tool (`entropy`) — Shannon entropy, KL divergence, cross-entropy, mutual information, and conditional entropy in bits, nats, or hartleys (#32)
+  - Input vectors are normalized to sum to 1, so raw counts are accepted alongside probabilities
+  - The entropy report names the maximum entropy for that number of outcomes and the resulting efficiency; the divergence report adds the reverse KL, since D(P‖Q) is asymmetric, and reports it as infinite rather than failing when the reverse direction is undefined
+- Weibull distribution tool (`weibull`) — PDF, CDF, survival, hazard, quantile, mean, median, and variance for Weibull(k, λ) (#34)
+  - Names the failure mode implied by the shape parameter: infant mortality (k<1), constant hazard (k=1), or wear-out (k>1)
+  - The hazard rate uses the closed form rather than f(x)/S(x), so it stays finite in the far tail where that ratio would divide zero by zero; moments go through `math.lgamma` so large parameters do not overflow
+- Discount rate tool (`discount`) — real and nominal rates via the Fisher equation, discount factors, present value of a lump sum, and nominal and inflation-adjusted NPV (#42)
+  - Supplying either `--nominal` or `--real` (the latter with `--inflation`) derives the other
+  - Reports the discounted payback period, interpolated within the period where cumulative discounted cash flow crosses zero
+
+---
+
 ## [0.22.0] — 2026-08-07
 
 ### Added
