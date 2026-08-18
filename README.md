@@ -31,7 +31,7 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Hypothesis Testing & p-values** | Perform statistical hypothesis tests: z-tests and binomial exact tests (proportions), t-tests (means), and chi-squared goodness-of-fit tests; includes alpha sensitivity analysis |
 | **T-Test** | Perform one-sample, two-sample (Welch's), and paired t-tests; compute t-statistics, degrees of freedom, p-values, confidence intervals, and Cohen's d effect size; accepts raw data or summary statistics (mean, std, n); supports one-sided and two-sided alternatives |
 | **Time Series Forecasting** | Forecast future values with prediction intervals using simple, double (Holt's), or Holt-Winters exponential smoothing; supports backtesting and multiple output formats |
-| **Collatz Conjecture** | Evaluate the Collatz conjecture (3n+1 problem) for positive integers up to n; track which numbers reach 1 and report the largest consecutive verified sequence |
+| **Collatz Conjecture** | Evaluate the Collatz conjecture _(3n+1 problem)_ for positive integers up to n; track which numbers reach 1 and report the largest consecutive verified sequence |
 | **Jevons' Paradox** | Quantify the rebound effect and backfire condition for resource efficiency improvements; compute expected savings, rebound consumption, actual savings, and net consumption change given an efficiency gain and price elasticity of demand; support sweeps over efficiency or elasticity ranges |
 | **Sigmoid Function** | Evaluate σ(x) = 1/(1+e^(−x)), its derivative, and the inverse logit; range tables and Unicode sparkline |
 | **Euler's Number** | Explore e via limit convergence, Taylor series for e^x and ln(x), Euler's identity, and the Euler-Mascheroni constant |
@@ -41,7 +41,11 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Chi-Square Tests** | Goodness-of-fit and independence (contingency table) chi-square tests via the exact regularised incomplete gamma function; per-cell contributions for residual diagnostics |
 | **One-Way ANOVA** | Test whether the means of three or more independent groups are equal; F-statistic via the regularised incomplete beta function, with Tukey HSD or Bonferroni-corrected pairwise post-hoc comparisons |
 | **Life in Weeks** | Render a human life as an ANSI grid of weeks, months, or years, color-coded elapsed vs remaining from a birthdate; discrete shape glyphs with quarter and decade grouping keep individual cells countable, and a "Life of a Typical American" reference grid shades each life phase with milestone markers |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, `subnet`, `geometric`, `chisq`, `anova`, and `life` commands |
+| **Break-Even Analysis** | Cost-volume-profit analysis: break-even units and revenue, contribution margin and ratio, margin of safety, and the volume needed to hit a target profit; optional profit/loss sweep across a unit range with a text bar chart |
+| **Information Entropy** | Shannon entropy, KL divergence, cross-entropy, mutual information, and conditional entropy in bits, nats, or hartleys; accepts raw counts as well as probabilities |
+| **Weibull Distribution** | PDF, CDF, survival, hazard rate, quantiles, mean, median, and variance for Weibull(k, λ), with the shape parameter's failure mode named (infant mortality, constant hazard, or wear-out) |
+| **Discount Rates & NPV** | Real and nominal discount rates via the Fisher equation, discount factors, present value of a lump sum, and nominal and inflation-adjusted NPV with discounted payback period |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, `subnet`, `geometric`, `chisq`, `anova`, `life`, `breakeven`, `entropy`, `weibull`, and `discount` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -99,6 +103,10 @@ pip install -e .
 | `chisq` | Chi-square goodness-of-fit and independence tests with per-cell contributions |
 | `anova` | One-way ANOVA F-test with optional Tukey HSD or Bonferroni-corrected pairwise post-hoc comparisons |
 | `life` | ANSI grid of a human life in weeks, months, or years, elapsed vs remaining, with a typical-American reference grid |
+| `breakeven` | Break-even units and revenue, contribution margin, margin of safety, target-profit volume, and profit/loss sweep |
+| `entropy` | Shannon entropy, KL divergence, cross-entropy, mutual information, and conditional entropy in bits, nats, or hartleys |
+| `weibull` | PDF, CDF, survival, hazard, quantiles, and moments for the Weibull(k, λ) reliability distribution |
+| `discount` | Real and nominal discount rates (Fisher), discount factors, present value, and inflation-adjusted NPV |
 | `simulate` | Monte Carlo estimation with confidence intervals and analytical comparison |
 
 ---
@@ -1609,6 +1617,154 @@ life 1985-03-14 --as-of 2030-01-01 --format json
 ---
 
 <details>
+<summary><strong><code>breakeven</code></strong> — Break-Even Analysis</summary>
+
+Answers the foundational viability question: at what unit volume does revenue cover total cost? Reports break-even units and revenue, contribution margin and margin ratio, the volume needed to reach a target profit, and the margin of safety at an actual or projected volume. `--sweep` adds a profit/loss table across a unit range, and `--chart` renders that table as a text bar chart with losses left of the break-even axis and profits right of it — no plotting library required.
+
+```bash
+# Basic break-even: fixed costs 50,000, price 25, variable cost 10 per unit
+breakeven --fixed 50000 --price 25 --variable 10
+
+# How many units to hit a 20,000 profit?
+breakeven --fixed 50000 --price 25 --variable 10 --target-profit 20000
+
+# Margin of safety at a projected 5,000 units
+breakeven --fixed 50000 --price 25 --variable 10 --actual-units 5000
+
+# Profit/loss table from 0 to 8,000 units in steps of 500, with a chart
+breakeven --fixed 50000 --price 25 --variable 10 --sweep 0 8000 500 --chart
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--fixed F` | Total fixed costs (required) |
+| | `--price F` | Selling price per unit (required) |
+| | `--variable F` | Variable cost per unit (required) |
+| | `--target-profit F` | Also report the unit volume needed for this profit |
+| | `--actual-units F` | Actual or projected volume, for the margin of safety |
+| | `--sweep MIN MAX STEP` | Append a profit/loss table across a unit range |
+| | `--chart` | Render the sweep profit column as a text bar chart (needs `--sweep`) |
+| | `--format {table,json,csv}` | Output format (default: table) |
+| `-P` | `--precision` | Decimal places for output (default: 2) |
+
+</details>
+
+---
+
+<details>
+<summary><strong><code>entropy</code></strong> — Information Entropy</summary>
+
+Computes the core information-theoretic measures: Shannon entropy, Kullback-Leibler (KL) divergence, cross-entropy, mutual information, and conditional entropy. Pure Python via `math.log`, reported in bits (base 2), nats (base e), or hartleys (base 10). Input vectors are normalized to sum to 1, so raw counts work as well as probabilities. The entropy report also names the maximum entropy for that number of outcomes and the resulting efficiency; the divergence report includes the reverse KL, since D(P‖Q) is not symmetric.
+
+```bash
+# Shannon entropy of a fair six-sided die (2.585 bits)
+entropy --probs 0.167,0.167,0.167,0.167,0.167,0.167
+
+# Shannon entropy of an odd-favored die
+entropy --probs 1,4,2,5,2,3
+
+# Raw counts work too — normalized internally
+entropy --probs "42 17 8 3"
+
+# KL divergence between a biased coin (0.7/0.3) and a fair coin
+entropy --measure kl --probs-p 0.7,0.3 --probs-q 0.5,0.5
+
+# Cross-entropy loss of a prediction, in nats
+entropy --measure cross --probs-p 1,0 --probs-q 0.9,0.1 --base e
+
+# Mutual information from a 2x2 joint distribution
+entropy --measure mi --joint 0.25,0.25 --joint 0.25,0.25
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--probs VALUES` | Distribution for the `entropy` measure (comma or space separated) |
+| | `--measure {entropy,kl,cross,mi,conditional}` | Quantity to compute (default: entropy) |
+| | `--base {2,e,10}` | Logarithm base: 2=bits, e=nats, 10=hartleys (default: 2) |
+| | `--probs-p VALUES` | Distribution P for the `kl` and `cross` measures |
+| | `--probs-q VALUES` | Distribution Q for the `kl` and `cross` measures |
+| | `--joint ROW` | One row of the joint table for `mi` and `conditional`; repeat per row |
+| | `--format {table,json}` | Output format (default: table) |
+| `-P` | `--precision` | Decimal places for output (default: 4) |
+
+</details>
+
+---
+
+<details>
+<summary><strong><code>weibull</code></strong> — Weibull Distribution</summary>
+
+The standard model for component lifetimes and failure analysis. The shape parameter `k` sets the failure mode, which the report names outright: `k < 1` is a decreasing hazard (infant mortality), `k = 1` is the constant-hazard exponential case, and `k > 1` is an increasing hazard (wear-out). The hazard rate is computed in closed form rather than as `f(x)/S(x)`, so it stays finite far out in the tail where that ratio would divide zero by zero. Moments use `math.lgamma`, so large parameters do not overflow.
+
+```bash
+# Survival probability at t=500 hours, shape=2, scale=1000
+weibull -x 500 -k 2 --lambda 1000 --survival
+
+# 5th percentile of failure time — when have 5% of units failed?
+weibull --quantile 0.05 -k 1.5 --lambda 800
+
+# Range table from 0 to 2000 in steps of 200
+weibull -k 2.5 --lambda 1200 --table 0 2000 200
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-x` | | Evaluation point (required unless `--quantile` or `--table` is used) |
+| `-k` | `--shape F` | Shape parameter k; <1 infant mortality, 1 constant, >1 wear-out (required) |
+| | `--lambda F` / `--scale F` | Scale parameter λ, the characteristic life (required) |
+| | `--quantile F` | Report the x at this cumulative probability |
+| | `--survival` | Lead the point report with S(x) = 1 − F(x) |
+| | `--table MIN MAX STEP` | Print a table over x = MIN..MAX |
+| | `--format {table,json}` | Output format (default: table) |
+| `-P` | `--precision` | Decimal places for output (default: 4) |
+
+</details>
+
+---
+
+<details>
+<summary><strong><code>discount</code></strong> — Discount Rate & NPV</summary>
+
+Relates nominal rates, real rates, and inflation through the Fisher equation — `real = (1 + nominal) / (1 + inflation) − 1` — and applies the result to lump sums and cash-flow series. Give either `--nominal` or `--real` (the latter with `--inflation`) and the other is derived. Cash flows start at period 0, so an up-front investment is the negative first element. The real NPV assumes the cash flows are stated in today's purchasing power and discounts them at the real rate; the discounted payback period interpolates within the period where cumulative cash flow crosses zero.
+
+```bash
+# Real rate and discount factor from a nominal rate and inflation
+discount --nominal 0.08 --inflation 0.03
+
+# Nominal rate implied by a real rate and inflation
+discount --real 0.05 --inflation 0.03
+
+# Present value of a 10,000 lump sum received in 5 periods
+discount --nominal 0.08 --fv 10000 --periods 5
+
+# Nominal and inflation-adjusted NPV of a project
+discount --nominal 0.08 --inflation 0.03 --cashflows -1000 300 400 500
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--nominal F` | Nominal discount rate per period, e.g. `0.08` for 8% |
+| | `--real F` | Real discount rate per period (requires `--inflation`) |
+| | `--inflation F` | Inflation rate per period, e.g. `0.03` for 3% |
+| | `--fv F` | Future value of a lump sum to discount |
+| | `--periods F` | Periods for the lump sum and discount factor (default: 1) |
+| | `--cashflows F [F ...]` | Cash flow series starting at period 0, for NPV |
+| | `--format {table,json}` | Output format (default: table) |
+| `-P` | `--precision` | Decimal places for output (default: 4) |
+
+</details>
+
+---
+
+<details>
 <summary><strong><code>simulate</code></strong> — Monte Carlo Probability Simulator</summary>
 
 Runs repeated random experiments to estimate probabilities empirically, with optional confidence intervals and analytical comparison against `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, and `linboot`.
@@ -1711,6 +1867,10 @@ simulate --experiment linboot --params x=1,2,3,4,5 y=2.1,3.9,6.2,7.8,10.1 predic
 | Chi-Square | `src.utils.chi_squared` | `chisq_gof`, `chisq_independence`, `chi2_cdf`, `regularized_gamma_p` |
 | ANOVA | `src.utils.anova` | `anova_one_way`, `tukey_hsd`, `bonferroni`, `f_cdf`, `studentized_range_cdf` |
 | Life in Weeks | `src.utils.life_in_weeks` | `compute_grid`, `units_elapsed`, `grid_rows`, `reference_rows`, `milestone_units` |
+| Break-Even | `src.utils.break_even` | `breakeven_units`, `breakeven_revenue`, `contribution_margin`, `margin_of_safety`, `target_profit_units`, `sweep_rows` |
+| Entropy | `src.utils.information_entropy` | `shannon_entropy`, `kl_divergence`, `cross_entropy`, `mutual_information`, `conditional_entropy`, `joint_entropy` |
+| Weibull | `src.utils.weibull_distribution` | `weibull_pdf`, `weibull_cdf`, `weibull_survival`, `weibull_hazard`, `weibull_quantile`, `weibull_mean` |
+| Discount Rate | `src.utils.discount_rate` | `real_rate`, `nominal_rate`, `discount_factor`, `present_value`, `npv`, `real_npv`, `payback_period` |
 | Monte Carlo | `src.utils.monte_carlo` | `simulate_binomial`, `simulate_birthday`, `simulate_streak`, `simulate_poisson`, `simulate_power`, `simulate_permutation`, `simulate_bayes`, `simulate_season`, `simulate_linboot` |
 
 ---
@@ -2690,6 +2850,123 @@ print(reference_rows("years", 90)[2])  # ▲▲■■■■■★■★
 
 # Milestone ages converted to unit indices
 print(milestone_units("weeks")[0])  # ('mean age at first birth (NCHS 2023)', 1430)
+```
+
+</details>
+
+<details>
+<summary><strong>Break-Even Analysis</strong></summary>
+
+```python
+from src.utils.break_even import (
+    breakeven_units,
+    contribution_margin,
+    margin_of_safety,
+    target_profit_units,
+)
+
+# Units needed to cover 50,000 of fixed cost at a 15 per-unit margin
+units = breakeven_units(50_000, price=25, variable=10)
+
+# Per-unit contribution toward fixed costs
+margin = contribution_margin(25, 10)
+
+# Volume required to earn a 20,000 profit
+target = target_profit_units(50_000, 25, 10, profit=20_000)
+
+# Fraction volume may fall before the business hits break-even
+safety = margin_of_safety(actual_units=5_000, be_units=units)
+```
+
+</details>
+
+<details>
+<summary><strong>Information Entropy</strong></summary>
+
+```python
+from src.utils.information_entropy import (
+    conditional_entropy,
+    cross_entropy,
+    kl_divergence,
+    mutual_information,
+    shannon_entropy,
+)
+
+# Entropy of a fair six-sided die, in bits (2.585)
+h = shannon_entropy([1] * 6)
+
+# Raw counts are normalized internally
+h_counts = shannon_entropy([42, 17, 8, 3])
+
+# Extra bits from coding a biased coin with a fair-coin code
+kl = kl_divergence([0.7, 0.3], [0.5, 0.5])
+
+# Cross-entropy loss, in nats
+import math
+loss = cross_entropy([1, 0], [0.9, 0.1], base=math.e)
+
+# Shared information and residual uncertainty in a joint distribution
+mi = mutual_information([[0.4, 0.2], [0.1, 0.3]])
+h_y_given_x = conditional_entropy([[0.4, 0.2], [0.1, 0.3]])
+```
+
+</details>
+
+<details>
+<summary><strong>Weibull Distribution</strong></summary>
+
+```python
+from src.utils.weibull_distribution import (
+    failure_mode,
+    weibull_hazard,
+    weibull_mean,
+    weibull_quantile,
+    weibull_survival,
+)
+
+# P(component survives past 500 hours) for Weibull(k=2, lambda=1000)
+s = weibull_survival(500, 2, 1000)
+
+# Instantaneous failure rate of a unit that reached 500 hours
+h = weibull_hazard(500, 2, 1000)
+
+# Time by which 5% of units have failed
+t05 = weibull_quantile(0.05, 1.5, 800)
+
+# Mean time to failure, and what the shape parameter implies
+mttf = weibull_mean(2, 1000)
+mode = failure_mode(2)  # 'wear-out (increasing hazard)'
+```
+
+</details>
+
+<details>
+<summary><strong>Discount Rate & NPV</strong></summary>
+
+```python
+from src.utils.discount_rate import (
+    discount_factor,
+    npv,
+    payback_period,
+    present_value,
+    real_npv,
+    real_rate,
+)
+
+# Fisher-equation real rate from an 8% nominal rate and 3% inflation
+r = real_rate(0.08, 0.03)
+
+# Present-value factor and the PV of a future lump sum
+factor = discount_factor(0.08, periods=5)
+pv = present_value(10_000, 0.08, periods=5)
+
+# NPV of a project, nominal and in today's purchasing power
+flows = [-1000, 300, 400, 500]
+value = npv(0.08, flows)
+value_real = real_npv(0.08, 0.03, flows)
+
+# Period at which discounted cumulative cash flow turns positive
+payback = payback_period(flows, 0.08)
 ```
 
 </details>
