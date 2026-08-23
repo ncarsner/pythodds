@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+- Slope-intercept line tool (`slopeint`) — construct a line from two points, point-slope, or standard form `Ax + By = C`, and report it in every representation (#55)
+  - Standard form is normalised to primitive integer coefficients through exact rational arithmetic (`fractions.Fraction`), so `y = 1.8x + 32` reports as `9x - 5y = -160` rather than as rounded floats
+  - Evaluates y at an x, solves x for a y, intersects a second line, projects a point onto the line with the perpendicular distance and the closest point, and emits the perpendicular or parallel line through a point
+  - Degenerate cases are named rather than returned as infinities: a vertical line reports having no slope-intercept form, a horizontal line reports that solving for x has no answer, and parallel lines are distinguished from coincident ones
+  - Complements `linreg`, which estimates a line from noisy data; `slopeint` operates on an exact, known one
+
+---
+
 ## [0.23.0] — 2026-08-18
 
 ### Added

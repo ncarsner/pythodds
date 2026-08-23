@@ -43,9 +43,10 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Break-Even Analysis** | Cost-volume-profit analysis: break-even units and revenue, contribution margin and ratio, margin of safety, and the volume needed to hit a target profit; optional profit/loss sweep across a unit range with a text bar chart |
 | **Information Entropy** | Shannon entropy, KL divergence, cross-entropy, mutual information, and conditional entropy in bits, nats, or hartleys; accepts raw counts as well as probabilities |
 | **Weibull Distribution** | PDF, CDF, survival, hazard rate, quantiles, mean, median, and variance for Weibull(k, λ), with the shape parameter's failure mode named (infant mortality, constant hazard, or wear-out) |
+| **Slope-Intercept Lines** | Build a line from two points, point-slope, or standard form; convert between representations; evaluate, solve, intersect, project onto, and measure distance to it |
 | **Discount Rates & NPV** | Real and nominal discount rates via the Fisher equation, discount factors, present value of a lump sum, and nominal and inflation-adjusted NPV with discounted payback period |
 | **Monte Carlo Simulator** | Empirically estimate probabilities for `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, `linboot` experiments with confidence intervals and analytical comparison |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, `subnet`, `geometric`, `chisq`, `anova`, `life`, `breakeven`, `entropy`, `weibull`, and `discount` commands |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, `subnet`, `geometric`, `chisq`, `anova`, `life`, `breakeven`, `entropy`, `weibull`, `discount`, and `slopeint` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -107,6 +108,7 @@ pip install -e .
 | `entropy` | Shannon entropy, KL divergence, cross-entropy, mutual information, and conditional entropy in bits, nats, or hartleys |
 | `weibull` | PDF, CDF, survival, hazard, quantiles, and moments for the Weibull(k, λ) reliability distribution |
 | `discount` | Real and nominal discount rates (Fisher), discount factors, present value, and inflation-adjusted NPV |
+| `slopeint` | Slope-intercept line algebra: construction, standard-form conversion, intersection, perpendicular projection, and point distance |
 | `simulate` | Monte Carlo estimation with confidence intervals and analytical comparison |
 
 ---
@@ -1765,6 +1767,53 @@ discount --nominal 0.08 --inflation 0.03 --cashflows -1000 300 400 500
 ---
 
 <details>
+<summary><strong><code>slopeint</code></strong> — Slope-Intercept Lines</summary>
+
+Line algebra for an *exact*, known line, as opposed to `linreg`, which *estimates* one from noisy data. The two pair: `linreg` produces `m` and `b`, `slopeint` consumes them for evaluation, intersection, and projection. A line can be entered three ways — two points, point-slope, or standard form `Ax + By = C` — and is reported in all of them, with standard form normalised to primitive integer coefficients via exact rational arithmetic rather than float rounding.
+
+Degenerate cases are named rather than returned as infinities: a vertical line reports that it has no slope-intercept form, a horizontal line reports that `--solve` has no answer, and parallel lines are distinguished from coincident ones.
+
+```bash
+# Unit conversion: Fahrenheit from Celsius, y = 1.8x + 32
+slopeint --points 0,32 100,212
+
+# What is 37 degrees C in F?
+slopeint --slope 1.8 --intercept 32 --at 37
+
+# Straight-line depreciation: $30k asset, $5k salvage, 5-year life
+slopeint --points 0,30000 5,5000 --table 0 5 1
+
+# Break-even as an intersection of a cost line and a revenue line
+slopeint --slope 10 --intercept 50000 --intersect 25,0
+
+# Perpendicular line through a point, and the distance to it
+slopeint --slope 2 --intercept 1 --point 4,3 --perpendicular --distance
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--points X1,Y1 X2,Y2` | Derive the line from two points |
+| `-m` | `--slope F` | Slope m, with `--intercept` or `--point` |
+| `-b` | `--intercept F` | y-intercept b, with `--slope` |
+| | `--point X,Y` | Anchor for point-slope form, or the target for `--distance`, `--perpendicular`, `--parallel` |
+| | `--standard A B C` | Read the line from standard form Ax + By = C |
+| | `--at F` | Evaluate y at this x |
+| | `--solve F` | Solve for the x that gives this y |
+| | `--intersect M,B` | Intersect with a second line given as slope,intercept |
+| | `--perpendicular` | Report the perpendicular line through `--point` |
+| | `--parallel` | Report the parallel line through `--point` |
+| | `--distance` | Perpendicular distance from `--point` to the line, and the closest point on it |
+| | `--table MIN MAX STEP` | Print a table of (x, y) over x = MIN..MAX |
+| | `--format {table,json}` | Output format (default: table) |
+| `-P` | `--precision` | Decimal places for output (default: 4) |
+
+</details>
+
+---
+
+<details>
 <summary><strong><code>simulate</code></strong> — Monte Carlo Probability Simulator</summary>
 
 Runs repeated random experiments to estimate probabilities empirically, with optional confidence intervals and analytical comparison against `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, and `linboot`.
@@ -1871,6 +1920,7 @@ simulate --experiment linboot --params x=1,2,3,4,5 y=2.1,3.9,6.2,7.8,10.1 predic
 | Entropy | `src.utils.information_entropy` | `shannon_entropy`, `kl_divergence`, `cross_entropy`, `mutual_information`, `conditional_entropy`, `joint_entropy` |
 | Weibull | `src.utils.weibull_distribution` | `weibull_pdf`, `weibull_cdf`, `weibull_survival`, `weibull_hazard`, `weibull_quantile`, `weibull_mean` |
 | Discount Rate | `src.utils.discount_rate` | `real_rate`, `nominal_rate`, `discount_factor`, `present_value`, `npv`, `real_npv`, `payback_period` |
+| Slope-Intercept | `src.utils.slope_intercept` | `line_from_points`, `line_from_standard`, `to_standard`, `evaluate`, `solve_for_x`, `intersection`, `perpendicular_slope`, `distance_to_point`, `foot_of_perpendicular` |
 | Monte Carlo | `src.utils.monte_carlo` | `simulate_binomial`, `simulate_birthday`, `simulate_streak`, `simulate_poisson`, `simulate_power`, `simulate_permutation`, `simulate_bayes`, `simulate_season`, `simulate_linboot` |
 
 ---
@@ -2936,6 +2986,36 @@ t05 = weibull_quantile(0.05, 1.5, 800)
 # Mean time to failure, and what the shape parameter implies
 mttf = weibull_mean(2, 1000)
 mode = failure_mode(2)  # 'wear-out (increasing hazard)'
+```
+
+</details>
+
+<details>
+<summary><strong>Slope-Intercept Lines</strong></summary>
+
+```python
+from src.utils.slope_intercept import (
+    distance_to_point,
+    evaluate,
+    intersection,
+    line_from_points,
+    to_standard,
+)
+
+# Celsius to Fahrenheit, derived from two known points
+m, b = line_from_points((0, 32), (100, 212))  # (1.8, 32.0)
+
+# 37 degrees C in Fahrenheit
+f = evaluate(m, b, 37)  # 98.6
+
+# Same line as primitive integer standard form: 9x - 5y = -160
+a, b_coef, c = to_standard(m, b)
+
+# Break-even: where a cost line meets a revenue line
+units, revenue = intersection((10, 50000), (25, 0))
+
+# Perpendicular distance from a point to a line
+d = distance_to_point(2, 1, (4, 3))
 ```
 
 </details>
