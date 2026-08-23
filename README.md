@@ -35,7 +35,6 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Jevons' Paradox** | Quantify the rebound effect and backfire condition for resource efficiency improvements; compute expected savings, rebound consumption, actual savings, and net consumption change given an efficiency gain and price elasticity of demand; support sweeps over efficiency or elasticity ranges |
 | **Sigmoid Function** | Evaluate σ(x) = 1/(1+e^(−x)), its derivative, and the inverse logit; range tables and Unicode sparkline |
 | **Euler's Number** | Explore e via limit convergence, Taylor series for e^x and ln(x), Euler's identity, and the Euler-Mascheroni constant |
-| **Monte Carlo Simulator** | Empirically estimate probabilities for `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, `linboot` experiments with confidence intervals and analytical comparison |
 | **Subnet Mask Calculator** | Compute network address, broadcast address, first/last usable IP, subnet mask, host count, and classful network count from an IPv4 address and CIDR prefix |
 | **Geometric Distribution** | Compute PMF, CDF, survival, mean, and variance for the number of trials until the first success; supports single-k reports and full probability tables |
 | **Chi-Square Tests** | Goodness-of-fit and independence (contingency table) chi-square tests via the exact regularised incomplete gamma function; per-cell contributions for residual diagnostics |
@@ -45,6 +44,7 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Information Entropy** | Shannon entropy, KL divergence, cross-entropy, mutual information, and conditional entropy in bits, nats, or hartleys; accepts raw counts as well as probabilities |
 | **Weibull Distribution** | PDF, CDF, survival, hazard rate, quantiles, mean, median, and variance for Weibull(k, λ), with the shape parameter's failure mode named (infant mortality, constant hazard, or wear-out) |
 | **Discount Rates & NPV** | Real and nominal discount rates via the Fisher equation, discount factors, present value of a lump sum, and nominal and inflation-adjusted NPV with discounted payback period |
+| **Monte Carlo Simulator** | Empirically estimate probabilities for `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, `linboot` experiments with confidence intervals and analytical comparison |
 | **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, `subnet`, `geometric`, `chisq`, `anova`, `life`, `breakeven`, `entropy`, `weibull`, and `discount` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
