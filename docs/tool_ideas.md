@@ -10,17 +10,24 @@ For the full list of implemented tools and their CLI entry points, see `README.m
 
 | Command | Description |
 |---------|-------------|
+| `anova` | One-way ANOVA with Tukey HSD and Bonferroni post-hoc tests |
 | `bayes` | Bayesian posterior update |
 | `binom` | PMF, CDF, and survival function for Binomial(n, p) |
 | `birthday` | Collision probability for uniform and non-uniform ID pools |
 | `bootci` | Bootstrap confidence intervals |
+| `breakeven` | Break-even (cost-volume-profit) analysis |
+| `chisq` | Chi-square goodness-of-fit and independence tests |
 | `collatz` | Collatz conjecture / hailstone sequences |
 | `confint` | Confidence interval calculator |
 | `crt` | Sunzi's Theorem (CRT) solver |
+| `discount` | Real and nominal discount rates, PV, and inflation-adjusted NPV |
+| `entropy` | Shannon entropy, KL divergence, and mutual information |
 | `expected` | Expected value and variance for discrete distributions |
 | `forecast` | Time series forecasting with prediction intervals |
+| `geometric` | Geometric distribution PMF, CDF, and survival |
 | `gini` | Gini coefficient and Lorenz curve |
 | `jevons` | Jevons paradox / rebound effect modeling |
+| `life` | Life-in-weeks grid visualiser |
 | `linreg` | Simple linear regression |
 | `normal` | Gaussian PDF, CDF, and quantile |
 | `pearson` | Pearson correlation coefficient |
@@ -33,8 +40,10 @@ For the full list of implemented tools and their CLI entry points, see `README.m
 | `sigmoid` | Sigmoid function σ(x), derivative, inverse logit, and Unicode sparkline |
 | `spearman` | Spearman rank correlation |
 | `streak` | Consecutive success/failure streak probability |
+| `subnet` | IPv4 subnet mask, CIDR, and host range calculator |
 | `ttest` | One- and two-sample t-tests |
 | `euler` | Euler's number via limit/series, e^x, ln(x), identity, and γ constant |
+| `weibull` | Weibull distribution PDF, CDF, survival, and hazard |
 | `zscore` | Z-score calculator |
 
 ---
@@ -45,37 +54,7 @@ All tools below are pure-Python unless a `Dependencies` section is noted. Depend
 
 ---
 
-## 1. `chisq` — Chi-Square Test Calculator
-
-### Architecture
-- **Core functions:** `chisq_gof(observed, expected)`, `chisq_independence(table)`, `chisq_cdf(x, df)`
-- Chi-square CDF via regularised incomplete gamma (`math.lgamma`) — no external dependencies
-- CLI flags: `--test {gof,independence}`, `--observed`, `--expected`, `--table` (repeated flag, one row per call), `--alpha`, `--precision`
-- Output: χ² statistic, degrees of freedom, p-value, decision; per-cell contributions to χ² for residual diagnostics
-
-### Application
-Tests whether observed categorical frequencies match expected ones (goodness-of-fit) or whether two categorical variables are independent (contingency table). Widely used for survey analysis, genetics (Hardy–Weinberg equilibrium), market research, and categorical A/B test evaluation.
-
-```bash
-# Goodness-of-fit: are die rolls uniformly distributed?
-chisq --test gof --observed 18,22,17,25,19,19 --expected 20,20,20,20,20,20
-
-# Independence: is product preference associated with age group? (2×3 table)
-chisq --test independence --table "40,30,20" --table "25,45,30"
-
-# With explicit significance level
-chisq --test gof --observed 52,48 --expected 50,50 --alpha 0.10
-```
-
-### Target User Base
-- Survey analysts and market researchers: _testing whether response distributions fit expectations_
-- Biologists and geneticists: _checking population allele frequency assumptions_
-- A/B testers: _comparing multi-category outcome distributions between variants_
-- Pairs naturally with `binom` (binary outcomes) and `pvalue` — the categorical-data generalisation of binary proportion tests
-
----
-
-## 2. `hypergeo` — Hypergeometric Distribution Calculator
+## 1. `hypergeo` — Hypergeometric Distribution Calculator
 
 ### Architecture
 - **Core functions:** `hypergeo_pmf(k, N, K, n)`, `hypergeo_cdf_le(k, N, K, n)`, `hypergeo_cdf_ge(k, N, K, n)`
@@ -102,7 +81,7 @@ hypergeo -N 100 -K 10 -n 15 -k 2
 
 ---
 
-## 3. `plotdist` — Distribution Visualiser
+## 2. `plotdist` — Distribution Visualiser
 
 ### Dependencies
 - **Required:** `matplotlib` (plot rendering)
@@ -137,7 +116,7 @@ plotdist --dist binomial --params n=10 p=0.3 --text
 
 ---
 
-## 4. `oddsconv` — Odds Format Converter
+## 3. `oddsconv` — Odds Format Converter
 
 ### Architecture
 - Converts between all major odds formats: **decimal**, **fractional**, **American (moneyline)**, **implied probability**, and **Hong Kong / Malay / Indonesian** odds
@@ -165,7 +144,7 @@ oddsconv --vig --prob 0.526 0.526
 
 ---
 
-## 5. `sensitivity` — Parameter Sensitivity / Tornado Chart
+## 4. `sensitivity` — Parameter Sensitivity / Tornado Chart
 
 ### Dependencies
 - **Optional:** `matplotlib` (tornado/bar chart output); degrades to a ranked plain-text table
@@ -195,7 +174,7 @@ sensitivity --func normal-cdf --params x=1.5 mu=0 sigma=1 --range-pct 30 --outpu
 
 ---
 
-## 6. `randforest` — Random Forest Classifier / Regressor
+## 5. `randforest` — Random Forest Classifier / Regressor
 
 ### Dependencies
 - **Required:** `scikit-learn` (decision tree and ensemble fitting, feature importances)
@@ -230,7 +209,7 @@ randforest --file train.csv --target outcome --predict-file new_obs.csv
 
 ---
 
-## 7. `ewma` — Exponentially Weighted Moving Average & Control Limits
+## 6. `ewma` — Exponentially Weighted Moving Average & Control Limits
 
 ### Architecture
 - Computes an EWMA (exponentially weighted moving average) of a series and derives upper/lower control limits (UCL/LCL) from the rolling variance estimate — the statistical basis of real-time anomaly detection and EWMA control charts
@@ -257,7 +236,7 @@ ewma --data error_counts.csv --lambda 0.3 --format json
 
 ---
 
-## 8. `vartest` — Variance Equality Tests
+## 7. `vartest` — Variance Equality Tests
 
 ### Architecture
 - Tests whether two or more samples have equal variances — a critical prerequisite for `ttest --equal-var` and many ANOVA-based analyses
@@ -285,7 +264,7 @@ vartest --test bartlett --data "1.2,1.5,1.3" "2.1,2.4,2.2,2.0" --alpha 0.01
 
 ---
 
-## 9. `mlreg` — Multiple Linear Regression with Prediction Intervals
+## 8. `mlreg` — Multiple Linear Regression with Prediction Intervals
 
 ### Dependencies
 - **Required:** `numpy` (matrix algebra for OLS: $(X^TX)^{-1}X^Ty$)
@@ -316,7 +295,7 @@ mlreg --file train.csv --target output --predict-file new_inputs.csv --alpha 0.1
 
 ---
 
-## 10. `taylor` — Taylor Series Approximation
+## 9. `taylor` — Taylor Series Approximation
 
 ### Architecture
 - **Core functions:** `taylor_series(func, a, x, n)` → approximation value and coefficients; `taylor_error(func, a, x, n)` → actual value, approximation, absolute and relative error
@@ -348,7 +327,7 @@ taylor --func ln --center 1 --eval 1.5 --order 10 --compare --format json
 
 ---
 
-## 11. `compound` — Compound Interest & Time Value of Money
+## 10. `compound` — Compound Interest & Time Value of Money
 
 ### Architecture
 - **Core functions:** `future_value(pv, r, n, t)`, `present_value(fv, r, n, t)`, `annuity(pmt, r, n, t)`, `pmt_from_pv(pv, r, n, t)`, `effective_rate(nom_rate, n)`, `continuous_compound(pv, r, t)`
@@ -383,7 +362,7 @@ compound --mode payment --pv 50000 --rate 0.06 --periods 12 --time 5 --schedule
 
 ---
 
-## 12. `matrix` — Matrix Operations & Linear Algebra
+## 11. `matrix` — Matrix Operations & Linear Algebra
 
 ### Dependencies
 - **Optional:** `numpy` (efficient operations on large matrices, eigenvalues, SVD); falls back to pure-Python nested lists for small matrices
@@ -420,7 +399,7 @@ matrix --op eigen --matrix "[[6,-1],[2,3]]" --format json
 
 ---
 
-## 13. `fibonacci` — Fibonacci Sequence & Golden Ratio
+## 12. `fibonacci` — Fibonacci Sequence & Golden Ratio
 
 ### Architecture
 - **Core functions:** `fib(n)` (n-th Fibonacci number), `fib_seq(n)` (first n terms), `golden_ratio()`, `fib_ratio(n)` (ratio F(n)/F(n-1) approaching φ), `lucas(n)` (Lucas numbers), `binet_formula(n)` (closed-form calculation)
@@ -454,7 +433,7 @@ fibonacci --approx 40
 
 ---
 
-## 14. `logreg` — Logistic Regression
+## 13. `logreg` — Logistic Regression
 
 ### Architecture
 - **Core functions:** `fit(X, y)` → coefficients, SE, z-stats, p-values, log-likelihood; `predict_proba(X, coeffs)` → probability; `predict_class(X, coeffs, threshold)` → binary label; `log_odds(p)` → logit
@@ -484,37 +463,7 @@ logreg --file train.csv --target clicked --predict-file new_users.csv --format j
 
 ---
 
-## 15. `breakeven` — Break-Even Analysis
-
-### Architecture
-- **Core functions:** `breakeven_units(fixed, price, variable)`, `breakeven_revenue(fixed, margin)`, `margin_of_safety(actual_units, breakeven_units)`, `target_profit_units(fixed, price, variable, profit)`
-- Pure Python — no external dependencies; optional `matplotlib` for a revenue/cost curve chart
-- CLI flags: `--fixed F` (total fixed costs), `--price F` (selling price per unit), `--variable F` (variable cost per unit), `--target-profit F` (optional: units needed for a profit target), `--margin` (compute contribution margin and ratio), `--sweep MIN MAX STEP` (table across price or unit range), `--chart` (text bar chart or matplotlib curve if available), `--format {table,json,csv}`, `--precision`
-- Output: break-even units, break-even revenue, contribution margin, margin of safety; optional profit/loss table across unit range
-
-### Application
-Break-even analysis is the foundational tool for business viability assessment: at what volume does a product, project, or business become profitable? Used in startup planning, product launches, pricing decisions, event budgeting, and investment threshold analysis. The `--sweep` flag and optional chart make it especially actionable for scenario planning and presentations.
-
-```bash
-# Basic break-even: fixed costs $50k, price $25, variable cost $10 per unit
-breakeven --fixed 50000 --price 25 --variable 10
-
-# How many units to hit $20,000 profit?
-breakeven --fixed 50000 --price 25 --variable 10 --target-profit 20000
-
-# Sweep: profit/loss table from 0 to 8,000 units in steps of 500
-breakeven --fixed 50000 --price 25 --variable 10 --sweep 0 8000 500
-```
-
-### Target User Base
-- Entrepreneurs and small business owners: _validating whether a product can be profitable before launch_
-- Finance and business analysts: _building pricing models and scenario analyses_
-- Students: _learning managerial accounting and cost-volume-profit relationships_
-- A practical "real-world math" companion to `compound` and `expected` — the most immediately applicable tool for anyone with a revenue model
-
----
-
-## 16. `grover` — Grover's Quantum Search Algorithm Simulator
+## 14. `grover` — Grover's Quantum Search Algorithm Simulator
 
 ### Architecture
 - **Core functions:** `optimal_iterations(n)` → `floor(π/4 · √n)`; `success_probability(n, k, iterations)` → analytical amplitude calculation; `amplitude_evolution(n, k, t)` → probability at each step; `speedup_ratio(n)` → classical vs quantum step ratio
@@ -544,67 +493,7 @@ grover --compare --sweep 16 1048576
 
 ---
 
-## 17. `anova` — One-Way Analysis of Variance
-
-### Architecture
-- **Core functions:** `anova_one_way(groups)` → F-stat, p-value, df_between, df_within, SS_between, SS_within, MS values; `tukey_hsd(groups)` → pairwise mean differences with adjusted p-values; `bonferroni(groups, alpha)` → corrected per-comparison α
-- F-distribution CDF via regularised incomplete beta (`math.lgamma`) — no external dependencies
-- CLI flags: `--data GROUP1 GROUP2 [...]` (comma-separated values per group), `--file CSV --group-col COL --value-col COL`, `--alpha F` (default 0.05), `--posthoc {tukey,bonferroni,none}`, `--format {table,json}`
-- Output: ANOVA table (SS, df, MS, F, p), decision at α; post-hoc pairwise comparison table with adjusted p-values and significance indicators
-
-```bash
-# One-way ANOVA across three treatment groups
-anova --data "12.1,11.8,12.5,11.9" "9.8,10.3,10.1,9.7" "15.2,14.9,15.5,16.0"
-
-# With Tukey HSD post-hoc comparisons
-anova --data "12.1,11.8,12.5" "9.8,10.3,10.1" "15.2,14.9,15.5" --posthoc tukey
-
-# From CSV with group and value columns
-anova --file experiment.csv --group-col treatment --value-col response --alpha 0.01
-```
-
-### Application
-Tests whether the means of three or more independent groups are equal — the natural generalization of the two-sample t-test to multiple groups. Used in clinical trials (multiple treatment arms), product testing (A/B/C/D experiments), and any designed experiment where more than two conditions are compared simultaneously, avoiding the inflated Type I error of running multiple pairwise t-tests.
-
-### Target User Base
-- Researchers and statisticians: _comparing means across multiple experimental conditions_
-- Product and UX analysts: _running multi-variant experiments with more than two arms_
-- Students: _learning the F-distribution and the relationship between ANOVA and t-tests_
-- The natural next step after `ttest` — users who outgrow two-group comparisons will reach for `anova` first
-
----
-
-## 18. `geometric` — Geometric Distribution Calculator
-
-### Architecture
-- **Core functions:** `geo_pmf(k, p)`, `geo_cdf(k, p)`, `geo_survival(k, p)`, `geo_mean(p)`, `geo_variance(p)`
-- Pure Python via `math` — no external dependencies
-- CLI flags: `-k INT` (trial number), `-p F` (success probability per trial), `--survival` (return P(X > k) instead of CDF), `--table MIN MAX` (range of PMF/CDF values), `--precision INT`
-- Output: PMF at k, CDF ≤ k, survival P(X > k), mean, variance
-
-```bash
-# P(first success on exactly the 5th trial, p=0.3)
-geometric -k 5 -p 0.3
-
-# P(needing more than 10 calls to close a sale with 20% close rate)
-geometric -k 10 -p 0.2 --survival
-
-# Range table: probability distribution for k = 1 to 15
-geometric -p 0.25 --table 1 15
-```
-
-### Application
-Models "how many independent trials until the first success?" — the discrete-time analog of the exponential distribution. Common in quality control (how many items tested until first defect), sales (calls until first close), reliability (components tested until first failure), and network retransmission modeling.
-
-### Target User Base
-- QA and reliability engineers: _modeling failure and defect detection rates_
-- Sales and operations analysts: _estimating conversion trial counts_
-- Students: _learning discrete distributions adjacent to `binom` and `poisson`_
-- A natural sibling to `binom` and `poisson` — completing the classic trio of discrete distributions for count data
-
----
-
-## 19. `exponential` — Exponential Distribution Calculator
+## 15. `exponential` — Exponential Distribution Calculator
 
 ### Architecture
 - **Core functions:** `exp_pdf(x, lam)`, `exp_cdf(x, lam)`, `exp_survival(x, lam)`, `exp_hazard(x, lam)`, `exp_quantile(p, lam)`
@@ -634,7 +523,7 @@ The continuous analog of the geometric distribution; models waiting times betwee
 
 ---
 
-## 20. `describe` — Descriptive Statistics
+## 16. `describe` — Descriptive Statistics
 
 ### Architecture
 - **Core functions:** `describe(data)` → n, mean, median, mode, std, variance, min, max, q1, q3, iqr, skewness, kurtosis, range, cv (coefficient of variation)
@@ -664,37 +553,7 @@ Produces a one-shot summary of a dataset's location, spread, shape, and outlier 
 
 ---
 
-## 21. `entropy` — Information Entropy
-
-### Architecture
-- **Core functions:** `shannon_entropy(probs, base)` → bits (base 2) or nats (base e); `kl_divergence(p, q)` → KL(P‖Q); `cross_entropy(p, q)`; `mutual_information(joint)`; `conditional_entropy(joint)`
-- Pure Python via `math.log` — no external dependencies
-- CLI flags: `--probs CSV_OR_VALUES`, `--measure {entropy,kl,cross,mi,conditional}`, `--base {2,e,10}`, `--probs-p`, `--probs-q`, `--joint ROW [...]` (repeated flag for joint distribution rows), `--precision INT`, `--format {table,json}`
-- Output: entropy/divergence value with units (bits/nats/hartleys), interpretation note for KL divergence direction
-
-```bash
-# Shannon entropy of a six-sided die (should be ~2.585 bits)
-entropy --probs 0.167,0.167,0.167,0.167,0.167,0.167
-
-# KL divergence between a biased coin (0.7/0.3) and a fair coin (0.5/0.5)
-entropy --measure kl --probs-p 0.7,0.3 --probs-q 0.5,0.5
-
-# Mutual information from a 2x2 joint distribution
-entropy --measure mi --joint "0.25,0.25" --joint "0.25,0.25"
-```
-
-### Application
-Shannon entropy quantifies the uncertainty or information content of a probability distribution — the fundamental measure of information theory. Used in data compression, ML model evaluation (cross-entropy loss), feature selection (information gain / mutual information), communications engineering, and any domain where "how much information does this tell me?" is the core question.
-
-### Target User Base
-- ML engineers and data scientists: _feature selection via mutual information, model evaluation via cross-entropy_
-- Information theorists and communications engineers: _encoding efficiency and channel capacity analysis_
-- Students: _learning information theory concepts complementary to probability distributions_
-- A natural bridge from the probability tools to information-theoretic applications of those distributions
-
----
-
-## 22. `effect` — Effect Size Calculator
+## 17. `effect` — Effect Size Calculator
 
 ### Architecture
 - **Core functions:** `cohens_d(mean1, mean2, std1, std2, n1, n2)` → d and pooled SE; `eta_squared(ss_between, ss_total)` → η²; `omega_squared(ss_between, ms_within, k, n)` → ω²; `odds_ratio(a, b, c, d)` → OR and 95% CI; `risk_ratio(a, b, c, d)` → RR; `r_from_t(t, df)` → Pearson r
@@ -724,7 +583,7 @@ p-values tell you whether an effect exists; effect sizes tell you how large it i
 
 ---
 
-## 23. `combinatorics` — Permutations, Combinations & Counting
+## 18. `combinatorics` — Permutations, Combinations & Counting
 
 ### Architecture
 - **Core functions:** `permutations(n, r)`, `combinations(n, r)` (via `math.comb`), `multinomial(n, *ks)`, `derangements(n)`, `catalan(n)`, `stirling2(n, k)` (Stirling numbers, second kind), `bell(n)` (Bell numbers)
@@ -760,33 +619,38 @@ Counting functions underpin probability calculations everywhere — the denomina
 
 ---
 
-## 24. `weibull` — Weibull Distribution Calculator
+## 19. `slopeint` — Slope-Intercept Line Calculator
 
 ### Architecture
-- **Core functions:** `weibull_pdf(x, k, lam)`, `weibull_cdf(x, k, lam)`, `weibull_survival(x, k, lam)`, `weibull_hazard(x, k, lam)`, `weibull_quantile(p, k, lam)`, `weibull_mean(k, lam)` (via `math.lgamma`)
-- Pure Python — no external dependencies
-- CLI flags: `-x F` (evaluation point), `-k F`/`--shape F` (shape parameter), `--lambda F`/`--scale F` (scale parameter), `--quantile F`, `--survival` (return 1 - CDF), `--table MIN MAX STEP`, `--precision INT`, `--format {table,json}`
-- Output: PDF, CDF, survival probability, hazard rate at x; optional quantile or range table
+- **Core functions:** `slope(p1, p2)`, `line_from_points(p1, p2)`, `line_from_point_slope(point, m)`, `line_from_standard(a, b, c)`, `to_standard(m, b)`, `evaluate(m, b, x)`, `solve_for_x(m, b, y)`, `x_intercept(m, b)`, `y_intercept(m, b)`, `intersection(line1, line2)`, `is_parallel(m1, m2)`, `is_perpendicular(m1, m2)`, `perpendicular_slope(m)`, `distance_to_point(m, b, point)`, `angle_of_inclination(m)`
+- Pure Python via `math` — no external dependencies
+- CLI flags: `--points X1,Y1 X2,Y2`, `--slope F`, `--intercept F`, `--point X,Y`, `--standard A B C`, `--at F` (evaluate y at x), `--solve F` (solve x for y), `--intersect M,B`, `--perpendicular`, `--parallel`, `--distance`, `--table MIN MAX STEP`, `--format {table,json}`, `--precision INT`
+- Output: the fitted equation in slope-intercept and standard form, both intercepts, angle of inclination; optional evaluation, intersection, perpendicular distance, or range table
+- Edge cases handled explicitly: vertical line (`x1 == x2`) reports `x = c` rather than infinite slope; horizontal line (`m == 0`) raises on `--solve` instead of dividing by zero; `--intersect` distinguishes parallel from coincident; parallel/perpendicular predicates use float tolerance, not exact `==`
 
 ### Application
-The Weibull distribution is the standard model for component lifetimes and failure analysis. The shape parameter k controls failure behaviour: k < 1 (decreasing hazard — infant mortality / early failure), k = 1 (constant hazard = exponential distribution), k > 1 (increasing hazard — wear-out). Used in reliability engineering, warranty data analysis, survival analysis, and materials science. A direct extension of `exponential` for non-constant hazard rates.
+Lines in `y = mx + b` form are the most-used model in applied math, and the arithmetic around them — two-point construction, conversion to and from `Ax + By = C`, intersections, perpendicular projection — is exactly the kind of error-prone algebra worth a CLI. Distinct from `linreg`: `linreg` *estimates* a line from noisy sample data with standard errors and p-values, while `slopeint` manipulates an *exact*, known line. The two pair naturally — `linreg` produces `m` and `b`, `slopeint` consumes them for prediction, intersection, and projection. Break-even geometry is the same operation as intersecting a cost line with a revenue line, giving a cross-check against `breakeven`.
 
 ```bash
-# Survival probability at t=500 hours, shape=2, scale=1000
-weibull -x 500 -k 2 --lambda 1000 --survival
+# Unit conversion: Fahrenheit from Celsius, y = 1.8x + 32
+slopeint --points 0,32 100,212
 
-# 5th percentile of failure time (when have 5% of units failed?)
-weibull --quantile 0.05 -k 1.5 --lambda 800
+# Straight-line depreciation: $30k asset, $5k salvage, 5-year life
+slopeint --points 0,30000 5,5000 --table 0 5 1
 
-# Range table: CDF and survival from 0 to 2000 in steps of 200
-weibull -k 2.5 --lambda 1200 --table 0 2000 200
+# Cost model $50k fixed + $10/unit against revenue $25/unit — break-even as an intersection
+slopeint --slope 10 --intercept 50000 --intersect 25,0
+
+# Perpendicular line through a point, and the distance to it
+slopeint --slope 2 --intercept 1 --point 4,3 --perpendicular
+slopeint --slope 2 --intercept 1 --point 4,3 --distance
 ```
 
 ### Target User Base
-- Reliability engineers and QA analysts: _modeling component lifetime distributions and warranty periods_
-- Materials scientists and physicists: _fitting failure time data with non-constant hazard_
-- Actuaries: _survival analysis beyond the constant-hazard exponential assumption_
-- The natural follow-on to `exponential` — when "memoryless" is too simple and wear-out or burn-in effects matter
+- Students and educators: _working through algebra and precalculus where the line is given rather than fitted_
+- Analysts: _evaluating, intersecting, or projecting a line already fitted by `linreg` without writing code_
+- Engineers and lab technicians: _calibration curves, unit conversion, and quick projection math_
+- Finance and operations users: _straight-line depreciation schedules and linear cost/revenue models, complementing `breakeven`_
 
 ---
 
@@ -794,7 +658,6 @@ weibull -k 2.5 --lambda 1200 --table 0 2000 200
 
 | Command | Distribution / Concept | Deps (optional*) | Zero-dep fallback? | Closest existing tool | Issue |
 |---|---|---|---|---|---|
-| `chisq`        | Chi-square tests                             | None                               | N/A                | `pvalue`                  | #6  |
 | `hypergeo`     | Hypergeometric                               | None                               | N/A                | `binom`                   | #18 |
 | `plotdist`     | Distribution visualiser                      | `matplotlib`, `numpy`*             | ✅ Unicode text    | `binom` / `birthday`     | #7  |
 | `oddsconv`     | Odds format converter + vig calc             | None                               | N/A                | `expected`                | #19 |
@@ -808,15 +671,11 @@ weibull -k 2.5 --lambda 1200 --table 0 2000 200
 | `matrix`       | Matrix operations & linear algebra           | `numpy`*                           | ✅ nested lists    | `mlreg`                   | #26 |
 | `fibonacci`    | Fibonacci sequence & golden ratio            | None                               | N/A                | N/A                       | #27 |
 | `logreg`       | Logistic regression (binary classifier)      | `numpy`*                           | ✅ gradient descent| `linreg`                  | #10 |
-| `breakeven`    | Break-even analysis and cost-volume-profit   | `matplotlib`*                      | ✅ text table      | `compound` / `expected`   | #14 |
 | `grover`       | Grover's quantum search algorithm simulator  | None                               | N/A                | `prime` / `fibonacci`     | #16 |
-| `anova`        | One-way ANOVA + post-hoc tests               | None                               | N/A                | `ttest`                   | #28 |
-| `geometric`    | Geometric distribution                       | None                               | N/A                | `binom` / `poisson`       | #29 |
-| `exponential`  | Exponential distribution                     | None                               | N/A                | `poisson` / `geometric`   | #30 |
-| `describe`     | Descriptive statistics summary               | None                               | N/A                | all tools                 | #31 |
-| `entropy`      | Information entropy and KL divergence        | None                               | N/A                | `birthday`                | #32 |
+| `exponential`  | Exponential distribution                     | None                               | N/A                | `poisson` / `geometric`   | #31 |
+| `describe`     | Descriptive statistics summary               | None                               | N/A                | all tools                 | #30 |
 | `effect`       | Effect size (Cohen's d, eta², odds ratio)    | None                               | N/A                | `ttest` / `chisq`         | #33 |
 | `combinatorics`| Permutations, combinations, counting         | None                               | N/A                | `hypergeo` / `binom`      | #35 |
-| `weibull`      | Weibull distribution (reliability/survival)  | None                               | N/A                | `exponential`             | #34 |
+| `slopeint`     | Slope-intercept line algebra & geometry      | None                               | N/A                | `linreg`                  | #55 |
 
 \* _Optional dependency: functionality exists but reduced output capability without the package._
