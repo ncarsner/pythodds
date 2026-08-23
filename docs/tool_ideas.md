@@ -27,8 +27,10 @@ For the full list of implemented tools and their CLI entry points, see `README.m
 | `geometric` | Geometric distribution PMF, CDF, and survival |
 | `gini` | Gini coefficient and Lorenz curve |
 | `jevons` | Jevons paradox / rebound effect modeling |
+| `logreg` | Binary logistic regression with odds ratios and classification metrics |
 | `life` | Life-in-weeks grid visualiser |
 | `linreg` | Simple linear regression |
+| `mlreg` | Multiple linear regression with confidence and prediction intervals |
 | `normal` | Gaussian PDF, CDF, and quantile |
 | `pearson` | Pearson correlation coefficient |
 | `poisson` | Poisson PMF, CDF, and survival |
@@ -36,6 +38,7 @@ For the full list of implemented tools and their CLI entry points, see `README.m
 | `pvalue` | p-value and hypothesis test calculator |
 | `pythag` | Pythagorean win expectation |
 | `sample` | Sample size calculator |
+| `slopeint` | Slope-intercept line algebra, conversion, intersection, and projection |
 | `simulate` | Monte Carlo probability simulator |
 | `sigmoid` | Sigmoid function σ(x), derivative, inverse logit, and Unicode sparkline |
 | `spearman` | Spearman rank correlation |
@@ -264,38 +267,7 @@ vartest --test bartlett --data "1.2,1.5,1.3" "2.1,2.4,2.2,2.0" --alpha 0.01
 
 ---
 
-## 8. `mlreg` — Multiple Linear Regression with Prediction Intervals
-
-### Dependencies
-- **Required:** `numpy` (matrix algebra for OLS: $(X^TX)^{-1}X^Ty$)
-- **Optional:** `pandas` (named-column CSV ingestion; falls back to `csv` module with positional columns)
-
-### Architecture
-- Fits OLS multiple regression and produces full inference output including individual and joint prediction intervals, driven entirely by user-supplied data
-- **Core functions:** `fit(X, y)` → coefficients, SE, t-stats, p-values, R², adjusted R², F-stat; `predict(X_new, model, alpha)` → point estimate, confidence interval (mean response), prediction interval (individual response)
-- CLI flags: `--file CSV`, `--target COL`, `--features COL [...]` (default: all non-target numeric columns), `--alpha F`, `--predict-file CSV`, `--vif` (variance inflation factors for multicollinearity), `--format {table,json,csv}`, `--precision INT`
-- Output: coefficient table (estimate, SE, t, p, 95% CI), model summary (R², adjusted R², RMSE, F-stat, overall p), optional prediction table with PI bounds
-
-```bash
-# Fit a multiple regression from a CSV file
-mlreg --file housing.csv --target price
-
-# Include only selected features and compute VIF
-mlreg --file data.csv --target sales --features advertising headcount --vif
-
-# Predict new observations with 90% prediction intervals
-mlreg --file train.csv --target output --predict-file new_inputs.csv --alpha 0.10 --format json
-```
-
-### Target User Base
-- Analysts and data scientists: _who need a CLI multiple regression tool without opening a notebook or statistical package_
-- Researchers: _reporting coefficient estimates with standard errors and prediction intervals_
-- Engineers: _modeling a response variable (yield, latency, defect rate) as a function of multiple controllable inputs_
-- Extends `linreg` to multiple predictors and adds the critical distinction between confidence intervals (mean response variance) and prediction intervals (individual response variance)
-
----
-
-## 9. `taylor` — Taylor Series Approximation
+## 8. `taylor` — Taylor Series Approximation
 
 ### Architecture
 - **Core functions:** `taylor_series(func, a, x, n)` → approximation value and coefficients; `taylor_error(func, a, x, n)` → actual value, approximation, absolute and relative error
@@ -327,7 +299,7 @@ taylor --func ln --center 1 --eval 1.5 --order 10 --compare --format json
 
 ---
 
-## 10. `compound` — Compound Interest & Time Value of Money
+## 9. `compound` — Compound Interest & Time Value of Money
 
 ### Architecture
 - **Core functions:** `future_value(pv, r, n, t)`, `present_value(fv, r, n, t)`, `annuity(pmt, r, n, t)`, `pmt_from_pv(pv, r, n, t)`, `effective_rate(nom_rate, n)`, `continuous_compound(pv, r, t)`
@@ -362,7 +334,7 @@ compound --mode payment --pv 50000 --rate 0.06 --periods 12 --time 5 --schedule
 
 ---
 
-## 11. `matrix` — Matrix Operations & Linear Algebra
+## 10. `matrix` — Matrix Operations & Linear Algebra
 
 ### Dependencies
 - **Optional:** `numpy` (efficient operations on large matrices, eigenvalues, SVD); falls back to pure-Python nested lists for small matrices
@@ -399,7 +371,7 @@ matrix --op eigen --matrix "[[6,-1],[2,3]]" --format json
 
 ---
 
-## 12. `fibonacci` — Fibonacci Sequence & Golden Ratio
+## 11. `fibonacci` — Fibonacci Sequence & Golden Ratio
 
 ### Architecture
 - **Core functions:** `fib(n)` (n-th Fibonacci number), `fib_seq(n)` (first n terms), `golden_ratio()`, `fib_ratio(n)` (ratio F(n)/F(n-1) approaching φ), `lucas(n)` (Lucas numbers), `binet_formula(n)` (closed-form calculation)
@@ -433,37 +405,7 @@ fibonacci --approx 40
 
 ---
 
-## 13. `logreg` — Logistic Regression
-
-### Architecture
-- **Core functions:** `fit(X, y)` → coefficients, SE, z-stats, p-values, log-likelihood; `predict_proba(X, coeffs)` → probability; `predict_class(X, coeffs, threshold)` → binary label; `log_odds(p)` → logit
-- Gradient-descent or Newton-Raphson fitting via `math` — no required external dependencies; optional `numpy` for matrix operations on larger datasets
-- CLI flags: `--file CSV`, `--target COL`, `--features COL [...]` (default: all non-target), `--threshold F` (classification cutoff, default 0.5), `--alpha F` (significance level), `--predict-file CSV`, `--format {table,json,csv}`, `--max-iter INT`, `--precision INT`
-- Output: coefficient table (estimate, SE, z-stat, p-value, OR = exp(coeff)), model summary (log-likelihood, AIC, BIC, pseudo-R²), confusion matrix, accuracy/precision/recall/F1
-
-### Application
-Logistic regression is the workhorse binary classifier, directly modeling the probability of a binary outcome as a sigmoid function of linear predictors. Underpins medical diagnosis (disease yes/no), marketing (click/no-click), credit scoring (default/no-default), and any domain where the outcome is binary and interpretability matters. Coefficients as odds ratios make results directly communicable to non-technical stakeholders.
-
-```bash
-# Fit logistic regression from CSV; default threshold 0.5
-logreg --file patient_data.csv --target disease
-
-# Specify features and lower classification threshold (favor recall)
-logreg --file churn.csv --target churned --features tenure spend logins --threshold 0.3
-
-# Score new observations
-logreg --file train.csv --target clicked --predict-file new_users.csv --format json
-```
-
-### Target User Base
-- Data scientists and analysts: _baseline binary classifier before trying more complex models_
-- Medical and public health researchers: _odds ratio estimation and risk factor analysis_
-- Marketing and product analysts: _conversion and churn modeling_
-- The "classification" counterpart to `linreg` — users who reach "my outcome is binary" will reach for `logreg` just as `linreg` users reach for it when the outcome is continuous
-
----
-
-## 14. `grover` — Grover's Quantum Search Algorithm Simulator
+## 12. `grover` — Grover's Quantum Search Algorithm Simulator
 
 ### Architecture
 - **Core functions:** `optimal_iterations(n)` → `floor(π/4 · √n)`; `success_probability(n, k, iterations)` → analytical amplitude calculation; `amplitude_evolution(n, k, t)` → probability at each step; `speedup_ratio(n)` → classical vs quantum step ratio
@@ -493,7 +435,7 @@ grover --compare --sweep 16 1048576
 
 ---
 
-## 15. `exponential` — Exponential Distribution Calculator
+## 13. `exponential` — Exponential Distribution Calculator
 
 ### Architecture
 - **Core functions:** `exp_pdf(x, lam)`, `exp_cdf(x, lam)`, `exp_survival(x, lam)`, `exp_hazard(x, lam)`, `exp_quantile(p, lam)`
@@ -523,7 +465,7 @@ The continuous analog of the geometric distribution; models waiting times betwee
 
 ---
 
-## 16. `describe` — Descriptive Statistics
+## 14. `describe` — Descriptive Statistics
 
 ### Architecture
 - **Core functions:** `describe(data)` → n, mean, median, mode, std, variance, min, max, q1, q3, iqr, skewness, kurtosis, range, cv (coefficient of variation)
@@ -553,7 +495,7 @@ Produces a one-shot summary of a dataset's location, spread, shape, and outlier 
 
 ---
 
-## 17. `effect` — Effect Size Calculator
+## 15. `effect` — Effect Size Calculator
 
 ### Architecture
 - **Core functions:** `cohens_d(mean1, mean2, std1, std2, n1, n2)` → d and pooled SE; `eta_squared(ss_between, ss_total)` → η²; `omega_squared(ss_between, ms_within, k, n)` → ω²; `odds_ratio(a, b, c, d)` → OR and 95% CI; `risk_ratio(a, b, c, d)` → RR; `r_from_t(t, df)` → Pearson r
@@ -583,7 +525,7 @@ p-values tell you whether an effect exists; effect sizes tell you how large it i
 
 ---
 
-## 18. `combinatorics` — Permutations, Combinations & Counting
+## 16. `combinatorics` — Permutations, Combinations & Counting
 
 ### Architecture
 - **Core functions:** `permutations(n, r)`, `combinations(n, r)` (via `math.comb`), `multinomial(n, *ks)`, `derangements(n)`, `catalan(n)`, `stirling2(n, k)` (Stirling numbers, second kind), `bell(n)` (Bell numbers)
@@ -619,41 +561,6 @@ Counting functions underpin probability calculations everywhere — the denomina
 
 ---
 
-## 19. `slopeint` — Slope-Intercept Line Calculator
-
-### Architecture
-- **Core functions:** `slope(p1, p2)`, `line_from_points(p1, p2)`, `line_from_point_slope(point, m)`, `line_from_standard(a, b, c)`, `to_standard(m, b)`, `evaluate(m, b, x)`, `solve_for_x(m, b, y)`, `x_intercept(m, b)`, `y_intercept(m, b)`, `intersection(line1, line2)`, `is_parallel(m1, m2)`, `is_perpendicular(m1, m2)`, `perpendicular_slope(m)`, `distance_to_point(m, b, point)`, `angle_of_inclination(m)`
-- Pure Python via `math` — no external dependencies
-- CLI flags: `--points X1,Y1 X2,Y2`, `--slope F`, `--intercept F`, `--point X,Y`, `--standard A B C`, `--at F` (evaluate y at x), `--solve F` (solve x for y), `--intersect M,B`, `--perpendicular`, `--parallel`, `--distance`, `--table MIN MAX STEP`, `--format {table,json}`, `--precision INT`
-- Output: the fitted equation in slope-intercept and standard form, both intercepts, angle of inclination; optional evaluation, intersection, perpendicular distance, or range table
-- Edge cases handled explicitly: vertical line (`x1 == x2`) reports `x = c` rather than infinite slope; horizontal line (`m == 0`) raises on `--solve` instead of dividing by zero; `--intersect` distinguishes parallel from coincident; parallel/perpendicular predicates use float tolerance, not exact `==`
-
-### Application
-Lines in `y = mx + b` form are the most-used model in applied math, and the arithmetic around them — two-point construction, conversion to and from `Ax + By = C`, intersections, perpendicular projection — is exactly the kind of error-prone algebra worth a CLI. Distinct from `linreg`: `linreg` *estimates* a line from noisy sample data with standard errors and p-values, while `slopeint` manipulates an *exact*, known line. The two pair naturally — `linreg` produces `m` and `b`, `slopeint` consumes them for prediction, intersection, and projection. Break-even geometry is the same operation as intersecting a cost line with a revenue line, giving a cross-check against `breakeven`.
-
-```bash
-# Unit conversion: Fahrenheit from Celsius, y = 1.8x + 32
-slopeint --points 0,32 100,212
-
-# Straight-line depreciation: $30k asset, $5k salvage, 5-year life
-slopeint --points 0,30000 5,5000 --table 0 5 1
-
-# Cost model $50k fixed + $10/unit against revenue $25/unit — break-even as an intersection
-slopeint --slope 10 --intercept 50000 --intersect 25,0
-
-# Perpendicular line through a point, and the distance to it
-slopeint --slope 2 --intercept 1 --point 4,3 --perpendicular
-slopeint --slope 2 --intercept 1 --point 4,3 --distance
-```
-
-### Target User Base
-- Students and educators: _working through algebra and precalculus where the line is given rather than fitted_
-- Analysts: _evaluating, intersecting, or projecting a line already fitted by `linreg` without writing code_
-- Engineers and lab technicians: _calibration curves, unit conversion, and quick projection math_
-- Finance and operations users: _straight-line depreciation schedules and linear cost/revenue models, complementing `breakeven`_
-
----
-
 ## Summary Table
 
 | Command | Distribution / Concept | Deps (optional*) | Zero-dep fallback? | Closest existing tool | Issue |
@@ -665,17 +572,14 @@ slopeint --slope 2 --intercept 1 --point 4,3 --distance
 | `randforest`   | Random forest classifier / regressor         | `scikit-learn`, `numpy`*, `pandas`*| ✅ numpy/pandas    | `linreg`                  | #21 |
 | `ewma`         | EWMA control chart + variance limits         | None                               | N/A                | `forecast`                | #22 |
 | `vartest`      | Variance equality tests (F, Levene, Bartlett)| None                               | N/A                | `ttest`                   | #23 |
-| `mlreg`        | Multiple linear regression + pred. intervals | `numpy`, `pandas`*                 | N/A                | `linreg`                  | #3  |
 | `taylor`       | Taylor series approximation                  | None                               | N/A                | N/A                       | #24 |
 | `compound`     | Compound interest & time value of money      | None                               | N/A                | `expected`                | #25 |
-| `matrix`       | Matrix operations & linear algebra           | `numpy`*                           | ✅ nested lists    | `mlreg`                   | #26 |
+| `matrix`       | Matrix operations & linear algebra           | `numpy`*                           | ✅ nested lists    | `mlreg` (implemented)     | #26 |
 | `fibonacci`    | Fibonacci sequence & golden ratio            | None                               | N/A                | N/A                       | #27 |
-| `logreg`       | Logistic regression (binary classifier)      | `numpy`*                           | ✅ gradient descent| `linreg`                  | #10 |
 | `grover`       | Grover's quantum search algorithm simulator  | None                               | N/A                | `prime` / `fibonacci`     | #16 |
 | `exponential`  | Exponential distribution                     | None                               | N/A                | `poisson` / `geometric`   | #31 |
 | `describe`     | Descriptive statistics summary               | None                               | N/A                | all tools                 | #30 |
 | `effect`       | Effect size (Cohen's d, eta², odds ratio)    | None                               | N/A                | `ttest` / `chisq`         | #33 |
 | `combinatorics`| Permutations, combinations, counting         | None                               | N/A                | `hypergeo` / `binom`      | #35 |
-| `slopeint`     | Slope-intercept line algebra & geometry      | None                               | N/A                | `linreg`                  | #55 |
 
 \* _Optional dependency: functionality exists but reduced output capability without the package._
