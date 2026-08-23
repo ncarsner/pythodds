@@ -209,22 +209,32 @@ def predict(
 
 
 def t_cdf(t: float, df: int) -> float:
-    """Approximate CDF of Student's t-distribution."""
+    """CDF of Student's t-distribution.
+
+    Evaluated from the incomplete-beta identity at every df.  A normal
+    approximation was previously substituted above df = 30, which capped
+    accuracy at roughly 3e-3 relative and made the reported p-value depend on
+    a sample-size threshold rather than on the data.
+
+    Args:
+        t: Evaluation point.
+        df: Degrees of freedom; must be >= 1.
+
+    Returns:
+        ``P(T <= t)`` in [0, 1].
+
+    Raises:
+        ValueError: If ``df`` < 1.
+    """
     if df < 1:
         raise ValueError("Degrees of freedom must be at least 1")
 
     if math.isinf(t):
         return 1.0 if t > 0 else 0.0
 
-    # Use normal approximation for large df
-    if df > 30:
-        return standard_normal_cdf(t)
-
-    # For small df, use approximation
-    # This is a simplified implementation
     x = df / (df + t * t)
-    p = 0.5 * (1.0 + math.copysign(1.0, t) * (1.0 - incomplete_beta(df / 2, 0.5, x)))
-    return p
+    tail = 0.5 * incomplete_beta(df / 2, 0.5, x)
+    return 1.0 - tail if t > 0 else tail
 
 
 def incomplete_beta(a: float, b: float, x: float) -> float:
@@ -255,13 +265,22 @@ def incomplete_beta(a: float, b: float, x: float) -> float:
     # Compute front factor
     front = math.exp(a * math.log(x) + b * math.log(1.0 - x) - log_beta) / a
 
-    # Continued fraction using Lentz's algorithm
+    # Continued fraction using the modified Lentz algorithm.
+    #
+    # The leading term matters: the recurrence must start from
+    # d = 1 / (1 - (a+b)x/(a+1)) with f seeded to that same d.  Starting from
+    # d = 0 and f = 1 drops the first term of the continued fraction, which is
+    # what this function did previously -- it returned 0.2285 for I_0.4(2,3)
+    # against a true value of 0.5248, and the error propagated into every
+    # t- and F-based p-value in this module.
     max_iter = 200
 
-    # Initialize
-    f = 1.0
+    d = 1.0 - (a + b) * x / (a + 1.0)
+    if abs(d) < _TINY:
+        d = _TINY
+    d = 1.0 / d
+    f = d
     c = 1.0
-    d = 0.0
 
     for m in range(1, max_iter):
         m_float = float(m)
@@ -312,99 +331,38 @@ def incomplete_beta(a: float, b: float, x: float) -> float:
     return front * f
 
 
-def standard_normal_cdf(z: float) -> float:
-    """CDF of standard normal distribution using error function."""
-    return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
-
-
 def inverse_t_cdf(p: float, df: int) -> float:
-    """Approximate inverse CDF (quantile function) of Student's t-distribution."""
-    if p <= 0.0 or p >= 1.0:
-        raise ValueError("p must be between 0 and 1")
+    """Inverse CDF (quantile function) of Student's t-distribution.
 
-    # For large df, use normal approximation
-    if df > 30:
-        return inverse_normal_cdf(p)
+    Obtained by bisecting :func:`t_cdf`, which is monotonic.  The previous
+    implementation used a third-order Cornish-Fisher expansion below df = 30
+    and a normal quantile above it; both were badly off in the tails -- 18% at
+    df = 5 and p = 0.975, 29% at p = 0.995 -- and that error went straight into
+    the t-critical value behind every confidence and prediction interval.
 
-    # For small df, use iterative approximation
-    # Start with normal approximation
-    z = inverse_normal_cdf(p)
+    Args:
+        p: Cumulative probability, strictly between 0 and 1.
+        df: Degrees of freedom; must be >= 1.
 
-    # Apply correction for finite df using Cornish-Fisher expansion
-    # This is a simplified 3rd-order approximation
-    g1 = (z * z - 1.0) / 4.0
-    g2 = (5.0 * z * z * z - 16.0 * z) / 96.0
+    Returns:
+        The t with ``P(T <= t) = p``.
 
-    t = z + g1 / df + g2 / (df * df)
-
-    return t
-
-
-def inverse_normal_cdf(p: float) -> float:
-    """Approximate inverse CDF of standard normal distribution.
-
-    Uses rational approximation (Beasley-Springer-Moro algorithm).
+    Raises:
+        ValueError: If ``p`` is not in (0, 1) or ``df`` < 1.
     """
     if p <= 0.0 or p >= 1.0:
         raise ValueError("p must be between 0 and 1")
+    if df < 1:
+        raise ValueError("Degrees of freedom must be at least 1")
 
-    # Coefficients for rational approximation
-    a = (
-        -3.969683028665376e1,
-        2.209460984245205e2,
-        -2.759285104469687e2,
-        1.383577518672690e2,
-        -3.066479806614716e1,
-        2.506628277459239e0,
-    )
-    b = (
-        -5.447609879822406e1,
-        1.615858368580409e2,
-        -1.556989798598866e2,
-        6.680131188771972e1,
-        -1.328068155288572e1,
-    )
-    c = (
-        -7.784894002430293e-3,
-        -3.223964580411365e-1,
-        -2.400758277161838e0,
-        -2.549732539343734e0,
-        4.374664141464968e0,
-        2.938163982698783e0,
-    )
-    d = (
-        7.784695709041462e-3,
-        3.224671290700398e-1,
-        2.445134137142996e0,
-        3.754408661907416e0,
-    )
-
-    p_low = 0.02425
-    p_high = 1.0 - p_low
-
-    # Rational approximation for lower region
-    if p < p_low:
-        q = math.sqrt(-2.0 * math.log(p))
-        x = (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / (
-            (((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0
-        )
-        return x
-
-    # Rational approximation for upper region
-    if p > p_high:
-        q = math.sqrt(-2.0 * math.log(1.0 - p))
-        x = -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / (
-            (((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0
-        )
-        return x
-
-    # Rational approximation for central region
-    q = p - 0.5
-    r = q * q
-    x = ((((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q) / (
-        ((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1.0
-    )
-    return x
+    low, high = -1.0e6, 1.0e6
+    for _ in range(200):
+        mid = (low + high) / 2.0
+        if t_cdf(mid, df) < p:
+            low = mid
+        else:
+            high = mid
+    return (low + high) / 2.0
 
 
 def f_statistic(model: RegressionResult) -> float:
@@ -438,8 +396,11 @@ def f_cdf(f: float, df1: int, df2: int) -> float:
     if math.isinf(f):
         return 1.0
 
-    x = df2 / (df2 + df1 * f)
-    return 1.0 - incomplete_beta(df2 / 2.0, df1 / 2.0, x)
+    # Direct form.  Computing this as 1 - I_x(df2/2, df1/2) subtracts a value
+    # near 1 from 1, and the caller then subtracts the result from 1 again to
+    # get the p-value, so the significant digits were lost twice over.
+    x = df1 * f / (df1 * f + df2)
+    return incomplete_beta(df1 / 2.0, df2 / 2.0, x)
 
 
 def p_value_t(t: float, df: int, sided: str = "two") -> float:

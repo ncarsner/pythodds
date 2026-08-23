@@ -5,13 +5,13 @@ import os
 import tempfile
 
 import pytest
+from scipy import special, stats
 
 import src.utils.linear_regression as linreg_module
 from src.utils.linear_regression import (
     f_cdf,
     incomplete_beta,
     interpret_r_squared,
-    inverse_normal_cdf,
     inverse_t_cdf,
     linear_regression,
     main,
@@ -170,10 +170,12 @@ def test_t_cdf_infinite_t():
 
 
 def test_t_cdf_large_df():
-    """Test t_cdf uses normal approximation for large df."""
-    # For df > 30, should use normal approximation
+    """t_cdf is exact above df = 30, where it used to fall back to the normal."""
     result = t_cdf(1.96, 100)
-    assert 0.97 < result < 0.98  # Should be close to normal CDF
+    assert result == pytest.approx(float(stats.t.cdf(1.96, 100)), abs=1e-9)
+    # The normal CDF is a visibly different number at this df; the old
+    # implementation returned it verbatim.
+    assert abs(result - 0.5 * (1 + math.erf(1.96 / math.sqrt(2)))) > 1e-4
 
 
 def test_incomplete_beta_edge_cases():
@@ -201,30 +203,10 @@ def test_inverse_t_cdf_invalid_p():
 
 
 def test_inverse_t_cdf_large_df():
-    """Test inverse_t_cdf uses normal approximation for large df."""
-    # For df > 30, should use normal approximation
+    """inverse_t_cdf is exact above df = 30, not the normal quantile."""
     result = inverse_t_cdf(0.975, 100)
-    assert abs(result - 1.96) < 0.05  # Should be close to z_0.975
-
-
-def test_inverse_normal_cdf_invalid_p():
-    """Test inverse_normal_cdf raises error for invalid p values."""
-    with pytest.raises(ValueError, match="p must be between 0 and 1"):
-        inverse_normal_cdf(0.0)
-
-
-def test_inverse_normal_cdf_lower_region():
-    """Test inverse_normal_cdf lower tail approximation."""
-    # p < 0.02425 uses lower region approximation
-    result = inverse_normal_cdf(0.01)
-    assert result < -2.0  # Should be in left tail
-
-
-def test_inverse_normal_cdf_upper_region():
-    """Test inverse_normal_cdf upper tail approximation."""
-    # p > 0.97575 uses upper region approximation
-    result = inverse_normal_cdf(0.99)
-    assert result > 2.0  # Should be in right tail
+    assert result == pytest.approx(float(stats.t.ppf(0.975, 100)), abs=1e-8)
+    assert abs(result - 1.959963985) > 1e-3
 
 
 def test_f_cdf_edge_cases():
@@ -339,8 +321,9 @@ def test_incomplete_beta_lentz_floor_guards_hit(monkeypatch):
     whether or not the guards exist, so the test would still pass with all four
     deleted. Pin the clamped value instead. With every denominator forced to
     _TINY, `c * d` is exactly 1.0, the convergence check breaks on the first
-    iteration, and the result collapses to the front factor alone -- which for
-    (2, 3, 0.5) goes through the symmetry relation to 1 - 0.125. Deleting or
+    iteration, and the continued fraction collapses to its seed value of
+    1 / _TINY. For (2, 3, 0.5) the symmetry relation routes this through
+    (3, 2, 0.5), whose front factor is 0.125, giving 1 - 0.125e-5. Deleting or
     inverting any guard changes that number.
     """
     unclamped = incomplete_beta(2.0, 3.0, 0.5)
@@ -348,7 +331,7 @@ def test_incomplete_beta_lentz_floor_guards_hit(monkeypatch):
     clamped = incomplete_beta(2.0, 3.0, 0.5)
 
     assert math.isfinite(clamped)
-    assert clamped == pytest.approx(0.875)
+    assert clamped == pytest.approx(1.0 - 0.125e-5)
     assert clamped != unclamped
 
 
@@ -366,3 +349,95 @@ def test_incomplete_beta_survives_subnormal_parameters():
         result = incomplete_beta(a, b, x)
         assert math.isfinite(result), f"non-finite result for ({a}, {b}, {x})"
         assert 0 <= result <= 1, f"out of range result for ({a}, {b}, {x})"
+
+
+# ---------------------------------------------------------------------------
+# Distribution kernels against scipy
+#
+# The suite previously pinned only edge cases and the shape of the large-df
+# shortcut, so a continued fraction that was seeded incorrectly -- dropping the
+# leading term and returning 0.2285 for I_0.4(2,3) against a true 0.5248 --
+# passed everything. These compare values, not shapes.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "a,b,x",
+    [
+        (2.0, 3.0, 0.4),
+        (0.5, 0.5, 0.3),
+        (5.0, 0.5, 0.5),
+        (12.5, 0.5, 0.9259),
+        (1.0, 20.0, 0.05),
+        (50.0, 0.5, 0.99),
+    ],
+)
+def test_incomplete_beta_matches_scipy(a, b, x):
+    assert incomplete_beta(a, b, x) == pytest.approx(
+        float(special.betainc(a, b, x)), abs=1e-9
+    )
+
+
+def test_incomplete_beta_known_closed_form():
+    """I_0.4(2,3) = 0.5248 exactly; the seeding bug returned 0.2285."""
+    assert incomplete_beta(2.0, 3.0, 0.4) == pytest.approx(0.5248, abs=1e-12)
+
+
+@pytest.mark.parametrize("df", [1, 2, 5, 25, 30, 31, 40, 100, 500])
+@pytest.mark.parametrize("t", [-3.0, -1.0, -0.25, 0.5, 2.0, 4.0])
+def test_t_cdf_matches_scipy(t, df):
+    assert t_cdf(t, df) == pytest.approx(float(stats.t.cdf(t, df)), abs=1e-9)
+
+
+def test_t_cdf_is_continuous_across_the_old_df_threshold():
+    """The old normal shortcut put a visible step at df = 30/31."""
+    below, above = t_cdf(2.0, 30), t_cdf(2.0, 31)
+    assert abs(below - above) < 1e-3
+
+
+@pytest.mark.parametrize("df", [1, 5, 10, 30, 40, 100])
+@pytest.mark.parametrize("p", [0.6, 0.9, 0.975, 0.995])
+def test_inverse_t_cdf_matches_scipy(p, df):
+    assert inverse_t_cdf(p, df) == pytest.approx(float(stats.t.ppf(p, df)), abs=1e-6)
+
+
+def test_inverse_t_cdf_round_trips_with_t_cdf():
+    assert t_cdf(inverse_t_cdf(0.9, 7), 7) == pytest.approx(0.9, abs=1e-8)
+
+
+def test_inverse_t_cdf_rejects_bad_df():
+    with pytest.raises(ValueError, match="Degrees of freedom must be at least 1"):
+        inverse_t_cdf(0.5, 0)
+
+
+@pytest.mark.parametrize(
+    "f_stat,df1,df2",
+    [(0.5, 1, 10), (2.0, 1, 10), (5.0, 2, 20), (12.0, 3, 30), (0.1, 4, 8)],
+)
+def test_f_cdf_matches_scipy(f_stat, df1, df2):
+    assert f_cdf(f_stat, df1, df2) == pytest.approx(
+        float(stats.f.cdf(f_stat, df1, df2)), abs=1e-9
+    )
+
+
+def test_regression_p_value_matches_scipy_end_to_end():
+    """The whole path: fit, t-statistic, and the reported two-sided p-value."""
+    x = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+    y = [2.3, 3.9, 6.4, 7.6, 10.5, 11.8, 14.6, 15.9]
+    model = linear_regression(x, y)
+    reference = stats.linregress(x, y)
+
+    assert model.slope == pytest.approx(reference.slope, rel=1e-12)
+    assert model.se_slope == pytest.approx(reference.stderr, rel=1e-10)
+    expected_p = float(2 * stats.t.sf(abs(model.t_slope), model.df))
+    assert p_value_t(model.t_slope, model.df) == pytest.approx(expected_p, rel=1e-6)
+
+
+def test_confidence_interval_critical_value_matches_scipy():
+    """t_crit drives every interval the CLI prints; it was 18% low at df = 5."""
+    x = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
+    y = [2.1, 4.2, 5.8, 8.1, 9.9, 12.2, 14.0]
+    model = linear_regression(x, y)
+    assert inverse_t_cdf(0.975, model.df) == pytest.approx(
+        float(stats.t.ppf(0.975, model.df)), abs=1e-8
+    )

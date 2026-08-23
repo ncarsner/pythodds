@@ -27,6 +27,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Degenerate cases are named rather than returned as infinities: a vertical line reports having no slope-intercept form, a horizontal line reports that solving for x has no answer, and parallel lines are distinguished from coincident ones
   - Complements `linreg`, which estimates a line from noisy data; `slopeint` operates on an exact, known one
 
+### Fixed
+- `linreg` distribution kernels were producing wrong p-values and interval bounds (issue #59)
+  - `incomplete_beta` seeded its continued fraction at `d = 0`, dropping the leading term of the Lentz recurrence. It returned 0.2285 for `I_0.4(2,3)` against a true 0.5248, and the error reached every t- and F-based p-value in the module. Now seeded at `d = 1 / (1 - (a+b)x/(a+1))` and agrees with `scipy.special.betainc` to 1e-9
+  - `t_cdf` substituted a normal approximation above `df = 30`, capping accuracy at ~3e-3 relative and putting a visible step in the reported p-value at the df 30/31 boundary. Now exact at every df
+  - `inverse_t_cdf` used a third-order Cornish-Fisher expansion below `df = 30` and a normal quantile above it, off by 18% at df=5, p=0.975 and 29% at p=0.995. This is the t-critical value behind every confidence and prediction interval `linreg` prints, so those bounds were materially too narrow — at df=5 the 95% critical value was 1.9837 where the true value is 2.5706. Now obtained by bisecting the exact CDF, matching scipy to 1e-8
+  - `f_cdf` was computed as `1 - I_x(...)`, and its caller then subtracted that from 1 again, losing significant digits twice. Now evaluated in direct form
+  - Added scipy oracle tests across all four kernels. The previous tests asserted only edge cases and the *shape* of the large-df shortcut, which is why a continued fraction seeded incorrectly passed everything
+
+### Removed
+- `standard_normal_cdf` and `inverse_normal_cdf` from `src.utils.linear_regression`, unused once the normal-approximation shortcuts were dropped. Neither was part of the module's documented surface; equivalents remain in `pearson_correlation` and `normal_gaussian`
+
 ---
 
 ## [0.23.0] — 2026-08-18
