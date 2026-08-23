@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [0.24.0] — 2026-08-23
 
 ### Added
 - Multiple linear regression tool (`mlreg`) — OLS across several predictors with coefficient estimates, standard errors, t-statistics, p-values, and confidence intervals (#3)
@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Complements `linreg`, which estimates a line from noisy data; `slopeint` operates on an exact, known one
 
 ### Fixed
+> **Upgrade note:** `linreg` now reports different p-values and interval bounds than 0.23.0 did. The previous values were wrong, not merely less precise; confidence and prediction intervals in particular were materially too narrow. Any result carried forward from an earlier version should be recomputed.
+
 - `linreg` distribution kernels were producing wrong p-values and interval bounds (issue #59)
   - `incomplete_beta` seeded its continued fraction at `d = 0`, dropping the leading term of the Lentz recurrence. It returned 0.2285 for `I_0.4(2,3)` against a true 0.5248, and the error reached every t- and F-based p-value in the module. Now seeded at `d = 1 / (1 - (a+b)x/(a+1))` and agrees with `scipy.special.betainc` to 1e-9
   - `t_cdf` substituted a normal approximation above `df = 30`, capping accuracy at ~3e-3 relative and putting a visible step in the reported p-value at the df 30/31 boundary. Now exact at every df
