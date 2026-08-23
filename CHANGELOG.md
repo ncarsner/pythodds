@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Binary logistic regression tool (`logreg`) — Newton-Raphson (IRLS) fit reporting coefficients as log-odds and odds ratios, with Wald standard errors, z-statistics, p-values, and confidence intervals (#10)
+  - Model fit: log-likelihood against the intercept-only null, McFadden pseudo-R², AIC, and BIC; classification: confusion matrix with accuracy, precision, recall, and F1 at a configurable `--threshold`
+  - Standard errors come from the exact inverse observed information rather than a quasi-Newton approximation, verified against a numerical Hessian to 1e-9 and the coefficients against a scipy optimiser to 1e-8
+  - Degenerate fits raise instead of returning quietly: perfectly separable classes have no finite MLE and are reported as such, and a non-converged run raises rather than handing back the last iterate
+  - `--predict-file` scores new observations; any two distinct target values are accepted, not just 0/1
 - Slope-intercept line tool (`slopeint`) — construct a line from two points, point-slope, or standard form `Ax + By = C`, and report it in every representation (#55)
   - Standard form is normalised to primitive integer coefficients through exact rational arithmetic (`fractions.Fraction`), so `y = 1.8x + 32` reports as `9x - 5y = -160` rather than as rounded floats
   - Evaluates y at an x, solves x for a y, intersects a second line, projects a point onto the line with the perpendicular distance and the closest point, and emits the perpendicular or parallel line through a point

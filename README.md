@@ -43,10 +43,11 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Break-Even Analysis** | Cost-volume-profit analysis: break-even units and revenue, contribution margin and ratio, margin of safety, and the volume needed to hit a target profit; optional profit/loss sweep across a unit range with a text bar chart |
 | **Information Entropy** | Shannon entropy, KL divergence, cross-entropy, mutual information, and conditional entropy in bits, nats, or hartleys; accepts raw counts as well as probabilities |
 | **Weibull Distribution** | PDF, CDF, survival, hazard rate, quantiles, mean, median, and variance for Weibull(k, λ), with the shape parameter's failure mode named (infant mortality, constant hazard, or wear-out) |
+| **Logistic Regression** | Binary classifier fitted by Newton-Raphson with odds ratios, Wald intervals, log-likelihood, AIC/BIC, McFadden pseudo-R², a confusion matrix, and accuracy/precision/recall/F1 |
 | **Slope-Intercept Lines** | Build a line from two points, point-slope, or standard form; convert between representations; evaluate, solve, intersect, project onto, and measure distance to it |
 | **Discount Rates & NPV** | Real and nominal discount rates via the Fisher equation, discount factors, present value of a lump sum, and nominal and inflation-adjusted NPV with discounted payback period |
 | **Monte Carlo Simulator** | Empirically estimate probabilities for `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, `linboot` experiments with confidence intervals and analytical comparison |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, `subnet`, `geometric`, `chisq`, `anova`, `life`, `breakeven`, `entropy`, `weibull`, `discount`, and `slopeint` commands |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, `subnet`, `geometric`, `chisq`, `anova`, `life`, `breakeven`, `entropy`, `weibull`, `discount`, `slopeint`, and `logreg` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -108,6 +109,7 @@ pip install -e .
 | `entropy` | Shannon entropy, KL divergence, cross-entropy, mutual information, and conditional entropy in bits, nats, or hartleys |
 | `weibull` | PDF, CDF, survival, hazard, quantiles, and moments for the Weibull(k, λ) reliability distribution |
 | `discount` | Real and nominal discount rates (Fisher), discount factors, present value, and inflation-adjusted NPV |
+| `logreg` | Binary logistic regression with odds ratios, model fit statistics, and classification metrics |
 | `slopeint` | Slope-intercept line algebra: construction, standard-form conversion, intersection, perpendicular projection, and point distance |
 | `simulate` | Monte Carlo estimation with confidence intervals and analytical comparison |
 
@@ -1767,6 +1769,45 @@ discount --nominal 0.08 --inflation 0.03 --cashflows -1000 300 400 500
 ---
 
 <details>
+<summary><strong><code>logreg</code></strong> — Logistic Regression</summary>
+
+The classification counterpart to `linreg`: reach for it when the outcome is binary rather than continuous. Fitted by Newton-Raphson (iteratively reweighted least squares), which converges in a handful of iterations on well-conditioned data. Coefficients are reported as odds ratios alongside the log-odds estimates, since the odds ratio is the form that travels to non-technical readers.
+
+Standard errors come from the exact inverse observed information, not a quasi-Newton approximation. Degenerate fits are refused rather than returned: perfectly separable classes have no finite maximum-likelihood estimate, so the fit reports that instead of handing back runaway coefficients, and a run that fails to converge raises rather than returning the last iterate.
+
+```bash
+# Fit from a CSV, every non-target column as a feature
+logreg --file patient_data.csv --target disease
+
+# Chosen features, lower cutoff to favour recall over precision
+logreg --file churn.csv --target churned --features tenure spend --threshold 0.3
+
+# Score new observations with the fitted model
+logreg --file train.csv --target clicked --predict-file new_users.csv
+
+# 99% coefficient intervals, JSON out
+logreg --file iris.csv --target setosa --alpha 0.01 --format json
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--file CSV` | Training data with a header row (required) |
+| | `--target COL` | Binary outcome column (required); any two distinct values are accepted, not just 0/1 |
+| | `--features COL [COL ...]` | Predictor columns (default: every column except the target) |
+| | `--threshold F` | Probability cutoff for the positive class (default: 0.5) |
+| | `--alpha F` | Significance level for coefficient intervals (default: 0.05) |
+| | `--predict-file CSV` | Score these observations with the fitted model |
+| | `--max-iter INT` | Maximum Newton-Raphson iterations (default: 50) |
+| | `--format {table,json}` | Output format (default: table) |
+| `-P` | `--precision` | Decimal places for output (default: 4) |
+
+</details>
+
+---
+
+<details>
 <summary><strong><code>slopeint</code></strong> — Slope-Intercept Lines</summary>
 
 Line algebra for an *exact*, known line, as opposed to `linreg`, which *estimates* one from noisy data. The two pair: `linreg` produces `m` and `b`, `slopeint` consumes them for evaluation, intersection, and projection. A line can be entered three ways — two points, point-slope, or standard form `Ax + By = C` — and is reported in all of them, with standard form normalised to primitive integer coefficients via exact rational arithmetic rather than float rounding.
@@ -1920,6 +1961,7 @@ simulate --experiment linboot --params x=1,2,3,4,5 y=2.1,3.9,6.2,7.8,10.1 predic
 | Entropy | `src.utils.information_entropy` | `shannon_entropy`, `kl_divergence`, `cross_entropy`, `mutual_information`, `conditional_entropy`, `joint_entropy` |
 | Weibull | `src.utils.weibull_distribution` | `weibull_pdf`, `weibull_cdf`, `weibull_survival`, `weibull_hazard`, `weibull_quantile`, `weibull_mean` |
 | Discount Rate | `src.utils.discount_rate` | `real_rate`, `nominal_rate`, `discount_factor`, `present_value`, `npv`, `real_npv`, `payback_period` |
+| Logistic Regression | `src.utils.logistic_regression` | `fit`, `predict_proba`, `predict_class`, `log_odds`, `sigmoid`, `confusion_matrix`, `classification_metrics` |
 | Slope-Intercept | `src.utils.slope_intercept` | `line_from_points`, `line_from_standard`, `to_standard`, `evaluate`, `solve_for_x`, `intersection`, `perpendicular_slope`, `distance_to_point`, `foot_of_perpendicular` |
 | Monte Carlo | `src.utils.monte_carlo` | `simulate_binomial`, `simulate_birthday`, `simulate_streak`, `simulate_poisson`, `simulate_power`, `simulate_permutation`, `simulate_bayes`, `simulate_season`, `simulate_linboot` |
 
@@ -2986,6 +3028,41 @@ t05 = weibull_quantile(0.05, 1.5, 800)
 # Mean time to failure, and what the shape parameter implies
 mttf = weibull_mean(2, 1000)
 mode = failure_mode(2)  # 'wear-out (increasing hazard)'
+```
+
+</details>
+
+<details>
+<summary><strong>Logistic Regression</strong></summary>
+
+```python
+from src.utils.logistic_regression import (
+    classification_metrics,
+    confusion_matrix,
+    fit,
+    predict_class,
+    predict_proba,
+)
+
+X = [[25, 1.2], [31, 0.4], [47, 2.9], [52, 0.1], [38, 1.7], [29, 2.2]]
+y = [0, 0, 1, 0, 1, 1]
+
+model = fit(X, y, names=["age", "score"])
+
+# Log-odds estimates, and the same effects as odds ratios
+model.coefficients
+model.odds_ratios
+
+# Model fit
+model.pseudo_r2, model.aic, model.bic
+
+# Score an observation and label it
+p = predict_proba(model.coefficients, [40, 1.5])
+label = predict_class(p, threshold=0.5)
+
+# In-sample classification quality
+labels = [predict_class(predict_proba(model.coefficients, row)) for row in X]
+metrics = classification_metrics(confusion_matrix(y, labels))
 ```
 
 </details>
