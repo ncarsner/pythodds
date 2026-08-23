@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+- Multiple linear regression tool (`mlreg`) — OLS across several predictors with coefficient estimates, standard errors, t-statistics, p-values, and confidence intervals (#3)
+  - Predictions carry both interval kinds: a confidence interval for the mean response and the always-wider prediction interval for a single new observation
+  - Model fit reports R², adjusted R², residual standard error, and the overall F-test; `--vif` adds variance inflation factors, flagging any predictor above 10
+  - The overall p-value is evaluated from the incomplete-beta tail directly instead of as `1 - cdf`, which cancels to exactly 0 for a strongly significant model where the true value is near 1e-35
+  - Collinear or constant predictors and a constant response are rejected with a named error rather than producing unidentified coefficients or a negative F-statistic
+  - Verified against numpy and scipy oracles: coefficients, standard errors, R², and both interval kinds to 1e-10 or better
+- Binary logistic regression tool (`logreg`) — Newton-Raphson (IRLS) fit reporting coefficients as log-odds and odds ratios, with Wald standard errors, z-statistics, p-values, and confidence intervals (#10)
+  - Model fit: log-likelihood against the intercept-only null, McFadden pseudo-R², AIC, and BIC; classification: confusion matrix with accuracy, precision, recall, and F1 at a configurable `--threshold`
+  - Standard errors come from the exact inverse observed information rather than a quasi-Newton approximation, verified against a numerical Hessian to 1e-9 and the coefficients against a scipy optimiser to 1e-8
+  - Degenerate fits raise instead of returning quietly: perfectly separable classes have no finite MLE and are reported as such, and a non-converged run raises rather than handing back the last iterate
+  - `--predict-file` scores new observations; any two distinct target values are accepted, not just 0/1
+- Slope-intercept line tool (`slopeint`) — construct a line from two points, point-slope, or standard form `Ax + By = C`, and report it in every representation (#55)
+  - Standard form is normalised to primitive integer coefficients through exact rational arithmetic (`fractions.Fraction`), so `y = 1.8x + 32` reports as `9x - 5y = -160` rather than as rounded floats
+  - Evaluates y at an x, solves x for a y, intersects a second line, projects a point onto the line with the perpendicular distance and the closest point, and emits the perpendicular or parallel line through a point
+  - Degenerate cases are named rather than returned as infinities: a vertical line reports having no slope-intercept form, a horizontal line reports that solving for x has no answer, and parallel lines are distinguished from coincident ones
+  - Complements `linreg`, which estimates a line from noisy data; `slopeint` operates on an exact, known one
+
+### Fixed
+- `linreg` distribution kernels were producing wrong p-values and interval bounds (issue #59)
+  - `incomplete_beta` seeded its continued fraction at `d = 0`, dropping the leading term of the Lentz recurrence. It returned 0.2285 for `I_0.4(2,3)` against a true 0.5248, and the error reached every t- and F-based p-value in the module. Now seeded at `d = 1 / (1 - (a+b)x/(a+1))` and agrees with `scipy.special.betainc` to 1e-9
+  - `t_cdf` substituted a normal approximation above `df = 30`, capping accuracy at ~3e-3 relative and putting a visible step in the reported p-value at the df 30/31 boundary. Now exact at every df
+  - `inverse_t_cdf` used a third-order Cornish-Fisher expansion below `df = 30` and a normal quantile above it, off by 18% at df=5, p=0.975 and 29% at p=0.995. This is the t-critical value behind every confidence and prediction interval `linreg` prints, so those bounds were materially too narrow — at df=5 the 95% critical value was 1.9837 where the true value is 2.5706. Now obtained by bisecting the exact CDF, matching scipy to 1e-8
+  - `f_cdf` was computed as `1 - I_x(...)`, and its caller then subtracted that from 1 again, losing significant digits twice. Now evaluated in direct form
+  - Added scipy oracle tests across all four kernels. The previous tests asserted only edge cases and the *shape* of the large-df shortcut, which is why a continued fraction seeded incorrectly passed everything
+
+### Removed
+- `standard_normal_cdf` and `inverse_normal_cdf` from `src.utils.linear_regression`, unused once the normal-approximation shortcuts were dropped. Neither was part of the module's documented surface; equivalents remain in `pearson_correlation` and `normal_gaussian`
+
+---
+
 ## [0.23.0] — 2026-08-18
 
 ### Added

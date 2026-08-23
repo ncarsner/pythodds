@@ -63,6 +63,9 @@ breakeven = "src.utils.break_even:main"
 entropy = "src.utils.information_entropy:main"
 weibull = "src.utils.weibull_distribution:main"
 discount = "src.utils.discount_rate:main"
+slopeint = "src.utils.slope_intercept:main"
+logreg = "src.utils.logistic_regression:main"
+mlreg = "src.utils.multiple_regression:main"
 
 [build-system]
 requires = ["hatchling"]
