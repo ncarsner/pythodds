@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Multiple linear regression tool (`mlreg`) — OLS across several predictors with coefficient estimates, standard errors, t-statistics, p-values, and confidence intervals (#3)
+  - Predictions carry both interval kinds: a confidence interval for the mean response and the always-wider prediction interval for a single new observation
+  - Model fit reports R², adjusted R², residual standard error, and the overall F-test; `--vif` adds variance inflation factors, flagging any predictor above 10
+  - The overall p-value is evaluated from the incomplete-beta tail directly instead of as `1 - cdf`, which cancels to exactly 0 for a strongly significant model where the true value is near 1e-35
+  - Collinear or constant predictors and a constant response are rejected with a named error rather than producing unidentified coefficients or a negative F-statistic
+  - Verified against numpy and scipy oracles: coefficients, standard errors, R², and both interval kinds to 1e-10 or better
 - Binary logistic regression tool (`logreg`) — Newton-Raphson (IRLS) fit reporting coefficients as log-odds and odds ratios, with Wald standard errors, z-statistics, p-values, and confidence intervals (#10)
   - Model fit: log-likelihood against the intercept-only null, McFadden pseudo-R², AIC, and BIC; classification: confusion matrix with accuracy, precision, recall, and F1 at a configurable `--threshold`
   - Standard errors come from the exact inverse observed information rather than a quasi-Newton approximation, verified against a numerical Hessian to 1e-9 and the coefficients against a scipy optimiser to 1e-8

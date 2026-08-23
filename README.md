@@ -43,11 +43,12 @@ A command-line utility and Python library for calculating statistics, odds, and 
 | **Break-Even Analysis** | Cost-volume-profit analysis: break-even units and revenue, contribution margin and ratio, margin of safety, and the volume needed to hit a target profit; optional profit/loss sweep across a unit range with a text bar chart |
 | **Information Entropy** | Shannon entropy, KL divergence, cross-entropy, mutual information, and conditional entropy in bits, nats, or hartleys; accepts raw counts as well as probabilities |
 | **Weibull Distribution** | PDF, CDF, survival, hazard rate, quantiles, mean, median, and variance for Weibull(k, λ), with the shape parameter's failure mode named (infant mortality, constant hazard, or wear-out) |
+| **Multiple Regression** | OLS across several predictors with coefficient inference, R² and adjusted R², the overall F-test, variance inflation factors, and predictions carrying both confidence and prediction intervals |
 | **Logistic Regression** | Binary classifier fitted by Newton-Raphson with odds ratios, Wald intervals, log-likelihood, AIC/BIC, McFadden pseudo-R², a confusion matrix, and accuracy/precision/recall/F1 |
 | **Slope-Intercept Lines** | Build a line from two points, point-slope, or standard form; convert between representations; evaluate, solve, intersect, project onto, and measure distance to it |
 | **Discount Rates & NPV** | Real and nominal discount rates via the Fisher equation, discount factors, present value of a lump sum, and nominal and inflation-adjusted NPV with discounted payback period |
 | **Monte Carlo Simulator** | Empirically estimate probabilities for `binomial`, `birthday`, `streak`, `poisson`, `power`, `permutation`, `bayes`, `season`, `linboot` experiments with confidence intervals and analytical comparison |
-| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, `subnet`, `geometric`, `chisq`, `anova`, `life`, `breakeven`, `entropy`, `weibull`, `discount`, `slopeint`, and `logreg` commands |
+| **Command-line Interface** | `binom`, `bayes`, `birthday`, `normal`, `zscore`, `expected`, `poisson`, `prime`, `streak`, `pythag`, `pearson`, `spearman`, `linreg`, `sample`, `bootci`, `confint`, `pvalue`, `ttest`, `forecast`, `collatz`, `jevons`, `simulate`, `sigmoid`, `euler`, `gini`, `crt`, `subnet`, `geometric`, `chisq`, `anova`, `life`, `breakeven`, `entropy`, `weibull`, `discount`, `slopeint`, `logreg`, and `mlreg` commands |
 | **Minimal Dependencies** | Core calculations use pure Python; Spearman correlation and Monte Carlo simulation use scipy/numpy for numerical robustness |
 
 
@@ -109,6 +110,7 @@ pip install -e .
 | `entropy` | Shannon entropy, KL divergence, cross-entropy, mutual information, and conditional entropy in bits, nats, or hartleys |
 | `weibull` | PDF, CDF, survival, hazard, quantiles, and moments for the Weibull(k, λ) reliability distribution |
 | `discount` | Real and nominal discount rates (Fisher), discount factors, present value, and inflation-adjusted NPV |
+| `mlreg` | Multiple linear regression with confidence and prediction intervals, VIF, and the overall F-test |
 | `logreg` | Binary logistic regression with odds ratios, model fit statistics, and classification metrics |
 | `slopeint` | Slope-intercept line algebra: construction, standard-form conversion, intersection, perpendicular projection, and point distance |
 | `simulate` | Monte Carlo estimation with confidence intervals and analytical comparison |
@@ -1769,6 +1771,43 @@ discount --nominal 0.08 --inflation 0.03 --cashflows -1000 300 400 500
 ---
 
 <details>
+<summary><strong><code>mlreg</code></strong> — Multiple Linear Regression</summary>
+
+Extends `linreg` from one predictor to many. Reports coefficient estimates with standard errors, t-statistics, p-values, and confidence intervals; model fit via R², adjusted R², residual standard error, and the overall F-test; and optional variance inflation factors for multicollinearity.
+
+The distinction between the two interval kinds is the point of the tool. A **confidence interval** covers the *mean* response at a set of predictor values. A **prediction interval** covers a *single new observation* and is always wider, because it absorbs residual scatter on top of the uncertainty in the fitted surface. Both widen as the prediction point moves away from the centre of the training data.
+
+The overall p-value is computed from the incomplete-beta tail directly rather than as `1 - cdf`. For a strongly significant model the CDF rounds to exactly 1.0 in floating point, and the subtraction form would report `p = 0` where the true value is near 1e-35 — precisely the models where the number is read most closely.
+
+```bash
+# Fit from a CSV, every non-target column as a predictor
+mlreg --file housing.csv --target price
+
+# Chosen predictors, with multicollinearity diagnostics
+mlreg --file data.csv --target sales --features advertising headcount --vif
+
+# Predict new observations with 90% intervals
+mlreg --file train.csv --target output --predict-file new_inputs.csv --alpha 0.10
+```
+
+**Options:**
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| | `--file CSV` | Training data with a header row (required) |
+| | `--target COL` | Response column (required) |
+| | `--features COL [COL ...]` | Predictor columns (default: every column except the target) |
+| | `--alpha F` | Significance level for all intervals (default: 0.05) |
+| | `--predict-file CSV` | Predict these observations, with both interval kinds |
+| | `--vif` | Report variance inflation factors |
+| | `--format {table,json,csv}` | Output format (default: table) |
+| `-P` | `--precision` | Decimal places for output (default: 4) |
+
+</details>
+
+---
+
+<details>
 <summary><strong><code>logreg</code></strong> — Logistic Regression</summary>
 
 The classification counterpart to `linreg`: reach for it when the outcome is binary rather than continuous. Fitted by Newton-Raphson (iteratively reweighted least squares), which converges in a handful of iterations on well-conditioned data. Coefficients are reported as odds ratios alongside the log-odds estimates, since the odds ratio is the form that travels to non-technical readers.
@@ -1961,6 +2000,7 @@ simulate --experiment linboot --params x=1,2,3,4,5 y=2.1,3.9,6.2,7.8,10.1 predic
 | Entropy | `src.utils.information_entropy` | `shannon_entropy`, `kl_divergence`, `cross_entropy`, `mutual_information`, `conditional_entropy`, `joint_entropy` |
 | Weibull | `src.utils.weibull_distribution` | `weibull_pdf`, `weibull_cdf`, `weibull_survival`, `weibull_hazard`, `weibull_quantile`, `weibull_mean` |
 | Discount Rate | `src.utils.discount_rate` | `real_rate`, `nominal_rate`, `discount_factor`, `present_value`, `npv`, `real_npv`, `payback_period` |
+| Multiple Regression | `src.utils.multiple_regression` | `fit`, `predict`, `variance_inflation_factors`, `t_cdf`, `t_quantile`, `f_sf` |
 | Logistic Regression | `src.utils.logistic_regression` | `fit`, `predict_proba`, `predict_class`, `log_odds`, `sigmoid`, `confusion_matrix`, `classification_metrics` |
 | Slope-Intercept | `src.utils.slope_intercept` | `line_from_points`, `line_from_standard`, `to_standard`, `evaluate`, `solve_for_x`, `intersection`, `perpendicular_slope`, `distance_to_point`, `foot_of_perpendicular` |
 | Monte Carlo | `src.utils.monte_carlo` | `simulate_binomial`, `simulate_birthday`, `simulate_streak`, `simulate_poisson`, `simulate_power`, `simulate_permutation`, `simulate_bayes`, `simulate_season`, `simulate_linboot` |
@@ -3028,6 +3068,35 @@ t05 = weibull_quantile(0.05, 1.5, 800)
 # Mean time to failure, and what the shape parameter implies
 mttf = weibull_mean(2, 1000)
 mode = failure_mode(2)  # 'wear-out (increasing hazard)'
+```
+
+</details>
+
+<details>
+<summary><strong>Multiple Linear Regression</strong></summary>
+
+```python
+from src.utils.multiple_regression import fit, predict, variance_inflation_factors
+
+X = [[12, 3.0], [18, 4.5], [25, 2.0], [31, 6.5], [40, 5.0], [52, 7.5], [61, 4.0]]
+y = [44.0, 61.2, 70.5, 99.8, 118.4, 155.1, 166.0]
+
+model = fit(X, y, names=["advertising", "headcount"])
+
+# Coefficient inference
+model.coefficients, model.std_errors, model.p_values
+model.confidence_intervals(0.05)
+
+# Model fit and the overall F-test
+model.r_squared, model.adj_r_squared, model.f_statistic, model.f_p_value
+
+# A prediction carries both interval kinds; the PI is always the wider one
+out = predict(model, [45, 5.0], alpha=0.05)
+out["ci_lower"], out["ci_upper"]   # mean response
+out["pi_lower"], out["pi_upper"]   # single new observation
+
+# Multicollinearity check
+vifs = variance_inflation_factors(X)
 ```
 
 </details>
