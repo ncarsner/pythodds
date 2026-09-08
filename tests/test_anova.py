@@ -670,3 +670,133 @@ def test_main_computation_error_returns_2(monkeypatch, capsys):
     assert main(["--data", "1,2,3", "4,5,6"]) == 2
     err = capsys.readouterr().err
     assert "forced anova error" in err
+
+
+# ---------------------------------------------------------------------------
+# Far-tail accuracy
+#
+# The oracle tests above compare against scipy at *absolute* tolerance, which
+# any implementation returning 0.0 passes the moment the true value drops
+# below 1e-16 -- and both F and studentized-range tails used to do exactly
+# that.  These assert relative agreement, where the answer is the exponent.
+# ---------------------------------------------------------------------------
+
+
+def test_f_sf_far_tail_matches_scipy_oracle():
+    scipy_stats = pytest.importorskip("scipy.stats")
+    cases = [
+        (100.0, 2, 30),
+        (200.0, 3, 40),
+        (412.24, 2, 20),
+        (1417.5, 2, 37),
+        (30612.29, 2, 12),
+    ]
+    for f_stat, d1, d2 in cases:
+        got = f_sf(f_stat, d1, d2)
+        want = scipy_stats.f.sf(f_stat, d1, d2)
+        assert got == pytest.approx(want, rel=1e-10)
+
+
+def test_f_sf_does_not_collapse_to_zero():
+    """`1 - f_cdf` hit exactly 0.0 from F ~ 412 at (2, 20) df."""
+    assert 0.0 < f_sf(412.24, 2, 20) < 1e-16
+    assert 0.0 < f_sf(30612.29, 2, 12) < 1e-22
+
+
+def test_f_sf_decreases_monotonically_past_the_old_floor():
+    values = [f_sf(f, 2, 20) for f in (400.0, 1000.0, 5000.0, 20000.0)]
+    assert all(a > b > 0.0 for a, b in zip(values, values[1:]))
+
+
+def test_f_sf_zero_is_one():
+    assert f_sf(0.0, 2, 5) == 1.0
+
+
+def test_f_sf_infinite_is_zero():
+    assert f_sf(math.inf, 2, 5) == 0.0
+
+
+def test_f_sf_invalid_df_raises():
+    with pytest.raises(ValueError, match="df1 and df2"):
+        f_sf(1.0, 0, 5)
+
+
+def test_f_sf_negative_f_raises():
+    with pytest.raises(ValueError, match="f_stat must be"):
+        f_sf(-1.0, 2, 5)
+
+
+def test_range_sf_known_variance_at_zero_is_one():
+    assert anova_module._range_sf_known_variance(0.0, 3) == 1.0
+
+
+def test_studentized_range_sf_far_tail_matches_the_t_identity():
+    """For k = 2 the range of two normals is √2·|T|, so the tail is an exact
+    two-sided t p-value -- an oracle that stays sharp where scipy's own
+    ``studentized_range`` bottoms out (its integration floors near 1e-15).
+    """
+    scipy_stats = pytest.importorskip("scipy.stats")
+    for q, df in [(5.0, 10), (15.0, 20), (30.0, 20), (60.0, 30), (100.0, 10)]:
+        got = studentized_range_sf(q, 2, df)
+        want = 2.0 * scipy_stats.t.sf(q / math.sqrt(2.0), df)
+        assert got == pytest.approx(want, rel=1e-8)
+
+
+def test_studentized_range_sf_does_not_collapse_to_zero():
+    """`1 - cdf` returned exactly 0.0 at q = 60, k = 4, df = 20."""
+    assert 0.0 < studentized_range_sf(60.0, 4, 20) < 1e-15
+    assert studentized_range_sf(100.0, 3, 30) > 0.0
+
+
+def test_studentized_range_sf_decreases_monotonically_past_the_old_floor():
+    values = [studentized_range_sf(q, 4, 20) for q in (30.0, 45.0, 60.0, 80.0)]
+    assert all(a > b > 0.0 for a, b in zip(values, values[1:]))
+
+
+def test_studentized_range_sf_zero_q_is_one():
+    assert studentized_range_sf(0.0, 3, 10) == 1.0
+
+
+def test_studentized_range_sf_invalid_k_raises():
+    with pytest.raises(ValueError, match="k must be >= 2"):
+        studentized_range_sf(1.0, 1, 10)
+
+
+def test_studentized_range_sf_invalid_df_raises():
+    with pytest.raises(ValueError, match="df must be >= 1"):
+        studentized_range_sf(1.0, 3, 0)
+
+
+def test_studentized_range_sf_negative_q_raises():
+    with pytest.raises(ValueError, match="q must be >= 0"):
+        studentized_range_sf(-1.0, 3, 10)
+
+
+def test_main_reports_a_nonzero_p_value_for_clearly_separated_groups(capsys):
+    """The reported bug: three tight, far-apart groups printed p_value 0.0."""
+    assert (
+        main(
+            [
+                "--data",
+                "10.0,10.2,9.8,10.1,10.05",
+                "20.0,20.1,19.9,20.2,20.05",
+                "30.0,30.1,29.9,30.2,29.95",
+                "--format",
+                "json",
+            ]
+        )
+        == 0
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["p_value"] > 0.0
+    assert payload["p_value"] < 1e-20
+
+
+def test_tukey_p_values_stay_nonzero_for_clearly_separated_groups():
+    far_apart = [
+        [10.0, 10.2, 9.8, 10.1, 10.05],
+        [40.0, 40.1, 39.9, 40.2, 40.05],
+        [70.0, 70.1, 69.9, 70.2, 69.95],
+    ]
+    result = tukey_hsd(far_apart, anova_one_way(far_apart), alpha=0.05)
+    assert all(0.0 < c.p_value < 1e-15 for c in result.comparisons)

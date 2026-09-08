@@ -146,15 +146,37 @@ def f_cdf(f_stat: float, df1: int, df2: int) -> float:
 def f_sf(f_stat: float, df1: int, df2: int) -> float:
     """Survival function (upper tail p-value) for F(df1, df2).
 
+    Evaluated straight from the incomplete-beta identity
+
+        P(F > f) = I_{df2 / (df2 + df1*f)}(df2/2, df1/2)
+
+    rather than as ``1 - f_cdf``.  The subtraction form cancels
+    catastrophically in the far tail: past F ~ 412 on (2, 20) df the CDF
+    rounds to exactly 1.0, so the reported p-value was exactly 0.0 where the
+    true value is 5.6e-17, and accuracy decays measurably well before that.
+    Strongly significant results are exactly where the number gets read most
+    closely.
+
     Args:
         f_stat: Observed F-statistic; must be >= 0.
         df1: Numerator degrees of freedom; must be >= 1.
         df2: Denominator degrees of freedom; must be >= 1.
 
     Returns:
-        P(F > f_stat), clipped to [0, 1].
+        P(F > f_stat) in [0, 1].
+
+    Raises:
+        ValueError: If ``df1``/``df2`` < 1 or ``f_stat`` < 0.
     """
-    return max(0.0, min(1.0, 1.0 - f_cdf(f_stat, df1, df2)))
+    if df1 < 1 or df2 < 1:
+        raise ValueError(f"df1 and df2 must be >= 1, got df1={df1}, df2={df2}")
+    if f_stat < 0:
+        raise ValueError(f"f_stat must be >= 0, got {f_stat}")
+    if f_stat == 0:
+        return 1.0
+    if math.isinf(f_stat):
+        return 0.0
+    return regularized_incomplete_beta(df2 / (df2 + df1 * f_stat), df2 / 2, df1 / 2)
 
 
 def t_sf_two_sided(t_stat: float, df: float) -> float:
@@ -207,8 +229,21 @@ def _standard_normal_pdf(z: float) -> float:
 
 
 def _standard_normal_cdf(z: float) -> float:
-    """Standard normal cumulative distribution function Φ(z)."""
-    return 0.5 * (1.0 + math.erf(z / _SQRT2))
+    """Standard normal cumulative distribution function Φ(z).
+
+    Written with ``erfc`` rather than ``0.5 * (1 + erf(z/√2))``.  The two
+    agree wherever Φ(z) is of order 1, but the ``erf`` form collapses in the
+    left tail -- ``erf(-19.1)`` rounds to exactly -1, so it returns 0 for
+    Φ(-27) ≈ 1e-160.  The studentized range tail evaluates Φ tens of
+    standard deviations out, where that difference is the whole answer.
+
+    Args:
+        z: Evaluation point.
+
+    Returns:
+        Φ(z) in [0, 1].
+    """
+    return 0.5 * math.erfc(-z / _SQRT2)
 
 
 def _simpson(f: Callable[[float], float], a: float, b: float, n: int) -> float:
@@ -260,6 +295,56 @@ def _range_cdf_known_variance(
 
     integral = _simpson(integrand, -zlim, zlim, n_z)
     return max(0.0, min(1.0, k * integral))
+
+
+def _range_sf_known_variance(
+    x: float, k: int, n_z: int = 100, zlim: float = 8.0
+) -> float:
+    """Upper tail P(range > x) of k standard normal variates.
+
+    Computed directly rather than as ``1 - _range_cdf_known_variance``.  The
+    total-mass identity ``1 = k∫φ(z)Φ(z)^m dz`` (m = k - 1) turns the
+    complement into
+
+        k ∫ φ(z) [Φ(z)^m - (Φ(z) - Φ(z-x))^m] dz
+
+    whose bracket is still a difference of near-equal numbers.  Factoring it
+    as ``a^m - c^m = (a - c)·Σ a^j c^(m-1-j)`` with ``a - c = Φ(z-x)``
+    removes the subtraction entirely: the small tail is then built as a
+    product of small factors.
+
+    Args:
+        x: Range value.
+        k: Number of groups; must be >= 2.
+        n_z: Minimum number of Simpson subintervals for the z-integral.
+        zlim: Padding of the integration window, in standard deviations,
+            beyond the region carrying the mass.
+
+    Returns:
+        P(range > x) in [0, 1].
+    """
+    if x <= 0:
+        return 1.0
+
+    m = k - 1
+
+    def integrand(z: float) -> float:
+        a = _standard_normal_cdf(z)
+        b = _standard_normal_cdf(z - x)
+        c = a - b
+        series = 0.0
+        for j in range(m):
+            series += a**j * c ** (m - 1 - j)
+        return _standard_normal_pdf(z) * b * series
+
+    # The integrand is largest near z = x/2, where φ(z)·Φ(z-x) peaks, so the
+    # window has to follow the peak out: a fixed [-zlim, zlim] misses the mass
+    # completely once x exceeds roughly 2·zlim.  Subintervals grow with the
+    # window so resolution across the peak stays constant.
+    lo = -zlim
+    hi = max(zlim, x / 2.0 + zlim)
+    n = max(n_z, int(10 * (hi - lo)))
+    return max(0.0, min(1.0, k * _simpson(integrand, lo, hi, n)))
 
 
 def _u_mean_std(df: float) -> tuple[float, float]:
@@ -327,18 +412,67 @@ def studentized_range_cdf(
     return max(0.0, min(1.0, _simpson(integrand, lo, hi, n_u)))
 
 
-def studentized_range_sf(q: float, k: int, df: float) -> float:
+def studentized_range_sf(
+    q: float,
+    k: int,
+    df: float,
+    n_z: int = 100,
+    n_u: int = 200,
+    width_sigmas: float = 12.0,
+) -> float:
     """Survival function (upper tail p-value) for the studentized range.
+
+    Mixes the known-variance range *tail* over the distribution of U = S/σ
+    instead of subtracting :func:`studentized_range_cdf` from 1.  The
+    subtraction form returned exactly 0.0 from about q = 34 at k = 4, df = 20
+    -- where the true tail is 1.9e-15 -- which is well inside the range Tukey
+    HSD reaches on clearly separated groups.
 
     Args:
         q: Studentized range value; must be >= 0.
         k: Number of groups; must be >= 2.
-        df: Degrees of freedom; must be >= 1.
+        df: Degrees of freedom of the variance estimate; must be >= 1.
+        n_z: Simpson subintervals for the inner (known-variance) integral.
+        n_u: Simpson subintervals for the outer (variance-mixing) integral.
+        width_sigmas: Half-width of the outer integration window, in standard
+            deviations of the integrand.
 
     Returns:
-        P(Q > q), clipped to [0, 1].
+        P(Q > q) in [0, 1].
+
+    Raises:
+        ValueError: If ``k`` < 2, ``df`` < 1, or ``q`` < 0.
     """
-    return max(0.0, min(1.0, 1.0 - studentized_range_cdf(q, k, df)))
+    if k < 2:
+        raise ValueError(f"k must be >= 2, got {k}")
+    if df < 1:
+        raise ValueError(f"df must be >= 1, got {df}")
+    if q < 0:
+        raise ValueError(f"q must be >= 0, got {q}")
+    if q == 0:
+        return 1.0
+
+    log_const = math.log(2.0) + (df / 2.0) * math.log(df / 2.0) - math.lgamma(df / 2.0)
+
+    def integrand(u: float) -> float:
+        # u > 0 always holds here: `lo` below is clamped to >= 1e-10.
+        log_h = log_const + (df - 1) * math.log(u) - df * u * u / 2.0
+        return math.exp(log_h) * _range_sf_known_variance(q * u, k, n_z=n_z)
+
+    # The window follows the mode of the *product*, not of U alone.  The range
+    # tail falls off like exp(-q²u²/4), which pulls the product's mode well
+    # below U's own once q is large -- at q = 60, df = 20 the mass sits near
+    # u = 0.10 with width 0.017, which a window centred on U's mean resolves
+    # with about two points.  Taking ln P(range > qu) ≈ -q²u²/4 gives mode
+    # √((df-1)/rate) and scale 1/√(2·rate) for rate = df + q²/2; as q → 0
+    # both fall back to the mode and scale of U itself.
+    rate = df + q * q / 2.0
+    mode = math.sqrt(max(df - 1.0, 0.0) / rate)
+    sigma = 1.0 / math.sqrt(2.0 * rate)
+    lo = max(1e-10, mode - width_sigmas * sigma)
+    hi = mode + width_sigmas * sigma
+
+    return max(0.0, min(1.0, _simpson(integrand, lo, hi, n_u)))
 
 
 def studentized_range_ppf(

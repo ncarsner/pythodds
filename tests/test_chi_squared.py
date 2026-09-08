@@ -16,6 +16,7 @@ from src.utils.chi_squared import (
     main,
     parse_number_list,
     regularized_gamma_p,
+    regularized_gamma_q,
     validate,
 )
 
@@ -363,3 +364,65 @@ def test_main_computation_error_independence(monkeypatch, capsys):
     assert main(["--test", "independence", "--table", "1,2", "--table", "3,4"]) == 2
     err = capsys.readouterr().err
     assert "forced independence error" in err
+
+
+# ---------------------------------------------------------------------------
+# Far-tail accuracy
+#
+# The chi2_cdf oracle above compares at absolute tolerance, which a survival
+# function returning 0.0 passes once the true p-value falls under 1e-16 --
+# and `1 - chi2_cdf` did exactly that from about x = 79 on 3 df.  These
+# assert relative agreement, where the exponent is the answer.
+# ---------------------------------------------------------------------------
+
+
+def test_chi2_sf_far_tail_matches_scipy_oracle():
+    scipy_stats = pytest.importorskip("scipy.stats")
+    for x, df in [(75.0, 1), (100.0, 3), (200.0, 5), (500.0, 10), (1000.0, 2)]:
+        got = chi2_sf(x, df)
+        want = scipy_stats.chi2.sf(x, df)
+        assert got == pytest.approx(want, rel=1e-10)
+
+
+def test_chi2_sf_does_not_collapse_to_zero():
+    """`1 - chi2_cdf` returned 0.0 at x = 100, df = 3 (true value 1.55e-21)."""
+    assert 0.0 < chi2_sf(100.0, 3) < 1e-20
+    assert chi2_sf(500.0, 10) > 0.0
+
+
+def test_chi2_sf_decreases_monotonically_past_the_old_floor():
+    values = [chi2_sf(x, 3) for x in (100.0, 150.0, 200.0, 400.0)]
+    assert all(a > b > 0.0 for a, b in zip(values, values[1:]))
+
+
+def test_chi2_sf_invalid_df_raises():
+    with pytest.raises(ValueError, match="df must be >= 1"):
+        chi2_sf(1.0, 0)
+
+
+def test_regularized_gamma_q_complements_p():
+    for a, x in [(0.5, 0.25), (1.5, 1.0), (3.0, 2.0), (3.0, 10.0), (10.0, 25.0)]:
+        assert regularized_gamma_p(a, x) + regularized_gamma_q(a, x) == pytest.approx(
+            1.0, abs=1e-14
+        )
+
+
+def test_regularized_gamma_q_zero_x_is_one():
+    assert regularized_gamma_q(2.0, 0.0) == 1.0
+
+
+def test_regularized_gamma_q_invalid_a_raises():
+    with pytest.raises(ValueError, match="a must be > 0"):
+        regularized_gamma_q(0.0, 1.0)
+
+
+def test_regularized_gamma_q_negative_x_raises():
+    with pytest.raises(ValueError, match="x must be >= 0"):
+        regularized_gamma_q(1.0, -1.0)
+
+
+def test_gof_p_value_stays_nonzero_for_a_large_statistic():
+    """A goodness-of-fit result far from expectation still reports a p-value."""
+    result = chisq_gof([200, 10, 10, 10], [57.5, 57.5, 57.5, 57.5])
+    assert result.p_value > 0.0
+    assert result.p_value < 1e-20

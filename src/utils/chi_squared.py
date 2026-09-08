@@ -113,6 +113,35 @@ def regularized_gamma_p(a: float, x: float) -> float:
     return 1.0 - _gamma_cf(a, x)
 
 
+def regularized_gamma_q(a: float, x: float) -> float:
+    """Regularised upper incomplete gamma function Q(a, x) = 1 - P(a, x).
+
+    Each branch is evaluated in whichever direction avoids subtracting a
+    value near 1 from 1: the continued fraction already computes Q directly
+    and is used wherever it converges, so the far tail never passes through
+    a cancellation.
+
+    Args:
+        a: Shape parameter; must be > 0.
+        x: Lower integration bound; must be >= 0.
+
+    Returns:
+        Q(a, x) in [0, 1].
+
+    Raises:
+        ValueError: If ``a`` <= 0 or ``x`` < 0.
+    """
+    if a <= 0:
+        raise ValueError(f"a must be > 0, got {a}")
+    if x < 0:
+        raise ValueError(f"x must be >= 0, got {x}")
+    if x == 0:
+        return 1.0
+    if x < a + 1:
+        return 1.0 - _gamma_series(a, x)
+    return _gamma_cf(a, x)
+
+
 def chi2_cdf(x: float, df: int) -> float:
     """Cumulative distribution function P(X <= x) for chi-square(df).
 
@@ -134,14 +163,25 @@ def chi2_cdf(x: float, df: int) -> float:
 def chi2_sf(x: float, df: int) -> float:
     """Survival function (upper tail p-value) for chi-square(df).
 
+    Taken from the upper incomplete gamma directly rather than as
+    ``1 - chi2_cdf``.  The subtraction cancelled in the far tail -- at
+    x = 100 on 3 df it reported exactly 0.0 where the true p-value is
+    1.55e-21 -- and a chi-square that large is precisely the result someone
+    reads the exponent off.
+
     Args:
         x: Observed chi-square statistic; must be >= 0.
         df: Degrees of freedom; must be >= 1.
 
     Returns:
-        P(X > x) = 1 - chi2_cdf(x, df), clipped to [0, 1].
+        P(X > x), the regularised upper incomplete gamma Q(df/2, x/2).
+
+    Raises:
+        ValueError: If ``df`` < 1 or ``x`` < 0.
     """
-    return max(0.0, min(1.0, 1.0 - chi2_cdf(x, df)))
+    if df < 1:
+        raise ValueError(f"df must be >= 1, got {df}")
+    return max(0.0, min(1.0, regularized_gamma_q(df / 2, x / 2)))
 
 
 # ---------------------------------------------------------------------------
