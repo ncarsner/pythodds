@@ -10,6 +10,9 @@ from scipy import special, stats
 import src.utils.linear_regression as linreg_module
 from src.utils.linear_regression import (
     f_cdf,
+    f_sf,
+    f_statistic,
+    format_p_value,
     incomplete_beta,
     interpret_r_squared,
     inverse_t_cdf,
@@ -20,6 +23,7 @@ from src.utils.linear_regression import (
     parse_csv_file,
     sum_of_squares,
     t_cdf,
+    t_sf,
 )
 
 
@@ -214,6 +218,9 @@ def test_f_cdf_edge_cases():
     # f <= 0 should return 0
     result = f_cdf(0.0, 1, 10)
     assert result == 0.0
+    # A perfect fit sends F to infinity; the CLI now reads that off f_sf, so
+    # this branch no longer has a caller inside the module.
+    assert f_cdf(math.inf, 1, 10) == 1.0
 
 
 def test_p_value_t_one_tailed():
@@ -441,3 +448,97 @@ def test_confidence_interval_critical_value_matches_scipy():
     assert inverse_t_cdf(0.975, model.df) == pytest.approx(
         float(stats.t.ppf(0.975, model.df)), abs=1e-8
     )
+
+
+# ---------------------------------------------------------------------------
+# Far-tail accuracy
+#
+# The kernel oracles above use absolute tolerances, so they pass for any
+# implementation that returns 0.0 below 1e-16.  Both reported p-values got
+# there by subtracting from 1 -- the t-path twice over, since t_cdf itself
+# forms 1 - tail -- and collapsed at ordinary statistics: t = 16.6 on 30 df,
+# F = 291 on (1, 30).  These pin the exponent.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "t,df",
+    [(10.0, 20), (15.0, 30), (21.0, 30), (30.0, 30), (60.0, 50), (100.0, 5)],
+)
+def test_t_sf_far_tail_matches_scipy(t, df):
+    assert t_sf(t, df) == pytest.approx(float(stats.t.sf(t, df)), rel=1e-9)
+
+
+def test_t_sf_lower_tail_matches_scipy():
+    """Below zero the tail is of order 1, so the kernel's own ~1e-9 absolute
+    accuracy is the binding limit rather than any cancellation."""
+    for t in (-4.0, -1.0, 0.0, 2.0):
+        assert t_sf(t, 12) == pytest.approx(float(stats.t.sf(t, 12)), abs=1e-9)
+
+
+def test_t_sf_infinite_t():
+    assert t_sf(math.inf, 10) == 0.0
+    assert t_sf(-math.inf, 10) == 1.0
+
+
+def test_t_sf_rejects_bad_df():
+    with pytest.raises(ValueError, match="Degrees of freedom must be at least 1"):
+        t_sf(1.0, 0)
+
+
+@pytest.mark.parametrize(
+    "f_stat,df1,df2",
+    [(100.0, 1, 20), (300.0, 1, 30), (500.0, 1, 30), (2000.0, 1, 30), (250.0, 3, 12)],
+)
+def test_f_sf_far_tail_matches_scipy(f_stat, df1, df2):
+    assert f_sf(f_stat, df1, df2) == pytest.approx(
+        float(stats.f.sf(f_stat, df1, df2)), rel=1e-9
+    )
+
+
+def test_f_sf_edge_cases():
+    assert f_sf(0.0, 1, 10) == 1.0
+    assert f_sf(-1.0, 1, 10) == 1.0
+    assert f_sf(math.inf, 1, 10) == 0.0
+
+
+def test_p_value_t_does_not_collapse_to_zero():
+    """Two cancellations left this at exactly 0.0 from about t = 16.6 on 30 df."""
+    assert 0.0 < p_value_t(30.0, 30) < 1e-20
+    assert p_value_t(60.0, 50) > 0.0
+
+
+def test_reported_p_values_stay_nonzero_for_a_near_perfect_fit():
+    """End to end: a tight fit drives both reported p-values under 1e-16."""
+    x = [float(i) for i in range(1, 13)]
+    y = [3.0 * xi + 1.0 + (0.001 if i % 2 else -0.001) for i, xi in enumerate(x)]
+    model = linear_regression(x, y)
+
+    p_slope = p_value_t(model.t_slope, model.df, "two")
+    p_f = f_sf(f_statistic(model), 1, model.df)
+
+    assert 0.0 < p_slope < 1e-16
+    assert 0.0 < p_f < 1e-16
+    assert p_slope == pytest.approx(p_f, rel=1e-6)
+    assert p_slope == pytest.approx(
+        float(2 * stats.t.sf(abs(model.t_slope), model.df)), rel=1e-6
+    )
+
+
+# ---------------------------------------------------------------------------
+# p-value rendering
+# ---------------------------------------------------------------------------
+
+
+def test_format_p_value_boundaries():
+    assert format_p_value(0.5, 4) == "0.5000"
+    assert format_p_value(4.9e-05, 4) == "4.9000e-05"
+    assert format_p_value(0.0, 4) == "<2e-308"
+
+
+def test_cli_shows_a_small_p_value_instead_of_rounding_it_away(capsys):
+    xs = ",".join(str(i) for i in range(1, 13))
+    ys = ",".join(f"{3 * i + 1 + (0.001 if i % 2 else -0.001)}" for i in range(1, 13))
+    assert main(["--x", xs, "--y", ys]) == 0
+    out = capsys.readouterr().out
+    assert "e-" in out

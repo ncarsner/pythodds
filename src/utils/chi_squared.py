@@ -113,6 +113,35 @@ def regularized_gamma_p(a: float, x: float) -> float:
     return 1.0 - _gamma_cf(a, x)
 
 
+def regularized_gamma_q(a: float, x: float) -> float:
+    """Regularised upper incomplete gamma function Q(a, x) = 1 - P(a, x).
+
+    Each branch is evaluated in whichever direction avoids subtracting a
+    value near 1 from 1: the continued fraction already computes Q directly
+    and is used wherever it converges, so the far tail never passes through
+    a cancellation.
+
+    Args:
+        a: Shape parameter; must be > 0.
+        x: Lower integration bound; must be >= 0.
+
+    Returns:
+        Q(a, x) in [0, 1].
+
+    Raises:
+        ValueError: If ``a`` <= 0 or ``x`` < 0.
+    """
+    if a <= 0:
+        raise ValueError(f"a must be > 0, got {a}")
+    if x < 0:
+        raise ValueError(f"x must be >= 0, got {x}")
+    if x == 0:
+        return 1.0
+    if x < a + 1:
+        return 1.0 - _gamma_series(a, x)
+    return _gamma_cf(a, x)
+
+
 def chi2_cdf(x: float, df: int) -> float:
     """Cumulative distribution function P(X <= x) for chi-square(df).
 
@@ -134,14 +163,25 @@ def chi2_cdf(x: float, df: int) -> float:
 def chi2_sf(x: float, df: int) -> float:
     """Survival function (upper tail p-value) for chi-square(df).
 
+    Taken from the upper incomplete gamma directly rather than as
+    ``1 - chi2_cdf``.  The subtraction cancelled in the far tail -- at
+    x = 100 on 3 df it reported exactly 0.0 where the true p-value is
+    1.55e-21 -- and a chi-square that large is precisely the result someone
+    reads the exponent off.
+
     Args:
         x: Observed chi-square statistic; must be >= 0.
         df: Degrees of freedom; must be >= 1.
 
     Returns:
-        P(X > x) = 1 - chi2_cdf(x, df), clipped to [0, 1].
+        P(X > x), the regularised upper incomplete gamma Q(df/2, x/2).  A tail below the smallest normal double (~2e-308) underflows to 0.0; that means smaller than double precision can represent, not impossible.
+
+    Raises:
+        ValueError: If ``df`` < 1 or ``x`` < 0.
     """
-    return max(0.0, min(1.0, 1.0 - chi2_cdf(x, df)))
+    if df < 1:
+        raise ValueError(f"df must be >= 1, got {df}")
+    return max(0.0, min(1.0, regularized_gamma_q(df / 2, x / 2)))
 
 
 # ---------------------------------------------------------------------------
@@ -441,6 +481,39 @@ def _fmt(value: float, precision: int) -> str:
     return f"{value:.{precision}f}"
 
 
+# Smallest positive *normal* double.  A tail below this either underflowed to
+# zero or landed among the denormals, whose significands have already lost
+# digits, so both are reported as a bound rather than as a value.  Reaching it
+# takes an extreme statistic -- chi-square 1497 on 3 df, say -- but the
+# distinction matters: a printed 0 there means "smaller than double precision
+# can represent", never "impossible".
+_MIN_TAIL = sys.float_info.min
+
+
+def _fmt_p(value: float, precision: int) -> str:
+    """Format a p-value, keeping a small one legible.
+
+    Fixed-point rounding prints every strongly significant result as
+    ``0.0000``, which is indistinguishable from the tail collapse this
+    formatting sits on top of -- and leaves the CLI showing 0 for a p-value
+    that is now computed correctly.  Anything that would round away is shown
+    in scientific notation instead, and anything under :data:`_MIN_TAIL` as a
+    bound.
+
+    Args:
+        value: p-value in [0, 1].
+        precision: Decimal places requested for fixed-point output.
+
+    Returns:
+        The formatted p-value.
+    """
+    if value < _MIN_TAIL:
+        return f"<{_MIN_TAIL:.0e}"
+    if value < 0.5 * 10.0**-precision:
+        return f"{value:.{precision}e}"
+    return f"{value:.{precision}f}"
+
+
 def _decision(p_value: float, alpha: float) -> str:
     """Return reject / fail-to-reject decision string."""
     if p_value < alpha:
@@ -473,7 +546,7 @@ def format_gof(result: GofResult, precision: int) -> str:
         "",
         f"  χ² statistic:  {f(result.statistic)}",
         f"  df:            {result.df}",
-        f"  p-value:       {f(result.p_value)}",
+        f"  p-value:       {_fmt_p(result.p_value, precision)}",
         "",
         f"  {_decision(result.p_value, result.alpha)}",
     ]
@@ -507,7 +580,7 @@ def format_independence(result: IndependenceResult, precision: int) -> str:
         "",
         f"  χ² statistic:  {f(result.statistic)}",
         f"  df:            {result.df}",
-        f"  p-value:       {f(result.p_value)}",
+        f"  p-value:       {_fmt_p(result.p_value, precision)}",
         "",
         f"  {_decision(result.p_value, result.alpha)}",
     ]

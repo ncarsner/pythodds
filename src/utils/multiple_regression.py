@@ -42,10 +42,10 @@ import numpy as np
 
 # The exact regularised incomplete beta and its F/t tail functions already live
 # in the ANOVA module, verified there against scipy.  They are imported rather
-# than copied: the equivalents in linear_regression.py substitute a normal
-# approximation above df = 30, which would quietly bias coefficient p-values on
-# any dataset larger than a few dozen rows.
-from src.utils.anova import regularized_incomplete_beta, t_sf_two_sided
+# than copied so a correction lands in one place: ``f_sf`` was defined here in
+# the direct incomplete-beta form while the ANOVA copy still subtracted its CDF
+# from 1, and the two disagreed by everything once the tail went past 1e-16.
+from src.utils.anova import f_sf, regularized_incomplete_beta, t_sf_two_sided
 
 # A design matrix whose condition number exceeds this is treated as rank
 # deficient for reporting purposes even when numpy can still factor it.
@@ -55,37 +55,6 @@ _CONDITION_LIMIT = 1e12
 # ---------------------------------------------------------------------------
 # Distribution helpers
 # ---------------------------------------------------------------------------
-
-
-def f_sf(f_stat: float, df1: int, df2: int) -> float:
-    """Upper-tail probability ``P(F > f_stat)`` for F(df1, df2).
-
-    Evaluated straight from the incomplete-beta identity rather than as
-    ``1 - cdf``.  The subtraction form cancels catastrophically in the far
-    tail: for F = 1417 on (2, 37) df the CDF rounds to exactly 1.0, so
-    ``1 - cdf`` reports a p-value of 0 where the true value is near 1e-35.
-    Highly significant models are exactly where that matters.
-
-    Args:
-        f_stat: Observed F-statistic; must be >= 0.
-        df1: Numerator degrees of freedom; must be >= 1.
-        df2: Denominator degrees of freedom; must be >= 1.
-
-    Returns:
-        ``P(F > f_stat)`` in [0, 1].
-
-    Raises:
-        ValueError: If ``df1``/``df2`` < 1 or ``f_stat`` < 0.
-    """
-    if df1 < 1 or df2 < 1:
-        raise ValueError(f"df1 and df2 must be >= 1, got df1={df1}, df2={df2}")
-    if f_stat < 0:
-        raise ValueError(f"f_stat must be >= 0, got {f_stat}")
-    if f_stat == 0:
-        return 1.0
-    if math.isinf(f_stat):
-        return 0.0
-    return regularized_incomplete_beta(df2 / (df2 + df1 * f_stat), df2 / 2, df1 / 2)
 
 
 def t_cdf(t_stat: float, df: float) -> float:
