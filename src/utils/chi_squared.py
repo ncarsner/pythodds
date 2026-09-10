@@ -174,7 +174,7 @@ def chi2_sf(x: float, df: int) -> float:
         df: Degrees of freedom; must be >= 1.
 
     Returns:
-        P(X > x), the regularised upper incomplete gamma Q(df/2, x/2).
+        P(X > x), the regularised upper incomplete gamma Q(df/2, x/2).  A tail below the smallest normal double (~2e-308) underflows to 0.0; that means smaller than double precision can represent, not impossible.
 
     Raises:
         ValueError: If ``df`` < 1 or ``x`` < 0.
@@ -481,6 +481,39 @@ def _fmt(value: float, precision: int) -> str:
     return f"{value:.{precision}f}"
 
 
+# Smallest positive *normal* double.  A tail below this either underflowed to
+# zero or landed among the denormals, whose significands have already lost
+# digits, so both are reported as a bound rather than as a value.  Reaching it
+# takes an extreme statistic -- chi-square 1497 on 3 df, say -- but the
+# distinction matters: a printed 0 there means "smaller than double precision
+# can represent", never "impossible".
+_MIN_TAIL = sys.float_info.min
+
+
+def _fmt_p(value: float, precision: int) -> str:
+    """Format a p-value, keeping a small one legible.
+
+    Fixed-point rounding prints every strongly significant result as
+    ``0.0000``, which is indistinguishable from the tail collapse this
+    formatting sits on top of -- and leaves the CLI showing 0 for a p-value
+    that is now computed correctly.  Anything that would round away is shown
+    in scientific notation instead, and anything under :data:`_MIN_TAIL` as a
+    bound.
+
+    Args:
+        value: p-value in [0, 1].
+        precision: Decimal places requested for fixed-point output.
+
+    Returns:
+        The formatted p-value.
+    """
+    if value < _MIN_TAIL:
+        return f"<{_MIN_TAIL:.0e}"
+    if value < 0.5 * 10.0**-precision:
+        return f"{value:.{precision}e}"
+    return f"{value:.{precision}f}"
+
+
 def _decision(p_value: float, alpha: float) -> str:
     """Return reject / fail-to-reject decision string."""
     if p_value < alpha:
@@ -513,7 +546,7 @@ def format_gof(result: GofResult, precision: int) -> str:
         "",
         f"  χ² statistic:  {f(result.statistic)}",
         f"  df:            {result.df}",
-        f"  p-value:       {f(result.p_value)}",
+        f"  p-value:       {_fmt_p(result.p_value, precision)}",
         "",
         f"  {_decision(result.p_value, result.alpha)}",
     ]
@@ -547,7 +580,7 @@ def format_independence(result: IndependenceResult, precision: int) -> str:
         "",
         f"  χ² statistic:  {f(result.statistic)}",
         f"  df:            {result.df}",
-        f"  p-value:       {f(result.p_value)}",
+        f"  p-value:       {_fmt_p(result.p_value, precision)}",
         "",
         f"  {_decision(result.p_value, result.alpha)}",
     ]

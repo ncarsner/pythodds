@@ -12,6 +12,7 @@ from src.utils.linear_regression import (
     f_cdf,
     f_sf,
     f_statistic,
+    format_p_value,
     incomplete_beta,
     interpret_r_squared,
     inverse_t_cdf,
@@ -522,3 +523,22 @@ def test_reported_p_values_stay_nonzero_for_a_near_perfect_fit():
     assert p_slope == pytest.approx(
         float(2 * stats.t.sf(abs(model.t_slope), model.df)), rel=1e-6
     )
+
+
+# ---------------------------------------------------------------------------
+# p-value rendering
+# ---------------------------------------------------------------------------
+
+
+def test_format_p_value_boundaries():
+    assert format_p_value(0.5, 4) == "0.5000"
+    assert format_p_value(4.9e-05, 4) == "4.9000e-05"
+    assert format_p_value(0.0, 4) == "<2e-308"
+
+
+def test_cli_shows_a_small_p_value_instead_of_rounding_it_away(capsys):
+    xs = ",".join(str(i) for i in range(1, 13))
+    ys = ",".join(f"{3 * i + 1 + (0.001 if i % 2 else -0.001)}" for i in range(1, 13))
+    assert main(["--x", xs, "--y", ys]) == 0
+    out = capsys.readouterr().out
+    assert "e-" in out

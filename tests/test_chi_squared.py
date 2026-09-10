@@ -426,3 +426,48 @@ def test_gof_p_value_stays_nonzero_for_a_large_statistic():
     result = chisq_gof([200, 10, 10, 10], [57.5, 57.5, 57.5, 57.5])
     assert result.p_value > 0.0
     assert result.p_value < 1e-20
+
+
+# ---------------------------------------------------------------------------
+# p-value rendering
+# ---------------------------------------------------------------------------
+
+
+def test_fmt_p_boundaries():
+    assert chisq_module._fmt_p(0.5, 4) == "0.5000"
+    assert chisq_module._fmt_p(4.9e-05, 4) == "4.9000e-05"
+    assert chisq_module._fmt_p(0.0, 4) == "<2e-308"
+
+
+def test_gof_output_shows_a_small_p_value(capsys):
+    assert (
+        main(
+            [
+                "--test",
+                "gof",
+                "--observed",
+                "200,10,10,10",
+                "--expected",
+                "57.5,57.5,57.5,57.5",
+            ]
+        )
+        == 0
+    )
+    assert "9.8013e-102" in capsys.readouterr().out
+
+
+def test_gof_output_reports_a_bound_when_the_tail_underflows(capsys):
+    assert (
+        main(
+            [
+                "--test",
+                "gof",
+                "--observed",
+                "5000,1,1,1",
+                "--expected",
+                "1250.75,1250.75,1250.75,1250.75",
+            ]
+        )
+        == 0
+    )
+    assert "<2e-308" in capsys.readouterr().out

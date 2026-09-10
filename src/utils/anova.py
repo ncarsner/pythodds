@@ -163,7 +163,7 @@ def f_sf(f_stat: float, df1: int, df2: int) -> float:
         df2: Denominator degrees of freedom; must be >= 1.
 
     Returns:
-        P(F > f_stat) in [0, 1].
+        P(F > f_stat) in [0, 1].  A tail below the smallest normal double (~2e-308) underflows to 0.0; that means smaller than double precision can represent, not impossible.
 
     Raises:
         ValueError: If ``df1``/``df2`` < 1 or ``f_stat`` < 0.
@@ -438,7 +438,7 @@ def studentized_range_sf(
             deviations of the integrand.
 
     Returns:
-        P(Q > q) in [0, 1].
+        P(Q > q) in [0, 1].  A tail below the smallest normal double (~2e-308) underflows to 0.0; that means smaller than double precision can represent, not impossible.
 
     Raises:
         ValueError: If ``k`` < 2, ``df`` < 1, or ``q`` < 0.
@@ -985,6 +985,39 @@ def _fmt(value: float, precision: int) -> str:
     return f"{value:.{precision}f}"
 
 
+# Smallest positive *normal* double.  A tail below this either underflowed to
+# zero or landed among the denormals, whose significands have already lost
+# digits, so both are reported as a bound rather than as a value.  Reaching it
+# takes an extreme statistic -- chi-square 1497 on 3 df, say -- but the
+# distinction matters: a printed 0 there means "smaller than double precision
+# can represent", never "impossible".
+_MIN_TAIL = sys.float_info.min
+
+
+def _fmt_p(value: float, precision: int) -> str:
+    """Format a p-value, keeping a small one legible.
+
+    Fixed-point rounding prints every strongly significant result as
+    ``0.0000``, which is indistinguishable from the tail collapse this
+    formatting sits on top of -- and leaves the CLI showing 0 for a p-value
+    that is now computed correctly.  Anything that would round away is shown
+    in scientific notation instead, and anything under :data:`_MIN_TAIL` as a
+    bound.
+
+    Args:
+        value: p-value in [0, 1].
+        precision: Decimal places requested for fixed-point output.
+
+    Returns:
+        The formatted p-value.
+    """
+    if value < _MIN_TAIL:
+        return f"<{_MIN_TAIL:.0e}"
+    if value < 0.5 * 10.0**-precision:
+        return f"{value:.{precision}e}"
+    return f"{value:.{precision}f}"
+
+
 def _decision(p_value: float, alpha: float) -> str:
     """Return reject / fail-to-reject decision string."""
     if p_value < alpha:
@@ -1012,13 +1045,14 @@ def format_table(
         Multi-line string ready to print.
     """
     f = lambda v: _fmt(v, precision)  # noqa: E731
+    fp = lambda v: _fmt_p(v, precision)  # noqa: E731
     lines = [
         "One-way ANOVA",
         "H₀: all group means are equal",
         "",
         f"  {'source':>10}  {'SS':>10}  {'df':>6}  {'MS':>10}  {'F':>10}  {'p-value':>10}",
         f"  {'between':>10}  {f(result.ss_between):>10}  {result.df_between:>6}  "
-        f"{f(result.ms_between):>10}  {f(result.f_stat):>10}  {f(result.p_value):>10}",
+        f"{f(result.ms_between):>10}  {f(result.f_stat):>10}  {fp(result.p_value):>10}",
         f"  {'within':>10}  {f(result.ss_within):>10}  {result.df_within:>6}  "
         f"{f(result.ms_within):>10}",
         "",
@@ -1040,7 +1074,7 @@ def format_table(
             sig = "*" if c.significant else ""
             lines.append(
                 f"    {c.i + 1} vs {c.j + 1:<4}  {f(c.mean_diff):>10}  {f(c.t_stat):>10}  "
-                f"{f(c.p_raw):>10}  {f(c.p_adj):>10}  {sig}"
+                f"{fp(c.p_raw):>10}  {fp(c.p_adj):>10}  {sig}"
             )
     elif posthoc == "tukey" and isinstance(comparisons, TukeyResult):
         lines += [
@@ -1053,7 +1087,7 @@ def format_table(
             sig = "*" if tc.significant else ""
             lines.append(
                 f"    {tc.i + 1} vs {tc.j + 1:<4}  {f(tc.mean_diff):>10}  {f(tc.q_stat):>10}  "
-                f"{f(tc.p_value):>10}  {sig}"
+                f"{fp(tc.p_value):>10}  {sig}"
             )
 
     return "\n".join(lines)

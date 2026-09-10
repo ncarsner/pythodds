@@ -800,3 +800,52 @@ def test_tukey_p_values_stay_nonzero_for_clearly_separated_groups():
     ]
     result = tukey_hsd(far_apart, anova_one_way(far_apart), alpha=0.05)
     assert all(0.0 < c.p_value < 1e-15 for c in result.comparisons)
+
+
+# ---------------------------------------------------------------------------
+# p-value rendering
+#
+# Fixed-point rounding printed every strongly significant result as 0.0000,
+# which looks exactly like the tail collapse the kernels above no longer have.
+# ---------------------------------------------------------------------------
+
+
+def test_fmt_p_keeps_fixed_point_where_it_shows_something():
+    assert anova_module._fmt_p(0.5, 4) == "0.5000"
+    assert anova_module._fmt_p(0.0501, 4) == "0.0501"
+    assert anova_module._fmt_p(5e-05, 4) == "0.0001"
+
+
+def test_fmt_p_switches_to_scientific_before_rounding_to_zero():
+    assert anova_module._fmt_p(4.9e-05, 4) == "4.9000e-05"
+    assert anova_module._fmt_p(5.66e-23, 4) == "5.6600e-23"
+
+
+def test_fmt_p_reports_a_bound_below_the_smallest_normal_double():
+    """Underflow is a representation limit, not a zero probability."""
+    assert anova_module._fmt_p(0.0, 4) == "<2e-308"
+    assert anova_module._fmt_p(5e-324, 4) == "<2e-308"
+
+
+def test_table_shows_a_small_p_value_instead_of_rounding_it_away(capsys):
+    assert (
+        main(
+            [
+                "--data",
+                "10.0,10.2,9.8,10.1,10.05",
+                "20.0,20.1,19.9,20.2,20.05",
+                "30.0,30.1,29.9,30.2,29.95",
+                "--posthoc",
+                "tukey",
+            ]
+        )
+        == 0
+    )
+    out = capsys.readouterr().out
+    # The F-test p-value and every Tukey comparison; all three used to print
+    # as 0.0000, and the mean-diff column shows why a blanket check on that
+    # string would not mean anything here.
+    assert "5.6627e-23" in out
+    assert "1.4394e-19" in out
+    assert "3.6114e-23" in out
+    assert "1.5101e-19" in out

@@ -250,7 +250,7 @@ def t_sf(t: float, df: int) -> float:
         df: Degrees of freedom; must be >= 1.
 
     Returns:
-        ``P(T > t)`` in [0, 1].
+        ``P(T > t)`` in [0, 1].  A tail below the smallest normal double (~2e-308) underflows to 0.0; that means smaller than double precision can represent, not impossible.
 
     Raises:
         ValueError: If ``df`` < 1.
@@ -445,7 +445,7 @@ def f_sf(f: float, df1: int, df2: int) -> float:
         df2: Denominator degrees of freedom.
 
     Returns:
-        ``P(F > f)`` in [0, 1].
+        ``P(F > f)`` in [0, 1].  A tail below the smallest normal double (~2e-308) underflows to 0.0; that means smaller than double precision can represent, not impossible.
     """
     if f <= 0:
         return 1.0
@@ -611,6 +611,39 @@ def format_number(x: float, precision: int) -> str:
     return fmt.format(x)
 
 
+# Smallest positive *normal* double.  A tail below this either underflowed to
+# zero or landed among the denormals, whose significands have already lost
+# digits, so both are reported as a bound rather than as a value.  Reaching it
+# takes an extreme statistic -- chi-square 1497 on 3 df, say -- but the
+# distinction matters: a printed 0 there means "smaller than double precision
+# can represent", never "impossible".
+_MIN_TAIL = sys.float_info.min
+
+
+def format_p_value(value: float, precision: int) -> str:
+    """Format a p-value, keeping a small one legible.
+
+    Fixed-point rounding prints every strongly significant result as
+    ``0.0000``, which is indistinguishable from the tail collapse this
+    formatting sits on top of -- and leaves the CLI showing 0 for a p-value
+    that is now computed correctly.  Anything that would round away is shown
+    in scientific notation instead, and anything under :data:`_MIN_TAIL` as a
+    bound.
+
+    Args:
+        value: p-value in [0, 1].
+        precision: Decimal places requested for fixed-point output.
+
+    Returns:
+        The formatted p-value.
+    """
+    if value < _MIN_TAIL:
+        return f"<{_MIN_TAIL:.0e}"
+    if value < 0.5 * 10.0**-precision:
+        return f"{value:.{precision}e}"
+    return f"{value:.{precision}f}"
+
+
 def interpret_r_squared(r_squared: float) -> str:
     """Provide interpretation of R² value."""
     if r_squared >= 0.9:
@@ -695,7 +728,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     print(f"Slope:                         {format_number(model.slope, precision)}")
     print(f"  Standard error:              {format_number(model.se_slope, precision)}")
     print(f"  t-statistic:                 {format_number(model.t_slope, precision)}")
-    print(f"  p-value:                     {format_number(p_value_slope, precision)}")
+    print(f"  p-value:                     {format_p_value(p_value_slope, precision)}")
     ci_pct = int((1.0 - alpha) * 100)
     print(
         f"  {ci_pct}% CI:                      [{format_number(slope_ci_lower, precision)}, {format_number(slope_ci_upper, precision)}]"
@@ -709,7 +742,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         f"  t-statistic:                 {format_number(model.t_intercept, precision)}"
     )
     print(
-        f"  p-value:                     {format_number(p_value_intercept, precision)}"
+        f"  p-value:                     {format_p_value(p_value_intercept, precision)}"
     )
     print(
         f"  {ci_pct}% CI:                      [{format_number(intercept_ci_lower, precision)}, {format_number(intercept_ci_upper, precision)}]"
@@ -723,7 +756,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         f"Residual standard error:       {format_number(model.residual_std_error, precision)}"
     )
     print(f"F-statistic:                   {format_number(f_stat, precision)}")
-    print(f"F-statistic p-value:           {format_number(p_value_f, precision)}")
+    print(f"F-statistic p-value:           {format_p_value(p_value_f, precision)}")
 
     significant = p_value_f < alpha
     print(
