@@ -237,6 +237,34 @@ def t_cdf(t: float, df: int) -> float:
     return 1.0 - tail if t > 0 else tail
 
 
+def t_sf(t: float, df: int) -> float:
+    """Upper-tail probability ``P(T > t)`` for Student's t(df).
+
+    Evaluated from the incomplete-beta identity rather than as ``1 - t_cdf``.
+    For t > 0 that subtraction cancels twice over -- :func:`t_cdf` itself
+    forms ``1 - tail`` -- so the reported p-value fell to exactly 0.0 from
+    about t = 16.6 at df = 30, where the true value is 1.1e-16.
+
+    Args:
+        t: Evaluation point.
+        df: Degrees of freedom; must be >= 1.
+
+    Returns:
+        ``P(T > t)`` in [0, 1].  A tail below the smallest normal double (~2e-308) underflows to 0.0; that means smaller than double precision can represent, not impossible.
+
+    Raises:
+        ValueError: If ``df`` < 1.
+    """
+    if df < 1:
+        raise ValueError("Degrees of freedom must be at least 1")
+
+    if math.isinf(t):
+        return 0.0 if t > 0 else 1.0
+
+    tail = 0.5 * incomplete_beta(df / 2.0, 0.5, df / (df + t * t))
+    return tail if t > 0 else 1.0 - tail
+
+
 def incomplete_beta(a: float, b: float, x: float) -> float:
     """Regularized incomplete beta function I_x(a,b).
 
@@ -403,6 +431,30 @@ def f_cdf(f: float, df1: int, df2: int) -> float:
     return incomplete_beta(df1 / 2.0, df2 / 2.0, x)
 
 
+def f_sf(f: float, df1: int, df2: int) -> float:
+    """Upper-tail probability ``P(F > f)`` for F(df1, df2).
+
+    The overall-model p-value the CLI prints.  Taken straight from
+    ``I_{df2/(df2 + df1*f)}(df2/2, df1/2)``: computing it as ``1 - f_cdf``
+    reported exactly 0.0 from about F = 291 on (1, 30) df, which an
+    ordinary well-fitting regression clears easily.
+
+    Args:
+        f: Observed F-statistic.
+        df1: Numerator degrees of freedom.
+        df2: Denominator degrees of freedom.
+
+    Returns:
+        ``P(F > f)`` in [0, 1].  A tail below the smallest normal double (~2e-308) underflows to 0.0; that means smaller than double precision can represent, not impossible.
+    """
+    if f <= 0:
+        return 1.0
+    if math.isinf(f):
+        return 0.0
+
+    return incomplete_beta(df2 / 2.0, df1 / 2.0, df2 / (df2 + df1 * f))
+
+
 def p_value_t(t: float, df: int, sided: str = "two") -> float:
     """Compute p-value for t-statistic.
 
@@ -418,7 +470,7 @@ def p_value_t(t: float, df: int, sided: str = "two") -> float:
         return 0.0
 
     # Two-tailed: P(|T| > |t|)
-    p_upper = 1.0 - t_cdf(abs(t), df)
+    p_upper = t_sf(abs(t), df)
 
     if sided == "two":
         return 2.0 * p_upper
@@ -559,6 +611,39 @@ def format_number(x: float, precision: int) -> str:
     return fmt.format(x)
 
 
+# Smallest positive *normal* double.  A tail below this either underflowed to
+# zero or landed among the denormals, whose significands have already lost
+# digits, so both are reported as a bound rather than as a value.  Reaching it
+# takes an extreme statistic -- chi-square 1497 on 3 df, say -- but the
+# distinction matters: a printed 0 there means "smaller than double precision
+# can represent", never "impossible".
+_MIN_TAIL = sys.float_info.min
+
+
+def format_p_value(value: float, precision: int) -> str:
+    """Format a p-value, keeping a small one legible.
+
+    Fixed-point rounding prints every strongly significant result as
+    ``0.0000``, which is indistinguishable from the tail collapse this
+    formatting sits on top of -- and leaves the CLI showing 0 for a p-value
+    that is now computed correctly.  Anything that would round away is shown
+    in scientific notation instead, and anything under :data:`_MIN_TAIL` as a
+    bound.
+
+    Args:
+        value: p-value in [0, 1].
+        precision: Decimal places requested for fixed-point output.
+
+    Returns:
+        The formatted p-value.
+    """
+    if value < _MIN_TAIL:
+        return f"<{_MIN_TAIL:.0e}"
+    if value < 0.5 * 10.0**-precision:
+        return f"{value:.{precision}e}"
+    return f"{value:.{precision}f}"
+
+
 def interpret_r_squared(r_squared: float) -> str:
     """Provide interpretation of R² value."""
     if r_squared >= 0.9:
@@ -615,7 +700,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     # Compute additional statistics
     f_stat = f_statistic(model)
-    p_value_f = 1.0 - f_cdf(f_stat, 1, model.df)
+    p_value_f = f_sf(f_stat, 1, model.df)
     p_value_slope = p_value_t(model.t_slope, model.df, "two")
     p_value_intercept = p_value_t(model.t_intercept, model.df, "two")
 
@@ -643,7 +728,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     print(f"Slope:                         {format_number(model.slope, precision)}")
     print(f"  Standard error:              {format_number(model.se_slope, precision)}")
     print(f"  t-statistic:                 {format_number(model.t_slope, precision)}")
-    print(f"  p-value:                     {format_number(p_value_slope, precision)}")
+    print(f"  p-value:                     {format_p_value(p_value_slope, precision)}")
     ci_pct = int((1.0 - alpha) * 100)
     print(
         f"  {ci_pct}% CI:                      [{format_number(slope_ci_lower, precision)}, {format_number(slope_ci_upper, precision)}]"
@@ -657,7 +742,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         f"  t-statistic:                 {format_number(model.t_intercept, precision)}"
     )
     print(
-        f"  p-value:                     {format_number(p_value_intercept, precision)}"
+        f"  p-value:                     {format_p_value(p_value_intercept, precision)}"
     )
     print(
         f"  {ci_pct}% CI:                      [{format_number(intercept_ci_lower, precision)}, {format_number(intercept_ci_upper, precision)}]"
@@ -671,7 +756,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         f"Residual standard error:       {format_number(model.residual_std_error, precision)}"
     )
     print(f"F-statistic:                   {format_number(f_stat, precision)}")
-    print(f"F-statistic p-value:           {format_number(p_value_f, precision)}")
+    print(f"F-statistic p-value:           {format_p_value(p_value_f, precision)}")
 
     significant = p_value_f < alpha
     print(
