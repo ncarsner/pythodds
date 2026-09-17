@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `multiple_regression` imports `f_sf` from `anova` instead of defining its own copy. The duplicate was already in the direct form while the ANOVA original still subtracted from 1, so the two disagreed by everything once the tail passed 1e-16
+- The 72-hour dependency cooling-off moved from Renovate into uv itself: `[tool.uv] exclude-newer = "3 days"` in `pyproject.toml` (#53)
+  - Enforced wherever uv resolves, not only in bot PRs, and it also governs the unpinned `hatchling` that `uv build` fetches in the publish job, which no lockfile covers
+  - `renovate.json` removed. It never took effect, since the Renovate app was never installed. pre-commit `rev` pins stay on the manual 72-hour rule documented in `.pre-commit-config.yaml`
+  - uv pinned `0.9.5` → `0.12.13` in both workflows, and `required-version = ">=0.11.8"` added, the first release that writes relative cutoffs to `uv.lock` without churn. A uv older than 0.9.17 cannot parse the setting and skips all of `[tool.uv]` with only a warning, so upgrade uv locally
+  - CI now runs `uv sync --locked --dev`, failing on a stale `uv.lock` instead of silently re-resolving it
 
 ---
 
