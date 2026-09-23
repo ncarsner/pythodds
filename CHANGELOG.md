@@ -24,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `multiple_regression` imports `f_sf` from `anova` instead of defining its own copy. The duplicate was already in the direct form while the ANOVA original still subtracted from 1, so the two disagreed by everything once the tail passed 1e-16
+- Releases now publish to PyPI through Trusted Publishing (OIDC) instead of a stored API token
+  - `publish.yml` split into `build` and `publish` jobs. Only `publish` can mint an OIDC token, and it runs no project or build-backend code — it uploads the files `build` produced. The workflow's default permissions are now empty, with each job granted only what it needs
+  - The `publish` job runs in a `pypi` environment that requires manual approval, so a tagged release builds and then waits rather than uploading on its own
+  - Actions in `publish.yml` pinned to commit hashes rather than movable tags, and upgraded: `checkout` v4 → v7.0.1, `setup-uv` v3 → v10.1.0. `setup-python` dropped, since uv provides its own interpreter
+  - Added a guard that fails the build when the pushed tag disagrees with the version in `pyproject.toml`
+  - PEP 740 attestations are now published alongside the distributions, which `uv publish` uploads by default under trusted publishing
 - The 72-hour dependency cooling-off moved from Renovate into uv itself: `[tool.uv] exclude-newer = "3 days"` in `pyproject.toml` (#53)
   - Enforced wherever uv resolves, not only in bot PRs, and it also governs the unpinned `hatchling` that `uv build` fetches in the publish job, which no lockfile covers
   - `renovate.json` removed. It never took effect, since the Renovate app was never installed. pre-commit `rev` pins stay on the manual 72-hour rule documented in `.pre-commit-config.yaml`
