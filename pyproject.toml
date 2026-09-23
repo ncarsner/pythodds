@@ -93,6 +93,15 @@ dev = [
 # only to `ruff check` and was inert: E501 lives in E5, which is not selected.
 select = ["E4", "E7", "E9", "F", "I"]
 
+[tool.uv]
+# Supply-chain cooldown: ignore any release younger than 3 days, matching the
+# 72-hour policy on pre-commit revs. Applies wherever uv resolves, including the
+# unpinned hatchling that `uv build` fetches in the publish job. Relative spans
+# need uv >= 0.11.8; an older uv cannot parse this table and ignores all of it
+# with only a warning, so required-version cannot catch that case.
+required-version = ">=0.11.8"
+exclude-newer = "3 days"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
