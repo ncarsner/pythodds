@@ -31,6 +31,7 @@ from src.utils.forecast_time_series import (
     prediction_intervals,
     residual_sigma,
     seasonal_indices,
+    seasonality_p_value,
     simple_exponential_smoothing,
 )
 
@@ -595,6 +596,111 @@ class TestSeasonalIndices:
             seasonal_indices(linear(23), 12)
 
 
+class TestSeasonalityScreen:
+    """Tests for the seasonal gate on index estimation."""
+
+    def test_repeating_pattern_is_seasonal(self):
+        assert seasonality_p_value(linear_plus_season(48), 12) < 0.001
+
+    def test_a_line_carries_no_seasonality(self):
+        """Detrended residuals are identically zero, so no phase stands out."""
+        assert seasonality_p_value(linear(36), 12) == 1.0
+
+    def test_noiseless_repeating_pattern_without_trend(self):
+        data = [10.0, 50.0, 20.0, 40.0] * 6
+        assert seasonality_p_value(data, 4) == 0.0
+
+    def test_constant_series_carries_no_seasonality(self):
+        assert seasonality_p_value([5.0] * 24, 12) == 1.0
+
+    def test_noise_alone_rarely_looks_seasonal(self):
+        """At alpha = 0.05 the screen should fire on roughly 5% of noise."""
+        detected = 0
+        for seed in range(200):
+            rng = random.Random(seed)
+            data = [100.0 + rng.gauss(0, 10) for _ in range(36)]
+            detected += seasonality_p_value(data, 12) <= 0.05
+
+        assert detected / 200 < 0.15
+
+    def test_multiplicative_screen_uses_ratios(self):
+        factors = [0.8, 1.2, 0.9, 1.1]
+        data = [100.0 * 1.01**t * factors[t % 4] for t in range(24)]
+
+        assert seasonality_p_value(data, 4, "multiplicative") < 0.001
+
+    def test_gate_keeps_indices_when_seasonality_is_real(self):
+        _, _, seasonal = initial_components(linear_plus_season(48), 12)
+        assert seasonal == pytest.approx(SEASON, abs=1e-9)
+
+    def test_gate_drops_indices_when_seasonality_is_absent(self):
+        """Without the gate, indices get fitted to noise and persist in the forecast."""
+        rng = random.Random(7)
+        data = [100.0 + 2 * t + rng.gauss(0, 10) for t in range(36)]
+
+        _, _, gated = initial_components(data, 12)
+        _, _, ungated = initial_components(data, 12, seasonality_alpha=1.0)
+
+        assert gated == [0.0] * 12
+        assert ungated != [0.0] * 12
+
+    def test_multiplicative_neutral_indices_are_ones(self):
+        rng = random.Random(7)
+        data = [100.0 + 2 * t + rng.gauss(0, 10) for t in range(36)]
+
+        _, _, seasonal = initial_components(data, 12, "multiplicative")
+        assert seasonal == [1.0] * 12
+
+    def test_alpha_one_always_estimates(self):
+        data = linear(36)
+        _, _, seasonal = initial_components(data, 12, seasonality_alpha=1.0)
+        # Estimated rather than neutral, though a line has nothing to find.
+        assert seasonal == pytest.approx([0.0] * 12, abs=1e-9)
+
+    def test_alpha_zero_never_estimates(self):
+        _, _, seasonal = initial_components(
+            linear_plus_season(48), 12, seasonality_alpha=0.0
+        )
+        assert seasonal == [0.0] * 12
+
+    @pytest.mark.parametrize("bad", [-0.1, 1.5])
+    def test_alpha_outside_the_unit_interval_raises(self, bad):
+        with pytest.raises(ValueError, match="seasonality_alpha must be in"):
+            initial_components(linear_plus_season(48), 12, seasonality_alpha=bad)
+
+    def test_gate_improves_a_non_seasonal_series(self):
+        """A series of level shifts carrying no seasonality (#73).
+
+        Fitting indices to its noise cost 19% median accuracy; the gate is what
+        keeps Holt-Winters from doing that.
+        """
+        gated_errors = []
+        ungated_errors = []
+
+        for seed in range(40):
+            rng = random.Random(seed)
+            level, data = 250.0, []
+            for _ in range(48):
+                if rng.random() < 0.15:
+                    level += rng.choice([-1, 1]) * rng.randint(15, 40)
+                level += rng.randint(-2, 2)
+                data.append(float(level))
+            train, test = data[:36], data[36:]
+
+            for alpha, bucket in ((0.05, gated_errors), (1.0, ungated_errors)):
+                _, lvl, trd, seas = holt_winters(
+                    train, 0.3, 0.1, 0.1, 12, "additive", alpha
+                )
+                forecasts = forecast_holt_winters(lvl, trd, seas, 12, 12, "additive")
+                bucket.append(
+                    statistics.fmean(
+                        abs(a - f) / abs(a) for a, f in zip(test, forecasts)
+                    )
+                )
+
+        assert statistics.median(gated_errors) < statistics.median(ungated_errors)
+
+
 class TestInitialComponents:
     """Tests for the Holt-Winters starting state."""
 
@@ -929,6 +1035,71 @@ class TestConfidenceReachesTheCLI:
             widths[confidence] = first["upper"] - first["lower"]
 
         assert widths[0.5] < widths[0.85] < widths[0.95]
+
+    def test_holt_winters_reports_the_seasonal_verdict(self, capsys, monkeypatch):
+        """A Holt-Winters run that found no seasonality says so, in both formats."""
+        seasonal = ",".join(str(v) for v in linear_plus_season(36))
+        flat = ",".join(str(v) for v in linear(36, slope=2.0))
+
+        for data, detected in ((seasonal, True), (flat, False)):
+            monkeypatch.setattr(
+                sys,
+                "argv",
+                [
+                    "forecast",
+                    "--data",
+                    data,
+                    "--method",
+                    "holt-winters",
+                    "--periods",
+                    "3",
+                    "--format",
+                    "json",
+                ],
+            )
+            assert main() == 0
+            payload = json.loads(capsys.readouterr().out)
+            assert payload["seasonality"]["detected"] is detected
+
+            monkeypatch.setattr(
+                sys,
+                "argv",
+                [
+                    "forecast",
+                    "--data",
+                    data,
+                    "--method",
+                    "holt-winters",
+                    "--periods",
+                    "3",
+                ],
+            )
+            assert main() == 0
+            out = capsys.readouterr().out
+            if detected:
+                assert "Seasonality: detected" in out
+            else:
+                assert "Seasonality: not detected" in out
+                assert "level and trend only" in out
+
+    def test_seasonality_alpha_out_of_range_is_reported(self, capsys, monkeypatch):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "forecast",
+                "--data",
+                ",".join(str(v) for v in linear_plus_season(36)),
+                "--method",
+                "holt-winters",
+                "--periods",
+                "1",
+                "--seasonality-alpha",
+                "1.5",
+            ],
+        )
+        assert main() == 1
+        assert "seasonality_alpha must be in" in capsys.readouterr().err
 
     def test_table_output_labels_the_level(self, capsys, monkeypatch):
         args = [
