@@ -14,6 +14,137 @@ import statistics
 import sys
 from pathlib import Path
 
+from src.utils.normal_gaussian import normal_ppf
+
+
+def centered_moving_average(data, period):
+    """
+    Centered moving average of `data` over `period` observations.
+
+    Returns a list the same length as `data`, with `None` where the window would
+    run off either end. An even period uses the 2 x period weighting (half weight
+    on the two end points) so the average stays centered on an observation
+    rather than falling between two of them.
+
+    A moving average one full season wide averages every phase of the cycle
+    exactly once, so it removes seasonality and leaves trend. That is what makes
+    it the right baseline to measure seasonal indices against: subtracting it
+    cannot leave trend behind in the indices.
+    """
+    if period < 1:
+        raise ValueError("seasonal period must be >= 1")
+
+    n = len(data)
+    half = period // 2
+    result = [None] * n
+
+    if period % 2 == 1:
+        for t in range(half, n - half):
+            result[t] = statistics.fmean(data[t - half : t + half + 1])
+    else:
+        for t in range(half, n - half):
+            window = data[t - half : t + half + 1]
+            interior = sum(window[1:-1])
+            result[t] = (0.5 * window[0] + interior + 0.5 * window[-1]) / period
+
+    return result
+
+
+def trend_estimate(data, period):
+    """
+    Trend level at every observation, with no gaps.
+
+    A centered moving average supplies the interior, where it tracks curvature
+    the way a single fitted line cannot. It is undefined for the first and last
+    half-season, so those are filled by extending a line fitted through the
+    moving average itself.
+
+    Dropping those ends instead would discard the most recent half-season from
+    the seasonal estimate, which is the worst half to lose: when a seasonal
+    shape is changing, that is the part describing its current form.
+    """
+    smoothed = centered_moving_average(data, period)
+    defined = [t for t, level in enumerate(smoothed) if level is not None]
+
+    slope, intercept = statistics.linear_regression(
+        defined, [smoothed[t] for t in defined]
+    )
+
+    return [
+        smoothed[t] if smoothed[t] is not None else intercept + slope * t
+        for t in range(len(data))
+    ]
+
+
+def seasonal_indices(data, period, seasonal_type="additive"):
+    """
+    Estimate seasonal indices by classical decomposition.
+
+    Each observation is compared against the centered moving average at the same
+    point, so the trend is removed before the seasonal effect is measured. The
+    per-phase averages are then normalized: additive indices sum to zero and
+    multiplicative indices average to one, which is what makes them pure
+    seasonal effects rather than a mixture of season and level.
+
+    Returns a list of `period` indices, where element i applies to observations
+    at positions i, i + period, i + 2 * period, ...
+    """
+    if period < 2:
+        raise ValueError("seasonal period must be >= 2 to estimate seasonality")
+    if len(data) < 2 * period:
+        raise ValueError(
+            f"estimating seasonality requires at least {2 * period} data points"
+        )
+
+    trend = trend_estimate(data, period)
+
+    if seasonal_type == "multiplicative" and any(level <= 0 for level in trend):
+        raise ValueError(
+            "multiplicative seasonality requires strictly positive data; "
+            "the detrended ratio is undefined where the trend is zero or negative"
+        )
+
+    by_phase = [[] for _ in range(period)]
+    for t, (value, level) in enumerate(zip(data, trend)):
+        if seasonal_type == "additive":
+            by_phase[t % period].append(value - level)
+        else:
+            by_phase[t % period].append(value / level)
+
+    raw = [statistics.fmean(phase) for phase in by_phase]
+
+    # Normalize so the indices carry only seasonality: anything common to every
+    # phase belongs to the level, not to the season.
+    if seasonal_type == "additive":
+        offset = statistics.fmean(raw)
+        return [value - offset for value in raw]
+
+    scale = statistics.fmean(raw)
+    return [value / scale for value in raw]
+
+
+def initial_components(data, period, seasonal_type="additive"):
+    """
+    Starting level, trend, and seasonal indices for Holt-Winters.
+
+    The series is deseasonalized with the indices from `seasonal_indices`, and a
+    least-squares line through the deseasonalized data supplies level and trend.
+    Level is the fitted value one step *before* the first observation, which is
+    where the smoothing recursion starts from.
+    """
+    seasonal = seasonal_indices(data, period, seasonal_type)
+
+    if seasonal_type == "additive":
+        deseasonalized = [value - seasonal[t % period] for t, value in enumerate(data)]
+    else:
+        deseasonalized = [value / seasonal[t % period] for t, value in enumerate(data)]
+
+    slope, intercept = statistics.linear_regression(range(len(data)), deseasonalized)
+
+    # The recursion's first forecast is level + trend + seasonal[0], so level has
+    # to sit at t = -1 for that to land on the fitted line at t = 0.
+    return intercept - slope, slope, seasonal
+
 
 def simple_exponential_smoothing(data, alpha=0.3):
     """
@@ -55,8 +186,15 @@ def double_exponential_smoothing(data, alpha=0.3, beta=0.1):
         raise ValueError("Double exponential smoothing requires at least 2 data points")
 
     fitted = []
-    level = data[0]
-    trend = data[1] - data[0] if len(data) > 1 else 0
+    # A least-squares line through the whole series initializes level and trend.
+    # Taking the trend from data[1] - data[0] instead would set it from two noisy
+    # observations, and that error decays only over roughly 1 / (alpha * beta)
+    # periods, inflating the residuals it is estimated from along the way.
+    # Level sits one step before the first observation, since the recursion's
+    # first forecast is level + trend.
+    slope, intercept = statistics.linear_regression(range(len(data)), data)
+    trend = slope
+    level = intercept - slope
 
     for value in data:
         fitted.append(level + trend)
@@ -89,25 +227,7 @@ def holt_winters(
             f"Holt-Winters requires at least {2 * seasonal_period} data points"
         )
 
-    # Initialize components
-    # Level: average of first seasonal period
-    level = sum(data[:seasonal_period]) / seasonal_period
-
-    # Trend: average change between first two seasonal periods
-    trend = sum(
-        (data[seasonal_period + i] - data[i]) for i in range(seasonal_period)
-    ) / (seasonal_period**2)
-
-    # Seasonal: initial seasonal indices
-    seasonal = []
-    for i in range(seasonal_period):
-        season_avg = sum(
-            data[j] for j in range(i, len(data), seasonal_period) if j < len(data)
-        ) / len([j for j in range(i, len(data), seasonal_period) if j < len(data)])
-        if seasonal_type == "additive":
-            seasonal.append(season_avg - level)
-        else:  # multiplicative
-            seasonal.append(season_avg / level if level != 0 else 1)
+    level, trend, seasonal = initial_components(data, seasonal_period, seasonal_type)
 
     fitted = []
 
@@ -189,24 +309,97 @@ def calculate_metrics(residuals):
     return {"rmse": rmse, "mae": mae, "std": std}
 
 
-def prediction_intervals(forecasts, residual_std, alpha=0.95):
+def residual_sigma(residuals, n_params=0, burn_in=0):
     """
-    Calculate prediction intervals for forecasts.
+    One-step-ahead error standard deviation, corrected for fitted parameters.
 
-    Uses residual standard deviation to construct symmetric intervals.
-    For multi-step forecasts, uncertainty increases with horizon.
+    `burn_in` drops leading residuals produced while the smoothing recursion is
+    still settling from its initial state; those reflect the initialization
+    rather than the model's accuracy. `n_params` is the number of fitted
+    quantities, removed from the denominator so the estimate is not biased low
+    by the parameters that were chosen to make these residuals small.
     """
-    # Z-score for confidence level using normal approximation
-    z_scores = {0.80: 1.282, 0.90: 1.645, 0.95: 1.960, 0.99: 2.576}
-    z = z_scores.get(alpha, 1.960)
+    usable = residuals[burn_in:]
+    if not usable:
+        raise ValueError("no residuals left after burn-in")
+
+    dof = len(usable) - n_params
+    if dof < 1:
+        raise ValueError(
+            f"not enough residuals ({len(usable)}) to estimate error "
+            f"with {n_params} fitted parameters"
+        )
+
+    return math.sqrt(sum(r * r for r in usable) / dof)
+
+
+def horizon_std_multipliers(
+    periods, method, alpha, beta=0.0, gamma=0.0, seasonal_period=1
+):
+    """
+    Per-horizon multipliers on the one-step error standard deviation.
+
+    Forecast uncertainty grows with the horizon at a rate set by the model, not
+    by a single universal rule. These are the standard additive-error
+    exponential smoothing variance expressions: each future shock reaches the
+    forecast through the level, and through the trend and seasonal terms where
+    the model carries them.
+
+        simple         var_h / sigma^2 = 1 + (h - 1) * alpha^2
+        double         c_j = alpha * (1 + j * beta)
+        holt-winters   c_j = alpha * (1 + j * beta) + gamma  (every seasonal_period steps)
+                       var_h / sigma^2 = 1 + sum of c_j^2 for j = 1 .. h-1
+
+    For a random walk these reduce to sqrt(h); for a model carrying a trend they
+    grow faster, which is why one shared sqrt(h) rule understates the longer
+    horizons of the trending and seasonal methods.
+
+    Multiplicative seasonality has no closed form here, and reuses the
+    additive-seasonal expression as an approximation.
+    """
+    if periods < 0:
+        raise ValueError("periods must be >= 0")
+
+    multipliers = []
+    for h in range(1, periods + 1):
+        variance_ratio = 1.0
+        for j in range(1, h):
+            if method == "simple":
+                c = alpha
+            elif method == "double":
+                c = alpha * (1 + j * beta)
+            else:  # holt-winters
+                c = alpha * (1 + j * beta)
+                if seasonal_period > 0 and j % seasonal_period == 0:
+                    c += gamma
+            variance_ratio += c * c
+        multipliers.append(math.sqrt(variance_ratio))
+
+    return multipliers
+
+
+def prediction_intervals(forecasts, sigma, multipliers, confidence=0.95):
+    """
+    Symmetric prediction intervals around each forecast.
+
+    `sigma` is the one-step error standard deviation and `multipliers` scales it
+    to each horizon — see `horizon_std_multipliers`. Both are required rather
+    than defaulted, since a wrong horizon rule is invisible in the output.
+    """
+    if not 0 < confidence < 1:
+        raise ValueError(f"confidence must be in (0, 1), got {confidence}")
+    if len(multipliers) != len(forecasts):
+        raise ValueError(
+            f"got {len(multipliers)} horizon multipliers for {len(forecasts)} forecasts"
+        )
+
+    # Two-sided interval: a 95% interval needs the 97.5th percentile.
+    z = normal_ppf(1 - (1 - confidence) / 2)
 
     intervals = []
-    for h, forecast in enumerate(forecasts, start=1):
-        # Uncertainty grows with forecast horizon
-        se = residual_std * math.sqrt(h)
-        lower = forecast - z * se
-        upper = forecast + z * se
-        intervals.append((lower, upper))
+    for forecast, multiplier in zip(forecasts, multipliers):
+        margin = z * sigma * multiplier
+        intervals.append((forecast - margin, forecast + margin))
 
     return intervals
 
@@ -236,13 +429,21 @@ def load_data(data_arg):
 
 
 def format_output(
-    data, fitted, forecasts, intervals, metrics, format_type="table", precision=2
+    data,
+    fitted,
+    forecasts,
+    intervals,
+    metrics,
+    format_type="table",
+    precision=2,
+    confidence=0.95,
 ):
     """Format output in table, JSON, or CSV format."""
     if format_type == "json":
         output = {
             "fitted": [round(f, precision) for f in fitted],
             "forecasts": [round(f, precision) for f in forecasts],
+            "confidence": confidence,
             "prediction_intervals": [
                 {"lower": round(x, precision), "upper": round(u, precision)}
                 for x, u in intervals
@@ -281,7 +482,10 @@ def format_output(
         output.append(f"  Residual Std: {metrics['std']:.{precision}f}")
 
         # Forecasts
-        output.append(f"\nForecast ({len(forecasts)} periods):")
+        output.append(
+            f"\nForecast ({len(forecasts)} periods), "
+            f"{confidence:.0%} prediction intervals:"
+        )
         output.append("-" * 60)
         output.append(f"{'Period':<8} {'Forecast':>12} {'Lower':>12} {'Upper':>12}")
         output.append("-" * 60)
@@ -449,8 +653,8 @@ Examples:
         if not 0 < args.gamma <= 1:
             print("Error: gamma must be in (0, 1]", file=sys.stderr)
             return 1
-        if args.confidence < 0.5 or args.confidence >= 1.0:
-            print("Error: confidence must be in [0.5, 1.0)", file=sys.stderr)
+        if not 0 < args.confidence < 1:
+            print("Error: confidence must be in (0, 1)", file=sys.stderr)
             return 1
 
         # Backtest mode
@@ -525,10 +729,28 @@ Examples:
                 args.seasonal_type,
             )
 
-        # Calculate metrics and intervals
+        # Calculate metrics and intervals. The leading residuals are dropped:
+        # they measure the initialization settling in, not forecast accuracy.
         residuals = calculate_residuals(data, fitted)
         metrics = calculate_metrics(residuals)
-        intervals = prediction_intervals(forecasts, metrics["std"], args.confidence)
+
+        if args.method == "simple":
+            burn_in, n_params = 1, 1
+        elif args.method == "double":
+            burn_in, n_params = 2, 2
+        else:  # holt-winters
+            burn_in, n_params = args.seasonal_period, 3
+
+        sigma = residual_sigma(residuals, n_params=n_params, burn_in=burn_in)
+        multipliers = horizon_std_multipliers(
+            args.periods,
+            args.method,
+            args.alpha,
+            args.beta,
+            args.gamma,
+            args.seasonal_period,
+        )
+        intervals = prediction_intervals(forecasts, sigma, multipliers, args.confidence)
 
         # Output results
         output = format_output(
@@ -539,6 +761,7 @@ Examples:
             metrics,
             args.output_format,
             args.precision,
+            args.confidence,
         )
         print(output)
 

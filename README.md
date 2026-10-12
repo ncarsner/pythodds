@@ -1118,7 +1118,7 @@ forecast --data 100,110,120,130,140 --method simple --periods 3 --format json
 | | `--gamma` | Seasonal smoothing parameter, 0 < γ ≤ 1 (default: `0.1`) |
 | | `--seasonal-period` | Seasonal period for Holt-Winters (default: `12`) |
 | | `--seasonal-type` | Seasonal component: `additive` or `multiplicative` (default: `additive`) |
-| | `--confidence` | Confidence level for prediction intervals, ≥0.5 and <1.0 (default: `0.95`) |
+| | `--confidence` | Confidence level for prediction intervals, 0 < level < 1 (default: `0.95`) |
 | | `--format` | Output format: `table` (default), `json`, or `csv` |
 | | `--precision` | Decimal precision for output (default: `2`) |
 | | `--backtest K` | Hold out last K observations for backtesting and compute RMSE/MAE |
@@ -1134,6 +1134,8 @@ forecast --data 100,110,120,130,140 --method simple --periods 3 --format json
 - **γ (gamma)**: Controls how quickly the model adapts to changes in the seasonal pattern
 
 Higher values (closer to 1) place more weight on recent observations; lower values smooth out noise but respond more slowly to changes.
+
+**Prediction intervals:** width comes from the one-step error standard deviation, scaled to each horizon by the variance expression for the chosen method rather than by one shared rule — a model carrying a trend accumulates uncertainty faster than one tracking a level alone. Simulated coverage sits within about two points of the stated level. Intervals assume the chosen method suits the data and that its smoothing parameters are right; they do not account for having picked the wrong model.
 
 **Example output:**
 ```text
